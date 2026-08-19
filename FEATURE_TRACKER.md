@@ -4,7 +4,7 @@ Last updated: 2026-08-19
 
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
-| Revenue-evidence OS `v0.1.0` | IN PROGRESS | 12 unit tests pass locally; GitHub release not yet published |
+| Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
 | `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, KILL below 5% |
 | 20 qualified prospects | DEPLOYED | 21 records: Foresite disqualified; Littlefish added as a sourced UK-wedge replacement; CLI excludes disqualified statuses |
 | Queue-01 deep research | VERIFIED | 10 queue accounts researched from cited public sources; Foresite disqualified; Morcan researched as send replacement |
