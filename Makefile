@@ -2,16 +2,23 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: test init seed scoreboard demo clean
+.PHONY: test gate init seed scoreboard capability-map demo clean
 
-test:
+gate:
+	$(PY) scripts/scope_gate.py --selftest
+	$(PY) scripts/scope_gate.py
+
+test: gate
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m unittest discover -s tests -v
 
 init:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli init --db $(DB)
 
 seed: init
-	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli seed-prospects --db $(DB) data/seeds/prospects.csv
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli seed-prospects --db $(DB) experiments/EXP-ACQ-0001/prospects.csv
+
+capability-map:
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli capability-map
 
 scoreboard:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)

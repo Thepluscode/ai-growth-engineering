@@ -4,6 +4,7 @@ import argparse
 import csv
 from pathlib import Path
 
+from . import capabilities
 from .models import ExperimentSpec
 from .registry import add_experiment, record_experiment_result, scoreboard, seed_prospects
 from .storage import connect, init_db
@@ -123,6 +124,12 @@ def cmd_suppress(args: argparse.Namespace) -> None:
     print(f"suppressed {args.identity}")
 
 
+def cmd_capability_map(args: argparse.Namespace) -> None:
+    data = capabilities.load(args.map_path)
+    capabilities.validate(data)
+    print(capabilities.render(data))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="age",
@@ -137,6 +144,9 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("seed-prospects"); dbarg(p); p.add_argument("csv_path"); p.set_defaults(func=cmd_seed)
     p = sub.add_parser("scoreboard"); dbarg(p); p.set_defaults(func=cmd_scoreboard)
     p = sub.add_parser("gate-check"); dbarg(p); p.set_defaults(func=cmd_gate_check)
+    p = sub.add_parser("capability-map")
+    p.add_argument("--map-path", default=None)
+    p.set_defaults(func=cmd_capability_map)
 
     p = sub.add_parser("teardown"); dbarg(p)
     p.add_argument("--company", required=True)

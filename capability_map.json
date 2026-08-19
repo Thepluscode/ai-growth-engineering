@@ -1,0 +1,153 @@
+{
+  "version": "0.1.0",
+  "note": "The Digital Marketing Project's full operating scope. Every capability derived from the source research is listed here as a first-class entry, with an honest build status. This file is the architecture; directories are created only when a capability reaches IMPLEMENTED. Status vocabulary: IMPLEMENTED = code exists and is covered by a deterministic test; SPECIFIED = written down as a skill, template or policy but not executable; HYPOTHESIS = named and understood, nothing built. Promotion requires a market experiment or repeated paid delivery need, never enthusiasm.",
+  "status_vocabulary": ["IMPLEMENTED", "SPECIFIED", "HYPOTHESIS"],
+  "domains": {
+    "1_market_intelligence": {
+      "title": "Market intelligence",
+      "capabilities": {
+        "prospect_registry": "IMPLEMENTED",
+        "evidence_registry": "IMPLEMENTED",
+        "market_research_workflow": "SPECIFIED",
+        "customer_intelligence_workflow": "SPECIFIED",
+        "competitive_reverse_engineering": "SPECIFIED",
+        "voice_of_customer": "HYPOTHESIS",
+        "problem_query_maps": "HYPOTHESIS",
+        "buyer_awareness_model": "HYPOTHESIS",
+        "buying_committee_psychology": "HYPOTHESIS",
+        "miracles_and_miseries": "HYPOTHESIS",
+        "demand_evidence_score": "IMPLEMENTED",
+        "pattern_extraction_registry": "HYPOTHESIS"
+      }
+    },
+    "2_strategy": {
+      "title": "Strategy — positioning, offers, pricing, messaging",
+      "capabilities": {
+        "rule_of_one_gate": "IMPLEMENTED",
+        "offer_strength_score": "IMPLEMENTED",
+        "message_congruence_score": "IMPLEMENTED",
+        "segmentation": "HYPOTHESIS",
+        "positioning_model": "HYPOTHESIS",
+        "offer_architecture": "HYPOTHESIS",
+        "offer_experiment_registry": "HYPOTHESIS",
+        "proof_hierarchy": "HYPOTHESIS",
+        "proof_inventory": "HYPOTHESIS",
+        "offer_to_revenue_lineage": "HYPOTHESIS",
+        "pricing_model": "HYPOTHESIS"
+      }
+    },
+    "3_creative": {
+      "title": "Creative intelligence",
+      "capabilities": {
+        "synthetic_media_policy": "SPECIFIED",
+        "unsupported_claim_block": "IMPLEMENTED",
+        "creative_families": "HYPOTHESIS",
+        "creative_genome": "HYPOTHESIS",
+        "creative_mutation_trees": "HYPOTHESIS",
+        "hook_testing": "HYPOTHESIS",
+        "body_testing": "HYPOTHESIS",
+        "creative_fatigue_detection": "HYPOTHESIS",
+        "creative_yield": "HYPOTHESIS",
+        "proof_led_creative": "HYPOTHESIS",
+        "ai_ugc_controls": "HYPOTHESIS"
+      }
+    },
+    "4_distribution": {
+      "title": "Distribution channels",
+      "capabilities": {
+        "outbound_quality_gate": "IMPLEMENTED",
+        "suppression_registry": "IMPLEMENTED",
+        "outreach_research_workflow": "SPECIFIED",
+        "seo_problem_led_search": "HYPOTHESIS",
+        "ai_search_visibility": "HYPOTHESIS",
+        "discovery_surface_intelligence": "HYPOTHESIS",
+        "authority_engineering": "HYPOTHESIS",
+        "directories_and_reviews": "HYPOTHESIS",
+        "content_as_market_sensing": "HYPOTHESIS",
+        "market_attention_registry": "HYPOTHESIS",
+        "hook_registry": "HYPOTHESIS",
+        "shortform_to_longform_pipeline": "HYPOTHESIS",
+        "content_to_revenue_lineage": "HYPOTHESIS",
+        "engagement_to_conversation": "HYPOTHESIS",
+        "social_distribution": "HYPOTHESIS",
+        "email_marketing": "HYPOTHESIS",
+        "paid_media_google": "HYPOTHESIS",
+        "paid_media_meta": "HYPOTHESIS",
+        "paid_media_linkedin": "HYPOTHESIS",
+        "paid_media_tiktok": "HYPOTHESIS",
+        "influencer_and_creator": "HYPOTHESIS",
+        "affiliate_offer_registry": "HYPOTHESIS",
+        "affiliate_offer_routing": "HYPOTHESIS",
+        "partner_attribution": "HYPOTHESIS",
+        "revenue_per_partner": "HYPOTHESIS",
+        "performance_partnerships": "HYPOTHESIS"
+      }
+    },
+    "5_conversion": {
+      "title": "Conversion — landing pages, CRO, capture, qualification",
+      "capabilities": {
+        "growth_leak_teardown": "IMPLEMENTED",
+        "offer_creative_page_congruence": "IMPLEMENTED",
+        "landing_page_experiments": "HYPOTHESIS",
+        "rapid_experiment_surfaces": "HYPOTHESIS",
+        "experiment_surface_builder": "HYPOTHESIS",
+        "page_ephemerality": "HYPOTHESIS",
+        "functional_decomposition": "HYPOTHESIS",
+        "time_to_evidence": "HYPOTHESIS",
+        "lead_capture": "HYPOTHESIS",
+        "qualification_model": "SPECIFIED",
+        "booking_flow": "HYPOTHESIS"
+      }
+    },
+    "6_lifecycle_revenue": {
+      "title": "Lifecycle and revenue",
+      "capabilities": {
+        "sales_handoff_checklist": "SPECIFIED",
+        "crm_integration": "HYPOTHESIS",
+        "nurture_sequences": "HYPOTHESIS",
+        "retention_model": "HYPOTHESIS",
+        "expansion_model": "HYPOTHESIS",
+        "marketing_automation": "HYPOTHESIS"
+      }
+    },
+    "7_measurement_economics": {
+      "title": "Measurement and unit economics",
+      "capabilities": {
+        "revenue_scoreboard": "IMPLEMENTED",
+        "contribution_profit_over_vanity": "SPECIFIED",
+        "allowable_cac": "HYPOTHESIS",
+        "qualified_opportunity_cac": "HYPOTHESIS",
+        "ltv_model": "HYPOTHESIS",
+        "contribution_profit_calculation": "HYPOTHESIS",
+        "scale_gates": "HYPOTHESIS",
+        "economic_kill_switch": "HYPOTHESIS",
+        "budget_experiments": "HYPOTHESIS",
+        "attribution_model": "HYPOTHESIS",
+        "creative_to_revenue_attribution": "HYPOTHESIS",
+        "pipeline_measurement": "IMPLEMENTED"
+      }
+    },
+    "8_ai_growth_engineering": {
+      "title": "AI Growth Engineering — the method layer",
+      "capabilities": {
+        "experiment_preregistration": "IMPLEMENTED",
+        "keep_iterate_kill_decisions": "IMPLEMENTED",
+        "observed_inferred_unknown_separation": "IMPLEMENTED",
+        "evidence_lineage": "IMPLEMENTED",
+        "action_risk_classes": "IMPLEMENTED",
+        "budget_authority_controls": "IMPLEMENTED",
+        "human_approval_for_material_actions": "IMPLEMENTED",
+        "experiment_namespace_enforcement": "IMPLEMENTED",
+        "bounded_operator_skills": "SPECIFIED",
+        "growth_authority_matrix": "HYPOTHESIS",
+        "growth_state": "HYPOTHESIS",
+        "growth_ops_agent": "HYPOTHESIS",
+        "growth_event_bus": "HYPOTHESIS",
+        "decision_latency": "HYPOTHESIS",
+        "time_to_decision": "HYPOTHESIS",
+        "time_to_action": "HYPOTHESIS",
+        "audit_trail": "HYPOTHESIS"
+      }
+    }
+  }
+}
