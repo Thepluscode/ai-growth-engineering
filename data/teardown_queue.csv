@@ -1,0 +1,12 @@
+priority,company,status,next_action
+1,CloudTech24,send_ready,verify suppression + recipient channel; await EXECUTE
+2,TWC IT Solutions,send_ready,verify suppression + recipient channel; await EXECUTE
+3,Texaport,send_ready,verify suppression + recipient channel; await EXECUTE
+4,Netitude,send_ready,verify suppression + recipient channel; await EXECUTE
+5,ADL Consulting,send_ready,verify suppression + recipient channel; await EXECUTE
+6,Wavex Technology,send_ready,verify suppression + recipient channel; await EXECUTE
+7,The HBP Group,send_ready,verify suppression + recipient channel; await EXECUTE
+8,Transputec,send_ready,verify suppression + recipient channel; await EXECUTE
+9,Foresite Cybersecurity,disqualified,US enterprise Google-SecOps account; do not send under EXP-ACQ-0001
+10,Secure Chain,send_ready,verify suppression + recipient channel; await EXECUTE
+11,Morcan IT Solutions,replacement_send_ready,replaces disqualified Foresite; verify suppression + recipient channel; await EXECUTE

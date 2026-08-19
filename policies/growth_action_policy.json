@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "autonomous_budget_increase_pct_max": 10,
+  "rules": {
+    "unsupported_public_claim": "deny",
+    "destructive_action": "deny",
+    "high_risk_action": "deny",
+    "price_change": "require_approval",
+    "bulk_outreach": "require_approval",
+    "public_claim": "require_approval",
+    "material_budget_change": "require_approval"
+  }
+}

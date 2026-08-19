@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.venv/
+.age/
+*.db
+.DS_Store
+.claude/settings.local.json
