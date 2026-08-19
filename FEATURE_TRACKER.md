@@ -5,6 +5,7 @@ Last updated: 2026-08-19
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 122 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
 | Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
 | `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, KILL below 5% |
 | 20 qualified prospects | VERIFIED | 23 records: Foresite, RSK and Stingrai disqualified; Littlefish, QuoStar and Chorus retained/added as sourced UK-wedge replacements; CLI reports 20 qualified and excludes disqualified statuses |

@@ -16,8 +16,91 @@ class CapabilityMapTests(unittest.TestCase):
     def test_map_covers_the_whole_project(self):
         # A map that shrank to a handful of entries is a failed load, not a clean pass.
         totals = capabilities.counts(self.data)
-        self.assertGreaterEqual(sum(totals.values()), 80)
-        self.assertGreaterEqual(len(self.data["domains"]), 8)
+        self.assertGreaterEqual(sum(totals.values()), 120)
+        self.assertEqual(len(self.data["domains"]), 8)
+
+    def test_source_scope_is_first_class(self):
+        required = {
+            "1_market_intelligence": {
+                "market_research_workflow",
+                "customer_intelligence_workflow",
+                "competitive_reverse_engineering",
+                "demand_discovery",
+                "product_research",
+                "voice_of_customer",
+                "problem_query_maps",
+            },
+            "2_strategy": {
+                "segmentation",
+                "brand_strategy",
+                "positioning_model",
+                "offer_architecture",
+                "pricing_model",
+                "messaging_strategy",
+            },
+            "3_creative": {
+                "copy_creation",
+                "image_creative",
+                "video_creative",
+                "ugc_creation",
+                "creative_families",
+                "creative_genome",
+                "creative_mutation_trees",
+                "creative_fatigue_detection",
+            },
+            "4_distribution": {
+                "seo_problem_led_search",
+                "ai_search_visibility",
+                "content_as_market_sensing",
+                "social_distribution",
+                "email_marketing",
+                "paid_media_google",
+                "paid_media_meta",
+                "paid_media_linkedin",
+                "paid_media_tiktok",
+                "paid_media_other_channels",
+                "influencer_and_creator",
+                "referral_marketing",
+                "affiliate_offer_routing",
+                "performance_partnerships",
+            },
+            "5_conversion": {
+                "ecommerce_offer_stacks",
+                "storefront_experiments",
+                "landing_page_experiments",
+                "rapid_experiment_surfaces",
+                "lead_generation",
+                "lead_capture",
+                "qualification_model",
+                "booking_flow",
+            },
+            "6_lifecycle_revenue": {
+                "crm_integration",
+                "nurture_sequences",
+                "retention_model",
+                "expansion_model",
+                "marketing_automation",
+            },
+            "7_measurement_economics": {
+                "attribution_model",
+                "analytics_and_reporting",
+                "allowable_cac",
+                "ltv_model",
+                "contribution_profit_calculation",
+                "pipeline_measurement",
+            },
+            "8_ai_growth_engineering": {
+                "experiment_preregistration",
+                "growth_ops_agent",
+                "growth_event_bus",
+                "growth_control_plane",
+                "generated_internal_tools",
+                "audit_trail",
+            },
+        }
+        for domain, expected in required.items():
+            actual = set(self.data["domains"][domain]["capabilities"])
+            self.assertTrue(expected <= actual, f"{domain} missing {sorted(expected - actual)}")
 
     def test_every_status_is_represented(self):
         # If HYPOTHESIS ever hits zero the map has stopped being honest about what is unbuilt.

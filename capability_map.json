@@ -11,6 +11,8 @@
         "market_research_workflow": "SPECIFIED",
         "customer_intelligence_workflow": "SPECIFIED",
         "competitive_reverse_engineering": "SPECIFIED",
+        "demand_discovery": "HYPOTHESIS",
+        "product_research": "HYPOTHESIS",
         "voice_of_customer": "HYPOTHESIS",
         "problem_query_maps": "HYPOTHESIS",
         "buyer_awareness_model": "HYPOTHESIS",
@@ -27,13 +29,15 @@
         "offer_strength_score": "IMPLEMENTED",
         "message_congruence_score": "IMPLEMENTED",
         "segmentation": "HYPOTHESIS",
+        "brand_strategy": "HYPOTHESIS",
         "positioning_model": "HYPOTHESIS",
         "offer_architecture": "HYPOTHESIS",
         "offer_experiment_registry": "HYPOTHESIS",
         "proof_hierarchy": "HYPOTHESIS",
         "proof_inventory": "HYPOTHESIS",
         "offer_to_revenue_lineage": "HYPOTHESIS",
-        "pricing_model": "HYPOTHESIS"
+        "pricing_model": "HYPOTHESIS",
+        "messaging_strategy": "HYPOTHESIS"
       }
     },
     "3_creative": {
@@ -41,6 +45,10 @@
       "capabilities": {
         "synthetic_media_policy": "SPECIFIED",
         "unsupported_claim_block": "IMPLEMENTED",
+        "copy_creation": "HYPOTHESIS",
+        "image_creative": "HYPOTHESIS",
+        "video_creative": "HYPOTHESIS",
+        "ugc_creation": "HYPOTHESIS",
         "creative_families": "HYPOTHESIS",
         "creative_genome": "HYPOTHESIS",
         "creative_mutation_trees": "HYPOTHESIS",
@@ -75,7 +83,9 @@
         "paid_media_meta": "HYPOTHESIS",
         "paid_media_linkedin": "HYPOTHESIS",
         "paid_media_tiktok": "HYPOTHESIS",
+        "paid_media_other_channels": "HYPOTHESIS",
         "influencer_and_creator": "HYPOTHESIS",
+        "referral_marketing": "HYPOTHESIS",
         "affiliate_offer_registry": "HYPOTHESIS",
         "affiliate_offer_routing": "HYPOTHESIS",
         "partner_attribution": "HYPOTHESIS",
@@ -94,6 +104,9 @@
         "page_ephemerality": "HYPOTHESIS",
         "functional_decomposition": "HYPOTHESIS",
         "time_to_evidence": "HYPOTHESIS",
+        "ecommerce_offer_stacks": "HYPOTHESIS",
+        "storefront_experiments": "HYPOTHESIS",
+        "lead_generation": "HYPOTHESIS",
         "lead_capture": "HYPOTHESIS",
         "qualification_model": "SPECIFIED",
         "booking_flow": "HYPOTHESIS"
@@ -123,6 +136,7 @@
         "economic_kill_switch": "HYPOTHESIS",
         "budget_experiments": "HYPOTHESIS",
         "attribution_model": "HYPOTHESIS",
+        "analytics_and_reporting": "HYPOTHESIS",
         "creative_to_revenue_attribution": "HYPOTHESIS",
         "pipeline_measurement": "IMPLEMENTED"
       }
@@ -143,6 +157,8 @@
         "growth_state": "HYPOTHESIS",
         "growth_ops_agent": "HYPOTHESIS",
         "growth_event_bus": "HYPOTHESIS",
+        "growth_control_plane": "HYPOTHESIS",
+        "generated_internal_tools": "HYPOTHESIS",
         "decision_latency": "HYPOTHESIS",
         "time_to_decision": "HYPOTHESIS",
         "time_to_action": "HYPOTHESIS",
