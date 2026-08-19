@@ -41,6 +41,24 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(values["qualified_prospects"], 1)
         self.assertEqual(values["paying_customers"], 0)
 
+    def test_reseeding_updates_a_disqualified_prospect(self):
+        csv_path = Path(self.tmp.name) / "prospects.csv"
+        csv_path.write_text(
+            "company,website,priority,target_roles,evidence,source_url,status\n"
+            "Acme,https://acme.test,A,MD,test,https://acme.test,research\n",
+            encoding="utf-8",
+        )
+        seed_prospects(self.db, str(csv_path))
+        self.assertEqual(scoreboard(self.db)["qualified_prospects"], 1)
+
+        csv_path.write_text(
+            "company,website,priority,target_roles,evidence,source_url,status\n"
+            "Acme,https://acme.test,A,MD,verified,https://acme.test,disqualified_market_fit\n",
+            encoding="utf-8",
+        )
+        seed_prospects(self.db, str(csv_path))
+        self.assertEqual(scoreboard(self.db)["qualified_prospects"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

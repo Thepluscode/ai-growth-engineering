@@ -1,0 +1,11 @@
+priority,company,status,next_action
+1,Air IT,teardown_complete,verify recipient route and suppression before manual send
+2,BCN Group,teardown_complete,verify recipient route and suppression before manual send
+3,Acora,teardown_complete,verify recipient route and suppression before manual send
+4,ramsac,teardown_complete,verify recipient route and suppression before manual send
+5,Quiss,teardown_complete,verify recipient route and suppression before manual send
+6,Bluecube,teardown_complete,verify recipient route and suppression before manual send
+7,Fifosys,teardown_complete,verify recipient route and suppression before manual send
+8,NormCyber,teardown_complete,verify recipient route and suppression before manual send
+9,Cyber Tec Security,teardown_complete,verify recipient route and suppression before manual send
+10,Mitigo,teardown_complete,verify recipient route and suppression before manual send

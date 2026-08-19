@@ -112,9 +112,16 @@ def seed_prospects(db_path: str, csv_path: str) -> int:
         reader = csv.DictReader(handle)
         for row in reader:
             con.execute(
-                """INSERT OR IGNORE INTO prospects(
+                """INSERT INTO prospects(
                      company, website, priority, target_roles, evidence, source_url, status
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(company) DO UPDATE SET
+                     website=excluded.website,
+                     priority=excluded.priority,
+                     target_roles=excluded.target_roles,
+                     evidence=excluded.evidence,
+                     source_url=excluded.source_url,
+                     status=excluded.status""",
                 (
                     row["company"], row.get("website", ""), row.get("priority", "B"),
                     row.get("target_roles", ""), row.get("evidence", ""),

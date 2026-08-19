@@ -8,7 +8,7 @@ Cross-project schemas explicitly authorised for the Digital Marketing architectu
 experiment's offer, channel or product surface.
 `market-gate check .`
 
-**Tracker:** experiments/EXP-ACQ-0001/sales/outreach.csv
+**Tracker:** sales/outreach.csv
 <!-- If set, `contacted` is COUNTED from this file and the declared number is ignored.
      Expected columns: date_first_contact, stage. -->
 
@@ -16,8 +16,8 @@ experiment's offer, channel or product surface.
 
 | Key | Count | Evidence (names, dates, links — not adjectives) |
 |-----|-------|--------------------------------------------------|
-| contacted | 10 | 2026-08-19 Gmail Sent verification; `experiments/EXP-ACQ-0001/sales/outreach.csv` |
-| conversations | 0 | 2026-08-19 thread audit: nine sent-only threads; Texaport ticket 0095170 is automated, not a conversation |
+| contacted | 19 | 2026-08-19 Gmail Sent verification; `experiments/EXP-ACQ-0001/sales/outreach.csv` |
+| conversations | 0 | 2026-08-19 inbox audit: no buyer reply; Texaport ticket 0095170 is automated, not a conversation |
 | confirmed_pain | 0 | |
 | requested | 0 | |
 | committed | 0 | |
