@@ -1,4 +1,7 @@
-# First 30 Days
+# `EXP-ACQ-0001` — First 30 Days
+
+This plan governs the first UK Cyber/MSP acquisition experiment, not the full Digital Marketing
+Project.
 
 ## Immediate milestone
 

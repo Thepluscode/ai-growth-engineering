@@ -1,4 +1,7 @@
-# MARKET EVIDENCE — ai-growth-engineering
+# MARKET EVIDENCE — `EXP-ACQ-0001`
+
+This gate evaluates the UK Cyber/MSP acquisition experiment only. It does not define or validate the
+full Digital Marketing Project.
 
 Rule 0b: no further significant engineering until every line below is met with evidence.
 `market-gate check .`

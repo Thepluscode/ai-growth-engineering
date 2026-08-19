@@ -1,6 +1,10 @@
-# Roadmap — Evidence Before Automation
+# Digital Marketing Roadmap — Evidence Before Automation
 
-## V0 — Revenue Evidence OS (NOW)
+This roadmap covers the Digital Marketing Project. AI Growth Engineering supplies the evidence,
+experimentation and controlled-automation layer. Capability families are activated by market or
+customer evidence, not by the current UK Cyber/MSP experiment alone.
+
+## V0 — Market Experiment 001 + Revenue Evidence OS (NOW)
 
 Build only what increases learning or closes the first customer:
 
@@ -55,22 +59,39 @@ Only if repeated customer workflows justify productisation:
 - audit / observability
 - data-governance controls
 
-## Parked capability families
+## Digital marketing capability families
 
-These were researched and are deliberately **not** V0 priorities:
+The project covers these families, but they are deliberately **not** V0 build commitments:
 
-- AI/search discovery intelligence
-- authority / digital PR engineering
-- problem-query maps
-- content intelligence
-- creative genome / mutation trees
+- market, competitor and customer intelligence
+- positioning, offers, pricing and messaging
+- SEO and AI-search visibility
+- content and social distribution
+- email and lifecycle marketing
+- paid media across Google, Meta, LinkedIn, TikTok and other validated channels
+- landing pages, lead capture and CRO
+- creative strategy, AI UGC, video, hooks and mutation trees
 - creative fatigue observability
-- performance-partner/referral engine
-- offer routing
-- reverse-engineering pattern registry
-- rapid experiment surface builder
+- outbound, affiliates, referrals, influencers and partnerships
+- CRM, nurture, retention and expansion
+- attribution, CAC, LTV, contribution profit, pipeline and revenue measurement
 - autonomous campaign optimisation
 - Growth Event Bus
 - generated internal tools
 
-They remain hypotheses until customer delivery exposes them.
+They remain marketing hypotheses until a market experiment or customer delivery exposes a repeated,
+valuable workflow. Coverage means the project may operate in these areas; it does not authorise
+speculative software construction.
+
+## Experiment portfolio
+
+| ID | Scope | Status |
+| --- | --- | --- |
+| `EXP-ACQ-0001` | UK Cyber/MSP teardown-led outbound | ACTIVE — no conclusion before 50 qualified sends |
+| `EXP-ACQ-0002+` | Future market acquisition experiments | UNPLANNED — requires a separate premise and preregistration |
+| `EXP-CREATIVE-*` | Creative and AI UGC experiments | UNPLANNED — evidence-triggered |
+| `EXP-PAID-*` | Paid-media and creative-family experiments | UNPLANNED — evidence-triggered |
+| `EXP-SEO-*` | Search and AI-search visibility experiments | UNPLANNED — evidence-triggered |
+| `EXP-CONTENT-*` | Content-distribution experiments | UNPLANNED — evidence-triggered |
+| `EXP-PARTNER-*` | Affiliate, referral and partnership experiments | UNPLANNED — evidence-triggered |
+| `EXP-CRO-*` | Landing-page and conversion experiments | UNPLANNED — evidence-triggered |

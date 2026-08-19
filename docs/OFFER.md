@@ -1,4 +1,7 @@
-# Commercial Offer
+# `EXP-ACQ-0001` Commercial Offer
+
+This is the service ladder under test for the current UK Cyber/MSP acquisition experiment. It is not
+the permanent offer or full scope of the Digital Marketing Project.
 
 ## Entry: Growth Leak Teardown
 

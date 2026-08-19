@@ -124,7 +124,10 @@ def cmd_suppress(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="age", description="AI Growth Engineering operating system")
+    parser = argparse.ArgumentParser(
+        prog="age",
+        description="AI Growth Engineering layer for the Digital Marketing Project",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     def dbarg(p: argparse.ArgumentParser) -> None:

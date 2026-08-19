@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ai-growth-engineering"
 version = "0.1.0"
-description = "Evidence-driven operating system for AI Growth Engineering"
+description = "AI Growth Engineering layer for the Digital Marketing Project"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "ThePlus-Tech"}]

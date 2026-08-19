@@ -1,18 +1,39 @@
-# AI Growth Engineering
+# Digital Marketing Project
 
-> Engineer measurable customer-acquisition systems that turn market attention into qualified pipeline and revenue.
+> Build and operate measurable digital marketing systems that acquire customers, increase conversion, and grow revenue.
 
-This repository is **not** a marketing SaaS product. It is the operating system for proving the business before software gets priority.
+**Digital Marketing is what this project does. AI Growth Engineering is how it does it:** an
+evidence-driven, experimental and AI-enabled methodology for researching markets, creating and
+distributing marketing, measuring acquisition economics, and improving revenue outcomes across
+digital channels.
 
-## Current wedge
+This repository is the engineering and automation layer of the Digital Marketing Project. It is not
+a customer-facing marketing SaaS product, and it is not locked to cybersecurity, MSPs, outbound, or
+any single channel. Markets are tested one at a time; software is built only when repeated marketing
+workflows and customer evidence justify it.
 
-- **ICP:** UK cybersecurity consultancies and MSPs
+## Project scope
+
+1. **Market intelligence:** market, competitor and customer research; demand discovery
+2. **Strategy:** segmentation, brand, positioning, offers, pricing and messaging
+3. **Creative:** copy, images, UGC, video, hooks and creative testing
+4. **Distribution:** SEO, AI search, social, content, email, paid media, outbound, affiliates, creators and partnerships
+5. **Conversion:** ecommerce, landing pages, CRO, lead capture, qualification and booking
+6. **Revenue:** marketing automation, CRM, lifecycle, sales handoff, retention and expansion
+7. **Measurement:** attribution, CAC, LTV, contribution profit, pipeline and revenue
+8. **AI Growth Engineering:** skills, agents, automation, experiments, evidence, policies and controls
+
+## Active market experiment
+
+`EXP-ACQ-0001` is the first market experiment, not the project definition.
+
+- **Market:** UK cybersecurity consultancies and MSPs
 - **Buyer:** Founder / MD / Commercial leader
-- **Problem:** Acquisition activity is not reliably becoming qualified pipeline
+- **Problem hypothesis:** Acquisition activity is not reliably becoming qualified pipeline
 - **Entry offer:** Growth Leak Teardown
 - **Core offer:** 30-Day Pipeline Engineering Sprint
 - **Primary channel:** Direct B2B outbound
-- **Primary outcome:** First paying customer and measurable revenue evidence
+- **Primary outcome:** Evidence that the message earns qualified conversations
 
 ## 30-day gate
 
@@ -51,7 +72,7 @@ Longer-horizon commercial targets:
 3. Experiments > opinions.
 4. Qualified pipeline > raw leads.
 5. Contribution profit > ROAS screenshots.
-6. One ICP, one problem, one offer, one CTA, one primary channel during validation.
+6. Within each validation experiment, use one ICP, one problem, one offer, one CTA, one primary channel and one primary metric.
 7. No proprietary SaaS until repeated paid workflow pain exists.
 8. Every claim needs evidence lineage.
 9. Every action-producing agent sits behind authority, policy and audit controls.
@@ -99,11 +120,11 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-src/ai_growth_engineering/  deterministic core + CLI
+src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
 skills/                     portable workflow skills
 policies/                   action and evidence guardrails
 templates/                  teardown/discovery artifacts
 data/seeds/                 initial prospect working set
-docs/                       doctrine, architecture and execution plan
+docs/                       Digital Marketing architecture, decisions and execution plan
 tests/                      deterministic acceptance tests
 ```
