@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 
 SCHEMA = """
@@ -63,6 +65,12 @@ CREATE TABLE IF NOT EXISTS evidence (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS experiment_evidence (
+    experiment_id TEXT NOT NULL REFERENCES experiments(experiment_id),
+    evidence_id TEXT NOT NULL REFERENCES evidence(evidence_id),
+    PRIMARY KEY (experiment_id, evidence_id)
+);
+
 CREATE TABLE IF NOT EXISTS suppression (
     identity TEXT PRIMARY KEY,
     reason TEXT NOT NULL,
@@ -71,15 +79,70 @@ CREATE TABLE IF NOT EXISTS suppression (
 """
 
 
-def connect(db_path: str) -> sqlite3.Connection:
+@contextmanager
+def connect(db_path: str) -> Iterator[sqlite3.Connection]:
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
-    return con
+    try:
+        yield con
+        con.commit()
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.close()
+
+
+# Columns added after the first databases existed. CREATE TABLE IF NOT EXISTS will not
+# add them to a table that already exists, so they are applied explicitly.
+EXPERIMENT_CONTRACT_COLUMNS = (
+    ("market", "TEXT NOT NULL DEFAULT ''"),
+    ("buyer", "TEXT NOT NULL DEFAULT ''"),
+    ("problem", "TEXT NOT NULL DEFAULT ''"),
+    ("channel", "TEXT NOT NULL DEFAULT ''"),
+    ("control", "TEXT NOT NULL DEFAULT ''"),
+    ("variant", "TEXT NOT NULL DEFAULT ''"),
+    ("secondary_metrics", "TEXT NOT NULL DEFAULT ''"),
+    ("economic_metric", "TEXT NOT NULL DEFAULT ''"),
+    ("budget_pence", "INTEGER NOT NULL DEFAULT 0"),
+    ("start_date", "TEXT NOT NULL DEFAULT ''"),
+    ("end_date", "TEXT NOT NULL DEFAULT ''"),
+    ("learning", "TEXT NOT NULL DEFAULT ''"),
+)
+
+EVIDENCE_CONTRACT_COLUMNS = (
+    ("inference", "TEXT NOT NULL DEFAULT ''"),
+    ("observed_at", "TEXT NOT NULL DEFAULT ''"),
+    ("commercial_implication", "TEXT NOT NULL DEFAULT ''"),
+)
+
+
+def _add_missing_columns(
+    con: sqlite3.Connection, table: str, columns: tuple[tuple[str, str], ...]
+) -> list[str]:
+    existing = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+    added = []
+    for name, decl in columns:
+        if name not in existing:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+            added.append(f"{table}.{name}")
+    return added
+
+
+def migrate(con: sqlite3.Connection) -> list[str]:
+    """Bring an existing database up to the current schema. Returns what it added."""
+    return _add_missing_columns(
+        con, "experiments", EXPERIMENT_CONTRACT_COLUMNS
+    ) + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
 
 
 def init_db(db_path: str) -> None:
+    from .registries import schema_sql
+
     with connect(db_path) as con:
         con.executescript(SCHEMA)
+        con.executescript(schema_sql())
+        migrate(con)

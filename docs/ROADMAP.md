@@ -117,3 +117,6 @@ table together.
 | `EXP-CONTENT-*` | Content-distribution experiments | UNPLANNED — evidence-triggered |
 | `EXP-PARTNER-*` | Affiliate, referral and partnership experiments | UNPLANNED — evidence-triggered |
 | `EXP-CRO-*` | Landing-page and conversion experiments | UNPLANNED — evidence-triggered |
+| `EXP-EMAIL-*` | Email acquisition and lifecycle experiments | UNPLANNED — evidence-triggered |
+| `EXP-LIFECYCLE-*` | Nurture, retention and expansion experiments | UNPLANNED — evidence-triggered |
+| `EXP-OFFER-*` | Offer, pricing and messaging experiments | UNPLANNED — evidence-triggered |

@@ -120,8 +120,9 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-capability_map.json         full Digital Marketing scope, 106 capabilities with build status
+capability_map.json         full Digital Marketing scope, 129 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
+                            universal registries, experiment contract and unit economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)
 experiments/EXP-ACQ-0001/   the UK cyber/MSP experiment: prospects, queue, teardowns, outreach
 skills/                     portable workflow skills

@@ -40,13 +40,13 @@ DIGITAL MARKETING PROJECT
 
 ## The capability map is the architecture of record
 
-`capability_map.json` holds all 106 capabilities of the Digital Marketing Project across the eight
+`capability_map.json` holds all 129 capabilities of the Digital Marketing Project across the eight
 domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
 covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
 (named and understood, nothing built).
 
 ```bash
-make capability-map     # current: IMPLEMENTED 21 · SPECIFIED 9 · HYPOTHESIS 76
+make capability-map     # current: IMPLEMENTED 35 · SPECIFIED 9 · HYPOTHESIS 85
 ```
 
 Scope is declared in that file, **not** in empty directories. A directory appears when a capability
@@ -122,6 +122,47 @@ ALLOW / DENY / ESCALATE
 These components currently support `EXP-ACQ-0001`, a UK Cyber/MSP acquisition experiment. The
 experiment is one bounded use of the architecture; it does not define the markets or channels the
 Digital Marketing Project may test next.
+
+## V0.2 structural contracts
+
+The first cross-channel architecture is intentionally schemas and deterministic interfaces, not
+channel automation.
+
+### Software-memory registries
+
+`registries.py` defines the repeated schemas; customer evidence and experiments retain specialised
+validation interfaces. Together they provide ten registries:
+
+1. Customer evidence
+2. Offers
+3. Proof inventory
+4. Creatives
+5. Channels
+6. Experiments
+7. Competitor patterns
+8. Claims
+9. Partners
+10. Revenue attribution
+
+Evidence keeps the observed statement, inference, confidence, observation date and commercial
+implication separate. Experiment-to-evidence links are relational and foreign-key constrained.
+
+### Universal experiment contract
+
+Every namespace uses `ExperimentSpec`: market, buyer, problem, channel, hypothesis, supporting
+evidence, control, variant, primary/secondary/economic metrics, sample, budget, thresholds, dates,
+decision and learning. The same contract accepts acquisition, content, creative, CRO, email,
+lifecycle, offer, paid-media, partner and SEO experiments.
+
+### Economics decision layer
+
+`economics.py` uses integer pence to calculate gross profit, acquisition cost, contribution profit,
+CAC, churn-based LTV, payback and allowable CAC. Its scale verdict distinguishes `SCALE`, `HOLD`,
+`KILL` and `INSUFFICIENT_DATA`, so missing measurements cannot be mistaken for either success or
+failure.
+
+The implementation order remains manual → measured → repeated → standardised → automated →
+agentic. These contracts do not authorise channel integrations or autonomous actions.
 
 ## Deliberately absent
 
