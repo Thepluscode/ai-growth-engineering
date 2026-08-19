@@ -6,7 +6,13 @@ from pathlib import Path
 
 from . import capabilities
 from .models import ExperimentSpec
-from .registry import add_experiment, record_experiment_result, scoreboard, seed_prospects
+from .registry import (
+    add_experiment,
+    import_outreach,
+    record_experiment_result,
+    scoreboard,
+    seed_prospects,
+)
 from .storage import connect, init_db
 from .teardown import TeardownPacket
 
@@ -87,13 +93,31 @@ def cmd_experiment_add(args: argparse.Namespace) -> None:
             success_threshold=args.success_threshold,
             kill_threshold=args.kill_threshold,
             minimum_sample=args.minimum_sample,
+            evidence_ids=tuple(args.evidence_id),
+            market=args.market,
+            buyer=args.buyer,
+            problem=args.problem,
+            channel=args.channel,
+            control=args.control,
+            variant=args.variant,
+            secondary_metrics=tuple(args.secondary_metric),
+            economic_metric=args.economic_metric,
+            budget_pence=args.budget_pence,
+            start_date=args.start_date,
+            end_date=args.end_date,
         ),
     )
     print(f"preregistered {args.experiment_id}")
 
 
 def cmd_experiment_result(args: argparse.Namespace) -> None:
-    decision = record_experiment_result(args.db, args.experiment_id, args.sample_size, args.observed_value)
+    decision = record_experiment_result(
+        args.db,
+        args.experiment_id,
+        args.sample_size,
+        args.observed_value,
+        args.learning,
+    )
     print(decision)
 
 
@@ -124,6 +148,11 @@ def cmd_suppress(args: argparse.Namespace) -> None:
     print(f"suppressed {args.identity}")
 
 
+def cmd_import_outreach(args: argparse.Namespace) -> None:
+    imported, skipped = import_outreach(args.db, args.csv_path)
+    print(f"imported {imported} sends, skipped {skipped} (already present or incomplete)")
+
+
 def cmd_capability_map(args: argparse.Namespace) -> None:
     data = capabilities.load(args.map_path)
     capabilities.validate(data)
@@ -144,6 +173,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("seed-prospects"); dbarg(p); p.add_argument("csv_path"); p.set_defaults(func=cmd_seed)
     p = sub.add_parser("scoreboard"); dbarg(p); p.set_defaults(func=cmd_scoreboard)
     p = sub.add_parser("gate-check"); dbarg(p); p.set_defaults(func=cmd_gate_check)
+    p = sub.add_parser("import-outreach"); dbarg(p); p.add_argument("csv_path")
+    p.set_defaults(func=cmd_import_outreach)
     p = sub.add_parser("capability-map")
     p.add_argument("--map-path", default=None)
     p.set_defaults(func=cmd_capability_map)
@@ -163,12 +194,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--success-threshold", type=float, required=True)
     p.add_argument("--kill-threshold", type=float, required=True)
     p.add_argument("--minimum-sample", type=int, required=True)
+    p.add_argument("--evidence-id", action="append", default=[])
+    p.add_argument("--market", default="")
+    p.add_argument("--buyer", default="")
+    p.add_argument("--problem", default="")
+    p.add_argument("--channel", default="")
+    p.add_argument("--control", default="")
+    p.add_argument("--variant", default="")
+    p.add_argument("--secondary-metric", action="append", default=[])
+    p.add_argument("--economic-metric", default="")
+    p.add_argument("--budget-pence", type=int, default=0)
+    p.add_argument("--start-date", default="")
+    p.add_argument("--end-date", default="")
     p.set_defaults(func=cmd_experiment_add)
 
     p = sub.add_parser("experiment-result"); dbarg(p)
     p.add_argument("--experiment-id", required=True)
     p.add_argument("--sample-size", type=int, required=True)
     p.add_argument("--observed-value", type=float, required=True)
+    p.add_argument("--learning", default="")
     p.set_defaults(func=cmd_experiment_result)
 
     p = sub.add_parser("outreach-record"); dbarg(p)

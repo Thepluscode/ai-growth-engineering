@@ -5,7 +5,10 @@ Last updated: 2026-08-19
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
-| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 122 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 129 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Ten software-memory registries | DEPLOYED | Customer evidence, offers, proof, creatives, channels, experiments, competitor patterns, claims, partners and revenue attribution have typed schemas and tested write/read interfaces |
+| Universal experiment contract | DEPLOYED | One persisted contract covers all ten experiment namespaces, evidence lineage, controls, metrics, economics, samples, budgets, thresholds, dates, decisions and learning |
+| Unit-economics decision layer | DEPLOYED | Integer-pence model distinguishes CAC from contribution profit and returns SCALE / HOLD / KILL / INSUFFICIENT_DATA; deterministic tests cover edge cases |
 | Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
 | `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, KILL below 5% |
 | 20 qualified prospects | VERIFIED | 23 records: Foresite, RSK and Stingrai disqualified; Littlefish, QuoStar and Chorus retained/added as sourced UK-wedge replacements; CLI reports 20 qualified and excludes disqualified statuses |
@@ -19,6 +22,7 @@ Last updated: 2026-08-19
 | Discovery calls | PLANNED | 0; use `experiments/EXP-ACQ-0001/sales/discovery-checklist.md` |
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |
 | First payment / customer dataset (`v0.2`) | PLANNED | No evidence yet |
+| Commercial `v0.2` gate | IN PROGRESS | Architecture slice is implemented; commercial evidence remains 10 confirmed sends, 0 meaningful replies and 0 discovery calls |
 
 ## Current experiment freeze
 

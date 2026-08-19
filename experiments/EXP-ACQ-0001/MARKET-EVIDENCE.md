@@ -3,10 +3,12 @@
 This gate evaluates the UK Cyber/MSP acquisition experiment only. It does not define or validate the
 full Digital Marketing Project.
 
-Rule 0b: no further significant engineering until every line below is met with evidence.
+Rule 0b: no further `EXP-ACQ-0001` product engineering until every line below is met with evidence.
+Cross-project schemas explicitly authorised for the Digital Marketing architecture do not change this
+experiment's offer, channel or product surface.
 `market-gate check .`
 
-**Tracker:** sales/outreach.csv
+**Tracker:** experiments/EXP-ACQ-0001/sales/outreach.csv
 <!-- If set, `contacted` is COUNTED from this file and the declared number is ignored.
      Expected columns: date_first_contact, stage. -->
 
@@ -14,8 +16,8 @@ Rule 0b: no further significant engineering until every line below is met with e
 
 | Key | Count | Evidence (names, dates, links — not adjectives) |
 |-----|-------|--------------------------------------------------|
-| contacted | 10 | 2026-08-19 Gmail Sent verification; sales/outreach.csv |
-| conversations | 0 | |
+| contacted | 10 | 2026-08-19 Gmail Sent verification; `experiments/EXP-ACQ-0001/sales/outreach.csv` |
+| conversations | 0 | 2026-08-19 thread audit: nine sent-only threads; Texaport ticket 0095170 is automated, not a conversation |
 | confirmed_pain | 0 | |
 | requested | 0 | |
 | committed | 0 | |

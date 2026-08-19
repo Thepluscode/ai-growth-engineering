@@ -1,7 +1,11 @@
 {
   "version": "0.1.0",
   "note": "The Digital Marketing Project's full operating scope. Every capability derived from the source research is listed here as a first-class entry, with an honest build status. This file is the architecture; directories are created only when a capability reaches IMPLEMENTED. Status vocabulary: IMPLEMENTED = code exists and is covered by a deterministic test; SPECIFIED = written down as a skill, template or policy but not executable; HYPOTHESIS = named and understood, nothing built. Promotion requires a market experiment or repeated paid delivery need, never enthusiasm.",
-  "status_vocabulary": ["IMPLEMENTED", "SPECIFIED", "HYPOTHESIS"],
+  "status_vocabulary": [
+    "IMPLEMENTED",
+    "SPECIFIED",
+    "HYPOTHESIS"
+  ],
   "domains": {
     "1_market_intelligence": {
       "title": "Market intelligence",
@@ -19,7 +23,7 @@
         "buying_committee_psychology": "HYPOTHESIS",
         "miracles_and_miseries": "HYPOTHESIS",
         "demand_evidence_score": "IMPLEMENTED",
-        "pattern_extraction_registry": "HYPOTHESIS"
+        "pattern_extraction_registry": "IMPLEMENTED"
       }
     },
     "2_strategy": {
@@ -32,9 +36,10 @@
         "brand_strategy": "HYPOTHESIS",
         "positioning_model": "HYPOTHESIS",
         "offer_architecture": "HYPOTHESIS",
+        "offer_registry": "IMPLEMENTED",
         "offer_experiment_registry": "HYPOTHESIS",
         "proof_hierarchy": "HYPOTHESIS",
-        "proof_inventory": "HYPOTHESIS",
+        "proof_inventory": "IMPLEMENTED",
         "offer_to_revenue_lineage": "HYPOTHESIS",
         "pricing_model": "HYPOTHESIS",
         "messaging_strategy": "HYPOTHESIS"
@@ -45,6 +50,8 @@
       "capabilities": {
         "synthetic_media_policy": "SPECIFIED",
         "unsupported_claim_block": "IMPLEMENTED",
+        "creative_registry": "IMPLEMENTED",
+        "claims_registry": "IMPLEMENTED",
         "copy_creation": "HYPOTHESIS",
         "image_creative": "HYPOTHESIS",
         "video_creative": "HYPOTHESIS",
@@ -65,6 +72,7 @@
       "capabilities": {
         "outbound_quality_gate": "IMPLEMENTED",
         "suppression_registry": "IMPLEMENTED",
+        "channel_registry": "IMPLEMENTED",
         "outreach_research_workflow": "SPECIFIED",
         "seo_problem_led_search": "HYPOTHESIS",
         "ai_search_visibility": "HYPOTHESIS",
@@ -88,6 +96,7 @@
         "referral_marketing": "HYPOTHESIS",
         "affiliate_offer_registry": "HYPOTHESIS",
         "affiliate_offer_routing": "HYPOTHESIS",
+        "partner_registry": "IMPLEMENTED",
         "partner_attribution": "HYPOTHESIS",
         "revenue_per_partner": "HYPOTHESIS",
         "performance_partnerships": "HYPOTHESIS"
@@ -128,13 +137,14 @@
       "capabilities": {
         "revenue_scoreboard": "IMPLEMENTED",
         "contribution_profit_over_vanity": "SPECIFIED",
-        "allowable_cac": "HYPOTHESIS",
+        "allowable_cac": "IMPLEMENTED",
         "qualified_opportunity_cac": "HYPOTHESIS",
-        "ltv_model": "HYPOTHESIS",
-        "contribution_profit_calculation": "HYPOTHESIS",
-        "scale_gates": "HYPOTHESIS",
-        "economic_kill_switch": "HYPOTHESIS",
+        "ltv_model": "IMPLEMENTED",
+        "contribution_profit_calculation": "IMPLEMENTED",
+        "scale_gates": "IMPLEMENTED",
+        "economic_kill_switch": "IMPLEMENTED",
         "budget_experiments": "HYPOTHESIS",
+        "revenue_attribution_registry": "IMPLEMENTED",
         "attribution_model": "HYPOTHESIS",
         "analytics_and_reporting": "HYPOTHESIS",
         "creative_to_revenue_attribution": "HYPOTHESIS",
@@ -144,6 +154,7 @@
     "8_ai_growth_engineering": {
       "title": "AI Growth Engineering — the method layer",
       "capabilities": {
+        "experiment_registry": "IMPLEMENTED",
         "experiment_preregistration": "IMPLEMENTED",
         "keep_iterate_kill_decisions": "IMPLEMENTED",
         "observed_inferred_unknown_separation": "IMPLEMENTED",
