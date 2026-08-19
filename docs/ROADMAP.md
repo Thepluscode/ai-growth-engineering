@@ -83,6 +83,19 @@ They remain marketing hypotheses until a market experiment or customer delivery 
 valuable workflow. Coverage means the project may operate in these areas; it does not authorise
 speculative software construction.
 
+## Operating patterns retained from research
+
+- **Creative:** AI UGC, hooks, creative families, mutation trees and fatigue monitoring
+- **Paid media:** Google/Meta/LinkedIn/TikTok optimisation, CAC, contribution-profit and scale gates
+- **Ecommerce:** product research, offer stacks, storefront experiments and rapid test pages
+- **Competitive marketing:** reverse engineering, pattern extraction, and offer/CTA analysis
+- **Content:** content as market research, short-form testing and authority building
+- **Affiliate:** offer routing, partner distribution and attribution
+- **AI operations:** skills, Growth Operator workflows, decision-latency reduction and controlled automation
+
+These are available patterns inside the Digital Marketing Project. None is a product-feature
+commitment without a falsifiable experiment or repeated paid delivery need.
+
 ## Experiment portfolio
 
 | ID | Scope | Status |
