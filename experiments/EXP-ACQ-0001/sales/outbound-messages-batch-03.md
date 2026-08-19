@@ -1,7 +1,7 @@
 # Batch 03 — Manual Outbound Messages
 
-Status: drafted from current public evidence on 2026-08-19. No message below counts as sent until
-the recipient route and suppression list are checked and the send is confirmed.
+Status: ten messages staged and verified as Gmail drafts on 2026-08-19 after duplicate and local
+suppression checks. No message below counts as sent until explicit approval and Gmail Sent confirmation.
 
 ## 1. Air IT — route to managed-cyber commercial owner
 

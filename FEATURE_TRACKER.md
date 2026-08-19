@@ -20,7 +20,7 @@ Last updated: 2026-08-19
 | Queue-02 messages | IN PROGRESS | 9 of 10 messages confirmed SENT; Slink remains unsent because its live site exposes only a contact form and browser submission requires action-time confirmation |
 | Queue-03 qualification | VERIFIED | 10 current accounts qualified; Bulletproof and Bridewell disqualified during verification and replaced with clean wedge fits |
 | Queue-03 teardowns | VERIFIED | 10 evidence-backed teardowns in `experiments/EXP-ACQ-0001/sales/teardowns/22-air-it.md` through `31-mitigo.md`; 100 required sections validated |
-| Queue-03 messages | DEPLOYED | 10 personalised OBSERVATION + ECONOMIC HYPOTHESIS + LOW-FRICTION CTA drafts prepared; none counted as sent |
+| Queue-03 messages | DEPLOYED | 10 personalised OBSERVATION + ECONOMIC HYPOTHESIS + LOW-FRICTION CTA messages staged and verified as Gmail drafts; none counted as sent |
 | Qualified outbound sends | IN PROGRESS | 19 total confirmed sends; CLI imported 9 new rows and reports 19; no message or form submission is counted without evidence |
 | Queue-01 follow-up plan | DEPLOYED | Manual, value-adding first follow-ups prepared in `experiments/EXP-ACQ-0001/sales/follow-up-plan.md`; do not send before reply and suppression review on 2026-08-24 |
 | Meaningful replies | PLANNED | 0; 2026-08-19 inbox audit found no buyer reply; Texaport's intake ticket remains automation, not a conversation; no conclusion before 50 qualified sends |
