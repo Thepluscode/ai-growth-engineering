@@ -1,5 +1,5 @@
 priority,company,status,next_action
-1,CloudTech24,send_ready,verify suppression + recipient channel; await EXECUTE
+1,CloudTech24,researched,verify suppression + recipient channel; await EXECUTE
 2,TWC IT Solutions,send_ready,verify suppression + recipient channel; await EXECUTE
 3,Texaport,send_ready,verify suppression + recipient channel; await EXECUTE
 4,Netitude,send_ready,verify suppression + recipient channel; await EXECUTE

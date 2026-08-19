@@ -82,7 +82,7 @@ Longer-horizon commercial targets:
 
 ```bash
 python -m ai_growth_engineering.cli init --db .age/growth.db
-python -m ai_growth_engineering.cli seed-prospects --db .age/growth.db data/seeds/prospects.csv
+python -m ai_growth_engineering.cli seed-prospects --db .age/growth.db experiments/EXP-ACQ-0001/prospects.csv
 python -m ai_growth_engineering.cli scoreboard --db .age/growth.db
 python -m ai_growth_engineering.cli gate-check --db .age/growth.db
 ```
@@ -120,11 +120,13 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
+capability_map.json         full Digital Marketing scope, 106 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
+scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)
+experiments/EXP-ACQ-0001/   the UK cyber/MSP experiment: prospects, queue, teardowns, outreach
 skills/                     portable workflow skills
 policies/                   action and evidence guardrails
 templates/                  teardown/discovery artifacts
-data/seeds/                 initial prospect working set
 docs/                       Digital Marketing architecture, decisions and execution plan
 tests/                      deterministic acceptance tests
 ```

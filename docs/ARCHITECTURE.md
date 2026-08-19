@@ -38,6 +38,31 @@ DIGITAL MARKETING PROJECT
     └── policies and control plane
 ```
 
+## The capability map is the architecture of record
+
+`capability_map.json` holds all 106 capabilities of the Digital Marketing Project across the eight
+domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
+covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
+(named and understood, nothing built).
+
+```bash
+make capability-map     # current: IMPLEMENTED 21 · SPECIFIED 9 · HYPOTHESIS 76
+```
+
+Scope is declared in that file, **not** in empty directories. A directory appears when a capability
+reaches `IMPLEMENTED`; an empty package is a claim the repository cannot back, and it makes the
+architecture look built when it is not. Promotion out of `HYPOTHESIS` requires a market experiment or
+a repeated paid delivery need.
+
+## The engine is market-neutral
+
+`src/`, `skills/`, `policies/`, `templates/` and `tests/` must work unchanged for a paid-media, SEO or
+creative experiment. Market-specific vocabulary — a vertical, a company name, a channel assumption —
+belongs under `experiments/<EXP-ID>/`.
+
+`scripts/scope_gate.py` enforces this and runs in `make test` and CI. It has a `--selftest` that
+proves it can fail, and it has been observed failing against a real leak planted in `src/`.
+
 ## Build principle
 
 The first engineering component is an **evidence operating system**, not a customer-facing SaaS.

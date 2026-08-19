@@ -61,6 +61,10 @@ Only if repeated customer workflows justify productisation:
 
 ## Digital marketing capability families
 
+The authoritative, machine-readable list is `capability_map.json` (`make capability-map`), which
+carries a build status per capability and is validated by `tests/test_capabilities.py`. The prose
+below is a summary of it, not a second source of truth.
+
 The project covers these families, but they are deliberately **not** V0 build commitments:
 
 - market, competitor and customer intelligence
@@ -97,6 +101,11 @@ These are available patterns inside the Digital Marketing Project. None is a pro
 commitment without a falsifiable experiment or repeated paid delivery need.
 
 ## Experiment portfolio
+
+IDs are `EXP-<NAMESPACE>-<NNNN>`. The namespace set is **enforced** by
+`EXPERIMENT_NAMESPACES` in `src/ai_growth_engineering/models.py`, not just documented here — an
+unknown namespace is rejected at preregistration. Adding a namespace means editing that set and this
+table together.
 
 | ID | Scope | Status |
 | --- | --- | --- |
