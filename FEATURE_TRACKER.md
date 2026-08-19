@@ -25,7 +25,7 @@ Last updated: 2026-08-19
 | Queue-04 messages | DEPLOYED | 10 personalised messages staged and verified as Gmail drafts after duplicate and suppression checks; none counted as sent |
 | Queue-05 qualification and teardowns | VERIFIED | 10 current accounts qualified; Six Degrees disqualified as an enterprise-scale outlier and replaced with Inology; all 100 required teardown sections and inference labels validated |
 | Queue-05 messages | DEPLOYED | 10 personalised messages staged and verified as Gmail drafts after duplicate and suppression checks; none counted as sent |
-| Qualified outbound sends | IN PROGRESS | 19 total confirmed sends; CLI imported 9 new rows and reports 19; no message or form submission is counted without evidence |
+| Qualified outbound sends | IN PROGRESS | 19 total confirmed sends; sends 20–50 are mapped one-to-one in `sales/execution-manifest-50.csv`; no message or form submission is counted without evidence |
 | Queue-01 follow-up plan | DEPLOYED | Manual, value-adding first follow-ups prepared in `experiments/EXP-ACQ-0001/sales/follow-up-plan.md`; do not send before reply and suppression review on 2026-08-24 |
 | Meaningful replies | PLANNED | 0; 2026-08-19 inbox audit found no buyer reply; Texaport's intake ticket remains automation, not a conversation; no conclusion before 50 qualified sends |
 | Discovery calls | PLANNED | 0; use `experiments/EXP-ACQ-0001/sales/discovery-checklist.md` |

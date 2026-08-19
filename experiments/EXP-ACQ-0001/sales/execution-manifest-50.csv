@@ -1,0 +1,32 @@
+send_number,company,channel,destination,action_id,status,verification_required
+20,Slink,contact_form,https://slink.co.uk/contact,form_submission,pending_execute,observe success state then add one outreach row
+21,Air IT,email,enquiries@airit.co.uk,r3926237513695589606,draft_verified,confirm SENT label and message id then add one outreach row
+22,BCN Group,email,info@bcn.co.uk,r-8369975613069330128,draft_verified,confirm SENT label and message id then add one outreach row
+23,Acora,email,hello@acora.com,r-3986609173224466130,draft_verified,confirm SENT label and message id then add one outreach row
+24,ramsac,email,info@ramsac.com,r2579741333954511468,draft_verified,confirm SENT label and message id then add one outreach row
+25,Quiss,email,enquiries@quiss.co.uk,r6204181714263347832,draft_verified,confirm SENT label and message id then add one outreach row
+26,Bluecube,email,info@bluecubecloud.com,r235216689887140973,draft_verified,confirm SENT label and message id then add one outreach row
+27,Fifosys,email,enquiries@fifosys.com,r-8551669577026169797,draft_verified,confirm SENT label and message id then add one outreach row
+28,NormCyber,email,info@normcyber.com,r-871962225379331321,draft_verified,confirm SENT label and message id then add one outreach row
+29,Cyber Tec Security,email,contact@cybertecsecurity.com,r-4806526583295846492,draft_verified,confirm SENT label and message id then add one outreach row
+30,Mitigo,email,info@mitigogroup.com,r-8228979472960548403,draft_verified,confirm SENT label and message id then add one outreach row
+31,Central Technology,email,sales@ct.uk,r-8444531875245170268,draft_verified,confirm SENT label and message id then add one outreach row
+32,Xperience,email,enquiries@xperience-group.com,r2920520625539957103,draft_verified,confirm SENT label and message id then add one outreach row
+33,totality services,email,info@totalityservices.co.uk,r6757850058426108163,draft_verified,confirm SENT label and message id then add one outreach row
+34,Carden IT Group,email,hello@cardenitgroup.com,r2173932109321888278,draft_verified,confirm SENT label and message id then add one outreach row
+35,OryxAlign,email,hello@oryxalign.com,r-765764401427973855,draft_verified,confirm SENT label and message id then add one outreach row
+36,Neuways,email,hello@neuways.com,r-5668681198493584494,draft_verified,confirm SENT label and message id then add one outreach row
+37,CyberLab,email,enquiries@cyberlab.co.uk,r7087177006325033896,draft_verified,confirm SENT label and message id then add one outreach row
+38,Waterstons,email,cyber@waterstons.com,r6614729772422997415,draft_verified,confirm SENT label and message id then add one outreach row
+39,Brightsolid,email,enquiries@brightsolid.com,r-6293937639728631633,draft_verified,confirm SENT label and message id then add one outreach row
+40,Probrand,email,cra@probrand.co.uk,r7190610565379882857,draft_verified,confirm SENT label and message id then add one outreach row
+41,M247,email,sales@m247.com,r-9164713550793873658,draft_verified,confirm SENT label and message id then add one outreach row
+42,Atlas Cloud,email,hello@atlascloud.co.uk,r-7322476806208863368,draft_verified,confirm SENT label and message id then add one outreach row
+43,Blue Frontier,email,matt.kerley@bluefrontier.co.uk,r-1963381529823322701,draft_verified,confirm SENT label and message id then add one outreach row
+44,KHIPU Networks,email,sales@khipu-networks.com,r4965674269634332495,draft_verified,confirm SENT label and message id then add one outreach row
+45,DSI Ltd,email,uksales@dsiltd.co.uk,r-5361187130296949851,draft_verified,confirm SENT label and message id then add one outreach row
+46,ADM Computing,email,sales@adm-computing.co.uk,r-6833436333503673828,draft_verified,confirm SENT label and message id then add one outreach row
+47,System Force IT,email,sales@systemforce.co.uk,r2484735388869708891,draft_verified,confirm SENT label and message id then add one outreach row
+48,Foresight IT Services,email,sales@foresightuk.com,r7701002971925270017,draft_verified,confirm SENT label and message id then add one outreach row
+49,AJT Managed IT Services,email,hello@ajt.support,r-1717401131239114026,draft_verified,confirm SENT label and message id then add one outreach row
+50,Inology IT,email,hello@inology.co.uk,r1662544722822652476,draft_verified,confirm SENT label and message id then add one outreach row
