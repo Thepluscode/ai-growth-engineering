@@ -16,7 +16,7 @@ class CapabilityMapTests(unittest.TestCase):
     def test_map_covers_the_whole_project(self):
         # A map that shrank to a handful of entries is a failed load, not a clean pass.
         totals = capabilities.counts(self.data)
-        self.assertGreaterEqual(sum(totals.values()), 125)
+        self.assertEqual(sum(totals.values()), 139)
         self.assertEqual(len(self.data["domains"]), 8)
 
     def test_source_scope_is_first_class(self):
@@ -29,6 +29,8 @@ class CapabilityMapTests(unittest.TestCase):
                 "product_research",
                 "voice_of_customer",
                 "problem_query_maps",
+                "social_voice_of_customer",
+                "content_to_offer_learning_loop",
             },
             "2_strategy": {
                 "segmentation",
@@ -38,6 +40,7 @@ class CapabilityMapTests(unittest.TestCase):
                 "offer_registry",
                 "pricing_model",
                 "messaging_strategy",
+                "value_ladder_registry",
             },
             "3_creative": {
                 "copy_creation",
@@ -68,6 +71,7 @@ class CapabilityMapTests(unittest.TestCase):
                 "affiliate_offer_routing",
                 "performance_partnerships",
                 "partner_registry",
+                "public_to_private_conversation",
             },
             "5_conversion": {
                 "ecommerce_offer_stacks",
@@ -78,6 +82,8 @@ class CapabilityMapTests(unittest.TestCase):
                 "lead_capture",
                 "qualification_model",
                 "booking_flow",
+                "social_profile_surface_registry",
+                "conversation_funnel_registry",
             },
             "6_lifecycle_revenue": {
                 "crm_integration",
@@ -85,6 +91,8 @@ class CapabilityMapTests(unittest.TestCase):
                 "retention_model",
                 "expansion_model",
                 "marketing_automation",
+                "audience_ownership_registry",
+                "customer_monetisation_metrics",
             },
             "7_measurement_economics": {
                 "attribution_model",
@@ -94,6 +102,8 @@ class CapabilityMapTests(unittest.TestCase):
                 "ltv_model",
                 "contribution_profit_calculation",
                 "pipeline_measurement",
+                "social_funnel_attribution",
+                "audience_capture_rate",
             },
             "8_ai_growth_engineering": {
                 "experiment_preregistration",
@@ -140,9 +150,12 @@ class CapabilityMapTests(unittest.TestCase):
             "CONTENT": "content",
             "PARTNER": "partner",
             "CRO": "landing_page",
+            "CONVERSATION": "conversation_funnel",
             "EMAIL": "email",
             "LIFECYCLE": "retention",
             "OFFER": "offer",
+            "SOCIAL": "social_distribution",
+            "PROFILE": "social_profile",
         }
         for namespace in EXPERIMENT_NAMESPACES:
             self.assertIn(namespace, aliases, f"{namespace} has no declared scope")

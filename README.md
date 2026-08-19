@@ -18,8 +18,8 @@ workflows and customer evidence justify it.
 2. **Strategy:** segmentation, brand, positioning, offers, pricing and messaging
 3. **Creative:** copy, images, UGC, video, hooks and creative testing
 4. **Distribution:** SEO, AI search, social, content, email, paid media, outbound, affiliates, creators and partnerships
-5. **Conversion:** ecommerce, landing pages, CRO, lead capture, qualification and booking
-6. **Revenue:** marketing automation, CRM, lifecycle, sales handoff, retention and expansion
+5. **Conversion:** ecommerce, landing pages, social profiles, conversation funnels, CRO, capture, qualification and booking
+6. **Revenue:** marketing automation, CRM, audience ownership, value ladders, lifecycle, sales handoff, retention and expansion
 7. **Measurement:** attribution, CAC, LTV, contribution profit, pipeline and revenue
 8. **AI Growth Engineering:** skills, agents, automation, experiments, evidence, policies and controls
 
@@ -78,6 +78,21 @@ Longer-horizon commercial targets:
 9. Every action-producing agent sits behind authority, policy and audit controls.
 10. Reusable controls feed the shared Control Plane.
 
+## Social conversion system
+
+The architecture treats social activity as one attributable path:
+
+```text
+CONTENT → PROFILE → DM / PAGE → LEAD → QUALIFIED → CUSTOMER → REVENUE
+                         ↓
+                    OWNED CONTACT → RETENTION / EXPANSION
+```
+
+Four typed registries preserve social profile surfaces, conversation funnels, audience ownership and
+value ladders. Funnel metrics judge qualified conversations, captured contacts, customers and revenue;
+views, likes and followers are not success measures in isolation. The supported experiment families
+are `EXP-SOCIAL-*`, `EXP-PROFILE-*`, `EXP-CONVERSATION-*` and `EXP-LIFECYCLE-*`.
+
 ## Quick start
 
 ```bash
@@ -120,7 +135,7 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-capability_map.json         full Digital Marketing scope, 129 capabilities with build status
+capability_map.json         full Digital Marketing scope, 139 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
                             universal registries, experiment contract and unit economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)

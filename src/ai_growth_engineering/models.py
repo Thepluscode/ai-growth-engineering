@@ -66,12 +66,15 @@ EXPERIMENT_NAMESPACES = frozenset(
         "CONTENT",
         "CREATIVE",
         "CRO",
+        "CONVERSATION",
         "EMAIL",
         "LIFECYCLE",
         "OFFER",
         "PAID",
         "PARTNER",
         "SEO",
+        "SOCIAL",
+        "PROFILE",
     }
 )
 

@@ -5,10 +5,11 @@ Last updated: 2026-08-19
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
-| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 129 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
-| Ten software-memory registries | DEPLOYED | Customer evidence, offers, proof, creatives, channels, experiments, competitor patterns, claims, partners and revenue attribution have typed schemas and tested write/read interfaces |
-| Universal experiment contract | DEPLOYED | One persisted contract covers all ten experiment namespaces, evidence lineage, controls, metrics, economics, samples, budgets, thresholds, dates, decisions and learning |
-| Unit-economics decision layer | DEPLOYED | Integer-pence model distinguishes CAC from contribution profit and returns SCALE / HOLD / KILL / INSUFFICIENT_DATA; deterministic tests cover edge cases |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 139 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Fourteen software-memory registries | DEPLOYED | The original ten plus social profiles, conversation funnels, audience ownership and value ladders have typed schemas, tested write/read interfaces and in-place migration support |
+| Universal experiment contract | DEPLOYED | One persisted contract covers all 13 experiment namespaces, evidence lineage, controls, metrics, economics, samples, budgets, thresholds, dates, decisions and learning |
+| Social conversion and attribution contract | DEPLOYED | Content, profile, DM, contact capture, offer, customer and revenue IDs share one lineage; deterministic tests cover funnel rates, audience capture, legacy schema migration and unknown denominators |
+| Unit and lifecycle economics decision layer | DEPLOYED | Integer-pence models distinguish CAC from contribution profit and add realised 30/90/365-day value, gross profit per acquired customer and expansion rate; deterministic tests cover edge cases |
 | Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
 | `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, KILL below 5% |
 | 50 qualified prospects | VERIFIED | 57 records: seven are explicitly disqualified; Batches 04 and 05 add 20 current UK accounts; CLI reports 50 and the reseed regression test prevents stale qualification statuses from inflating the count |

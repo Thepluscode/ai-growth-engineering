@@ -18,6 +18,8 @@
         "demand_discovery": "HYPOTHESIS",
         "product_research": "HYPOTHESIS",
         "voice_of_customer": "HYPOTHESIS",
+        "social_voice_of_customer": "IMPLEMENTED",
+        "content_to_offer_learning_loop": "SPECIFIED",
         "problem_query_maps": "HYPOTHESIS",
         "buyer_awareness_model": "HYPOTHESIS",
         "buying_committee_psychology": "HYPOTHESIS",
@@ -42,7 +44,8 @@
         "proof_inventory": "IMPLEMENTED",
         "offer_to_revenue_lineage": "HYPOTHESIS",
         "pricing_model": "HYPOTHESIS",
-        "messaging_strategy": "HYPOTHESIS"
+        "messaging_strategy": "HYPOTHESIS",
+        "value_ladder_registry": "IMPLEMENTED"
       }
     },
     "3_creative": {
@@ -85,6 +88,7 @@
         "shortform_to_longform_pipeline": "HYPOTHESIS",
         "content_to_revenue_lineage": "HYPOTHESIS",
         "engagement_to_conversation": "HYPOTHESIS",
+        "public_to_private_conversation": "SPECIFIED",
         "social_distribution": "HYPOTHESIS",
         "email_marketing": "HYPOTHESIS",
         "paid_media_google": "HYPOTHESIS",
@@ -118,7 +122,9 @@
         "lead_generation": "HYPOTHESIS",
         "lead_capture": "HYPOTHESIS",
         "qualification_model": "SPECIFIED",
-        "booking_flow": "HYPOTHESIS"
+        "booking_flow": "HYPOTHESIS",
+        "social_profile_surface_registry": "IMPLEMENTED",
+        "conversation_funnel_registry": "IMPLEMENTED"
       }
     },
     "6_lifecycle_revenue": {
@@ -129,7 +135,9 @@
         "nurture_sequences": "HYPOTHESIS",
         "retention_model": "HYPOTHESIS",
         "expansion_model": "HYPOTHESIS",
-        "marketing_automation": "HYPOTHESIS"
+        "marketing_automation": "HYPOTHESIS",
+        "audience_ownership_registry": "IMPLEMENTED",
+        "customer_monetisation_metrics": "IMPLEMENTED"
       }
     },
     "7_measurement_economics": {
@@ -148,7 +156,9 @@
         "attribution_model": "HYPOTHESIS",
         "analytics_and_reporting": "HYPOTHESIS",
         "creative_to_revenue_attribution": "HYPOTHESIS",
-        "pipeline_measurement": "IMPLEMENTED"
+        "pipeline_measurement": "IMPLEMENTED",
+        "social_funnel_attribution": "IMPLEMENTED",
+        "audience_capture_rate": "IMPLEMENTED"
       }
     },
     "8_ai_growth_engineering": {

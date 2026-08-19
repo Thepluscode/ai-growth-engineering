@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import unittest
@@ -24,7 +25,7 @@ class RegistryTests(unittest.TestCase):
         init_db(self.db)
 
     def test_every_declared_registry_has_a_table(self):
-        self.assertEqual(len(registries.REGISTRY_TABLES), 10)
+        self.assertEqual(len(registries.REGISTRY_TABLES), 14)
         with connect(self.db) as con:
             tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         for architecture_name, table in registries.REGISTRY_TABLES.items():
@@ -61,6 +62,49 @@ class RegistryTests(unittest.TestCase):
                 for row in con.execute("PRAGMA table_info(attribution)")
             }
         self.assertEqual(attribution_types["revenue_pence"], "INTEGER")
+
+    def test_social_conversion_contracts_preserve_funnel_and_ownership_fields(self):
+        self.assertTrue({
+            "profile_id", "platform", "audience", "positioning", "bio_promise",
+            "primary_cta", "pinned_content", "proof_elements", "link_destination",
+            "dm_path", "profile_visits", "link_clicks", "dm_starts",
+            "qualified_leads", "customers", "revenue_pence", "experiment_id",
+        } <= set(registries.fields("social_profiles")))
+        self.assertTrue({
+            "conversation_funnel_id", "content_id", "engagement_trigger", "dm_path",
+            "qualification_criteria", "capture_destination", "owned_contacts",
+            "qualified_leads", "opportunities", "customers", "revenue_pence",
+        } <= set(registries.fields("conversation_funnels")))
+        self.assertTrue({
+            "audience_segment_id", "qualified_social_interactions", "owned_contacts",
+            "capture_destination", "customers", "revenue_pence",
+        } <= set(registries.fields("audience_ownership")))
+        self.assertTrue({
+            "value_ladder_id", "buyer", "entry_offer_id", "core_offer_id",
+            "premium_offer_id", "recurring_offer_id", "expansion_offer_id",
+        } <= set(registries.fields("value_ladders")))
+
+        registries.add(self.db, "conversation_funnels", {
+            "conversation_funnel_id": "CF-001", "platform": "linkedin",
+            "content_id": "POST-001", "primary_cta": "Reply AUDIT",
+            "content_views": 1_000, "dm_starts": 25, "qualified_leads": 5,
+            "revenue_pence": 250_000,
+        })
+        row = registries.rows(self.db, "conversation_funnels")[0]
+        self.assertEqual(row["content_views"], 1_000)
+        self.assertEqual(row["revenue_pence"], 250_000)
+
+    def test_attribution_links_content_through_conversation_to_revenue(self):
+        registries.add(self.db, "attribution", {
+            "attribution_id": "ATT-001", "source": "social",
+            "content_id": "POST-001", "profile_id": "PRO-001",
+            "conversation_funnel_id": "CF-001", "audience_segment_id": "AUD-001",
+            "offer_id": "OFF-001", "customer": "CUS-001",
+            "touchpoint_path": "view>profile>dm>lead>customer", "revenue_pence": 100_000,
+        })
+        row = registries.rows(self.db, "attribution")[0]
+        self.assertEqual(row["content_id"], "POST-001")
+        self.assertEqual(row["conversation_funnel_id"], "CF-001")
 
     def test_missing_required_field_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -147,6 +191,13 @@ class ExperimentContractTests(unittest.TestCase):
             ExperimentSpec("EXP-OFFER-0001", "h", "m", 0.1, 0.05, 10),
         )
 
+    def test_social_conversion_namespaces_are_supported(self):
+        for namespace in ("SOCIAL", "PROFILE", "CONVERSATION"):
+            add_experiment(
+                self.db,
+                ExperimentSpec(f"EXP-{namespace}-0001", "h", "m", 0.1, 0.05, 10),
+            )
+
     def test_contract_fields_are_optional(self):
         # Anything preregistered before the contract existed must stay valid.
         add_experiment(self.db, ExperimentSpec("EXP-ACQ-0001", "h", "m", 0.1, 0.05, 50))
@@ -206,6 +257,27 @@ class ExperimentContractTests(unittest.TestCase):
                 c.execute("SELECT hypothesis FROM experiments").fetchone()["hypothesis"], "old"
             )
 
+    def test_migration_adds_social_attribution_fields_to_existing_registry(self):
+        legacy = str(Path(self.tmp.name) / "legacy-registry.db")
+        con = sqlite3.connect(legacy)
+        con.execute(
+            """CREATE TABLE attribution (
+                 attribution_id TEXT PRIMARY KEY, source TEXT NOT NULL,
+                 revenue_pence INTEGER NOT NULL, created_at TEXT NOT NULL
+               )"""
+        )
+        con.commit()
+        con.close()
+
+        init_db(legacy)
+
+        with connect(legacy) as c:
+            cols = {row[1] for row in c.execute("PRAGMA table_info(attribution)")}
+        self.assertTrue({
+            "content_id", "profile_id", "conversation_funnel_id",
+            "audience_segment_id", "touchpoint_path",
+        } <= cols)
+
 
 class EvidenceContractTests(unittest.TestCase):
     def setUp(self):
@@ -228,9 +300,36 @@ class EvidenceContractTests(unittest.TestCase):
         with connect(self.db) as con:
             row = con.execute("SELECT * FROM evidence WHERE evidence_id='E-001'").fetchone()
         self.assertEqual(row["statement"], "Pricing is absent from the public offer page")
+        self.assertEqual(json.loads(row["metadata_json"]), {})
         self.assertEqual(row["inference"], "Price uncertainty may suppress enquiries")
         self.assertEqual(row["observed_at"], "2026-08-19")
         self.assertEqual(row["commercial_implication"], "Test a qualified price anchor")
+
+    def test_social_voc_metadata_survives_storage(self):
+        add_evidence(self.db, Evidence(
+            evidence_id="VOC-001",
+            kind=EvidenceKind.CUSTOMER_QUOTE,
+            statement="I cannot tell which package includes implementation",
+            source="social_dm",
+            confidence=0.9,
+            metadata={
+                "audience": "operations leaders",
+                "problem": "offer ambiguity",
+                "trigger": "pricing post",
+                "fear": "buying the wrong scope",
+                "desired_outcome": "clear implementation path",
+                "objection": "unclear inclusions",
+                "exact_language": "which package includes implementation?",
+                "commercial_intent": "high",
+            },
+        ))
+        with connect(self.db) as con:
+            row = con.execute(
+                "SELECT metadata_json FROM evidence WHERE evidence_id='VOC-001'"
+            ).fetchone()
+        metadata = json.loads(row["metadata_json"])
+        self.assertEqual(metadata["commercial_intent"], "high")
+        self.assertEqual(metadata["problem"], "offer ambiguity")
 
 
 class OutreachImportTests(unittest.TestCase):

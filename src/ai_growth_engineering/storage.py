@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS evidence (
     source TEXT NOT NULL,
     confidence REAL NOT NULL,
     observed INTEGER NOT NULL,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -117,6 +118,7 @@ EVIDENCE_CONTRACT_COLUMNS = (
     ("inference", "TEXT NOT NULL DEFAULT ''"),
     ("observed_at", "TEXT NOT NULL DEFAULT ''"),
     ("commercial_implication", "TEXT NOT NULL DEFAULT ''"),
+    ("metadata_json", "TEXT NOT NULL DEFAULT '{}'"),
 )
 
 
@@ -140,9 +142,10 @@ def migrate(con: sqlite3.Connection) -> list[str]:
 
 
 def init_db(db_path: str) -> None:
-    from .registries import schema_sql
+    from .registries import migrate_columns, schema_sql
 
     with connect(db_path) as con:
         con.executescript(SCHEMA)
         con.executescript(schema_sql())
         migrate(con)
+        migrate_columns(con)

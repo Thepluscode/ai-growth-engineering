@@ -94,6 +94,8 @@ speculative software construction.
 - **Ecommerce:** product research, offer stacks, storefront experiments and rapid test pages
 - **Competitive marketing:** reverse engineering, pattern extraction, and offer/CTA analysis
 - **Content:** content as market research, short-form testing and authority building
+- **Social conversion:** profile surfaces, public-to-private conversation, audience capture and
+  content-to-revenue lineage
 - **Affiliate:** offer routing, partner distribution and attribution
 - **AI operations:** skills, Growth Operator workflows, decision-latency reduction and controlled automation
 
@@ -115,6 +117,9 @@ table together.
 | `EXP-PAID-*` | Paid-media and creative-family experiments | UNPLANNED — evidence-triggered |
 | `EXP-SEO-*` | Search and AI-search visibility experiments | UNPLANNED — evidence-triggered |
 | `EXP-CONTENT-*` | Content-distribution experiments | UNPLANNED — evidence-triggered |
+| `EXP-SOCIAL-*` | Social distribution and content-to-signal experiments | UNPLANNED — evidence-triggered |
+| `EXP-PROFILE-*` | Social profile conversion experiments | UNPLANNED — evidence-triggered |
+| `EXP-CONVERSATION-*` | Public-content to private-conversation experiments | UNPLANNED — evidence-triggered |
 | `EXP-PARTNER-*` | Affiliate, referral and partnership experiments | UNPLANNED — evidence-triggered |
 | `EXP-CRO-*` | Landing-page and conversion experiments | UNPLANNED — evidence-triggered |
 | `EXP-EMAIL-*` | Email acquisition and lifecycle experiments | UNPLANNED — evidence-triggered |

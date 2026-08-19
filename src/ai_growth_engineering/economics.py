@@ -41,6 +41,31 @@ class UnitEconomics:
             raise ValueError("churn_rate_monthly must be between 0 and 1")
 
 
+@dataclass(frozen=True)
+class LifecycleEconomics:
+    """Realised cohort value at fixed windows. All money is cumulative pence."""
+
+    acquired_customers: int
+    expanded_customers: int = 0
+    revenue_30d_pence: int = 0
+    revenue_90d_pence: int = 0
+    revenue_365d_pence: int = 0
+    gross_profit_30d_pence: int = 0
+    gross_profit_90d_pence: int = 0
+    gross_profit_365d_pence: int = 0
+
+    def validate(self) -> None:
+        for name, value in vars(self).items():
+            if value < 0:
+                raise ValueError(f"{name} cannot be negative")
+        if self.expanded_customers > self.acquired_customers:
+            raise ValueError("expanded_customers cannot exceed acquired_customers")
+        for metric in ("revenue", "gross_profit"):
+            values = [getattr(self, f"{metric}_{days}d_pence") for days in (30, 90, 365)]
+            if values != sorted(values):
+                raise ValueError(f"cumulative {metric} must not decrease over time")
+
+
 def gross_profit(e: UnitEconomics) -> int:
     return e.revenue_pence - e.cogs_pence
 
@@ -108,3 +133,29 @@ def scale_verdict(e: UnitEconomics, target_ltv_multiple: float = 3.0) -> str:
     if unit_cac <= ceiling:
         return "SCALE"
     return "HOLD"
+
+
+def realised_ltv(e: LifecycleEconomics, days: int) -> int | None:
+    """Revenue per acquired customer at 30, 90 or 365 days."""
+    e.validate()
+    if days not in {30, 90, 365}:
+        raise ValueError("days must be one of 30, 90 or 365")
+    if e.acquired_customers == 0:
+        return None
+    return round(getattr(e, f"revenue_{days}d_pence") / e.acquired_customers)
+
+
+def gross_profit_per_acquired_customer(e: LifecycleEconomics, days: int) -> int | None:
+    e.validate()
+    if days not in {30, 90, 365}:
+        raise ValueError("days must be one of 30, 90 or 365")
+    if e.acquired_customers == 0:
+        return None
+    return round(getattr(e, f"gross_profit_{days}d_pence") / e.acquired_customers)
+
+
+def expansion_rate(e: LifecycleEconomics) -> float | None:
+    e.validate()
+    if e.acquired_customers == 0:
+        return None
+    return e.expanded_customers / e.acquired_customers

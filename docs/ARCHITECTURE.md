@@ -21,14 +21,16 @@ DIGITAL MARKETING PROJECT
 │   └── hooks and creative testing
 ├── 4. DISTRIBUTION
 │   ├── SEO, AI search, social and content
+│   ├── public content to private conversation
 │   ├── email, paid media and outbound
 │   └── affiliates, creators and partnerships
 ├── 5. CONVERSION
-│   ├── ecommerce, landing pages and CRO
+│   ├── ecommerce, landing pages, social profiles and CRO
+│   ├── conversation funnels and audience capture
 │   └── capture, qualification and booking
 ├── 6. REVENUE
 │   ├── marketing automation, CRM and sales handoff
-│   └── retention and expansion
+│   └── value ladders, retention and expansion
 ├── 7. MEASUREMENT
 │   ├── attribution, CAC and LTV
 │   └── contribution profit, pipeline and revenue
@@ -40,13 +42,13 @@ DIGITAL MARKETING PROJECT
 
 ## The capability map is the architecture of record
 
-`capability_map.json` holds all 129 capabilities of the Digital Marketing Project across the eight
+`capability_map.json` holds all 139 capabilities of the Digital Marketing Project across the eight
 domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
 covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
 (named and understood, nothing built).
 
 ```bash
-make capability-map     # current: IMPLEMENTED 35 · SPECIFIED 9 · HYPOTHESIS 85
+make capability-map     # current: IMPLEMENTED 43 · SPECIFIED 11 · HYPOTHESIS 85
 ```
 
 Scope is declared in that file, **not** in empty directories. A directory appears when a capability
@@ -131,7 +133,7 @@ channel automation.
 ### Software-memory registries
 
 `registries.py` defines the repeated schemas; customer evidence and experiments retain specialised
-validation interfaces. Together they provide ten registries:
+validation interfaces. Together they provide fourteen registries:
 
 1. Customer evidence
 2. Offers
@@ -143,23 +145,72 @@ validation interfaces. Together they provide ten registries:
 8. Claims
 9. Partners
 10. Revenue attribution
+11. Social profile surfaces
+12. Conversation funnels
+13. Audience ownership
+14. Value ladders
 
 Evidence keeps the observed statement, inference, confidence, observation date and commercial
-implication separate. Experiment-to-evidence links are relational and foreign-key constrained.
+implication separate. Structured metadata preserves voice-of-customer context such as audience,
+problem, trigger, fear, desired outcome, objection, exact language and commercial intent.
+Experiment-to-evidence links are relational and foreign-key constrained.
 
 ### Universal experiment contract
 
 Every namespace uses `ExperimentSpec`: market, buyer, problem, channel, hypothesis, supporting
 evidence, control, variant, primary/secondary/economic metrics, sample, budget, thresholds, dates,
-decision and learning. The same contract accepts acquisition, content, creative, CRO, email,
-lifecycle, offer, paid-media, partner and SEO experiments.
+decision and learning. The same contract accepts acquisition, content, creative, CRO, social,
+profile, conversation, email, lifecycle, offer, paid-media, partner and SEO experiments.
+
+### Social conversion contract
+
+Social content, the profile, private conversation, contact capture and lifecycle are measured as one
+conversion system rather than separate channel activities:
+
+```text
+CONTENT_ID
+    ↓
+VIEW → PROFILE → DM → LEAD → QUALIFIED → OPPORTUNITY → CUSTOMER → REVENUE
+                         ↓
+                  OWNED CONTACT
+                         ↓
+                RETENTION / EXPANSION
+```
+
+`social_profiles` stores platform, audience, positioning, bio promise, CTA, pinned content, proof,
+link and DM paths plus downstream outcomes. `conversation_funnels` links the originating content to
+the engagement trigger, DM path, qualification, capture destination, offer and revenue.
+`audience_ownership` distinguishes qualified rented-platform interactions from captured contacts.
+`attribution` carries the content, profile, conversation, audience, offer and customer identifiers so
+revenue can be traced across the whole path.
+
+`social.py` computes profile-visit rate, DM-start rate, qualified conversations per thousand views,
+audience capture rate and revenue per thousand views. `economics.py` adds realised 30-, 90- and
+365-day customer value, gross profit per acquired customer and expansion rate. Missing denominators
+return unknown rather than a misleading zero.
+
+The architecture supports `EXP-SOCIAL-*`, `EXP-PROFILE-*` and `EXP-CONVERSATION-*`; lifecycle tests
+continue under `EXP-LIFECYCLE-*`. It does not assume a particular social platform is best and does
+not authorise comment-to-DM automation or unsolicited messaging.
+
+### Content-to-offer evidence loop
+
+```text
+HYPOTHESIS → CONTENT → AUDIENCE REACTION → CONVERSATION
+     ↑                                      ↓
+COMMERCIAL DECISION ← OFFER HYPOTHESIS ← VOC EVIDENCE
+```
+
+Social polls, comments, DM conversations and story responses enter the existing customer-evidence
+model. They are sources, not proof by themselves; observation, exact language and inference remain
+separate.
 
 ### Economics decision layer
 
 `economics.py` uses integer pence to calculate gross profit, acquisition cost, contribution profit,
-CAC, churn-based LTV, payback and allowable CAC. Its scale verdict distinguishes `SCALE`, `HOLD`,
-`KILL` and `INSUFFICIENT_DATA`, so missing measurements cannot be mistaken for either success or
-failure.
+CAC, churn-based LTV, realised lifecycle value, payback and allowable CAC. Its scale verdict
+distinguishes `SCALE`, `HOLD`, `KILL` and `INSUFFICIENT_DATA`, so missing measurements cannot be
+mistaken for either success or failure.
 
 The implementation order remains manual → measured → repeated → standardised → automated →
 agentic. These contracts do not authorise channel integrations or autonomous actions.
@@ -170,6 +221,7 @@ agentic. These contracts do not authorise channel integrations or autonomous act
 - CRM integrations
 - Meta/Google/LinkedIn write access
 - AI-generated bulk outreach
+- autonomous social messaging or comment-to-DM automation
 - customer-facing dashboard
 - proprietary SaaS
 

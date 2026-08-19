@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 from dataclasses import asdict
 
 from .models import Evidence, ExperimentDecision, ExperimentSpec
@@ -13,8 +14,8 @@ def add_evidence(db_path: str, evidence: Evidence) -> None:
         con.execute(
             """INSERT INTO evidence(
                  evidence_id, kind, statement, source, confidence, observed,
-                 inference, observed_at, commercial_implication
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 inference, observed_at, commercial_implication, metadata_json
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 evidence.evidence_id,
                 evidence.kind.value,
@@ -25,6 +26,7 @@ def add_evidence(db_path: str, evidence: Evidence) -> None:
                 evidence.inference,
                 evidence.observed_at,
                 evidence.commercial_implication,
+                json.dumps(evidence.metadata, sort_keys=True),
             ),
         )
 

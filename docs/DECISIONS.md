@@ -44,3 +44,20 @@ content is secondary within that experiment until the first customer exists.
 ## D-007 — Competitors are references, not templates
 
 **Decision:** extract functions/patterns; do not clone competitor copy, design, testimonials or brand assets.
+
+## D-008 — Social is one attributable conversion system
+
+**Decision:** model social content, profile conversion, private conversation, owned-contact capture,
+offers and lifecycle revenue as one linked funnel. Treat platform reach and engagement as inputs, not
+commercial outcomes.
+
+**Reason:** separate activity metrics cannot answer which content creates qualified conversations,
+customers or contribution profit. This decision adds measurement contracts only; it does not select a
+default platform or authorise automated DMs.
+
+## D-009 — Creator claims are not operating assumptions
+
+**Decision:** unverified revenue, profit, automation-share, day-one-sales, DM-share and “best platform”
+claims remain third-party creator claims. They are not benchmarks, forecasts or proof.
+
+**Reason:** claims enter the methodology only through evidence lineage and the existing claims policy.

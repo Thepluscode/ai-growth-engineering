@@ -3,12 +3,16 @@ from __future__ import annotations
 import unittest
 
 from ai_growth_engineering.economics import (
+    LifecycleEconomics,
     UnitEconomics,
     allowable_cac,
     cac,
     contribution_profit,
+    expansion_rate,
+    gross_profit_per_acquired_customer,
     ltv,
     payback_months,
+    realised_ltv,
     scale_verdict,
 )
 
@@ -73,6 +77,46 @@ class EconomicsTests(unittest.TestCase):
         for kw in ({"revenue_pence": -1}, {"gross_margin_rate": 1.5}, {"churn_rate_monthly": -0.1}):
             with self.assertRaises(ValueError):
                 base(**kw).validate()
+
+
+class LifecycleEconomicsTests(unittest.TestCase):
+    def setUp(self):
+        self.cohort = LifecycleEconomics(
+            acquired_customers=10,
+            expanded_customers=3,
+            revenue_30d_pence=1_000_000,
+            revenue_90d_pence=1_500_000,
+            revenue_365d_pence=2_500_000,
+            gross_profit_30d_pence=600_000,
+            gross_profit_90d_pence=900_000,
+            gross_profit_365d_pence=1_500_000,
+        )
+
+    def test_realised_ltv_uses_fixed_cohort_windows(self):
+        self.assertEqual(realised_ltv(self.cohort, 30), 100_000)
+        self.assertEqual(realised_ltv(self.cohort, 90), 150_000)
+        self.assertEqual(realised_ltv(self.cohort, 365), 250_000)
+
+    def test_gross_profit_and_expansion_are_customer_level_measures(self):
+        self.assertEqual(gross_profit_per_acquired_customer(self.cohort, 90), 90_000)
+        self.assertEqual(expansion_rate(self.cohort), 0.3)
+
+    def test_empty_cohort_is_unknown_not_zero(self):
+        empty = LifecycleEconomics(acquired_customers=0)
+        self.assertIsNone(realised_ltv(empty, 30))
+        self.assertIsNone(expansion_rate(empty))
+
+    def test_lifecycle_window_must_be_supported(self):
+        with self.assertRaises(ValueError):
+            realised_ltv(self.cohort, 60)
+
+    def test_cumulative_value_cannot_fall_over_time(self):
+        with self.assertRaisesRegex(ValueError, "revenue"):
+            LifecycleEconomics(
+                acquired_customers=1,
+                revenue_30d_pence=100,
+                revenue_90d_pence=90,
+            ).validate()
 
 
 if __name__ == "__main__":

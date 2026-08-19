@@ -1,8 +1,8 @@
 """Registries — where accumulated research becomes software memory rather than chat history.
 
-Eight structurally similar registries are declared as field lists rather than hand-written
+Twelve structurally similar registries are declared as field lists rather than hand-written
 modules. Together with the specialised customer-evidence and experiment registries, they
-form the ten memories required by the Digital Marketing architecture. The schema is the
+form the fourteen memories required by the Digital Marketing architecture. The schema is the
 interface, and the repeated tables are generated from it.
 
 Adding a registry means adding one entry here. Nothing else changes.
@@ -54,7 +54,45 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
     "attribution": (
         "attribution_id",
         ("source", "revenue_pence"),
-        ("experiment_id", "channel_id", "creative_id", "offer_id", "customer", "recorded_at"),
+        (
+            "experiment_id", "channel_id", "creative_id", "content_id", "profile_id",
+            "conversation_funnel_id", "audience_segment_id", "offer_id", "customer",
+            "touchpoint_path", "recorded_at",
+        ),
+    ),
+    "social_profiles": (
+        "profile_id",
+        ("platform", "audience", "positioning", "bio_promise", "primary_cta"),
+        (
+            "pinned_content", "proof_elements", "link_destination", "dm_path",
+            "profile_visits", "link_clicks", "dm_starts", "qualified_leads",
+            "customers", "revenue_pence", "experiment_id",
+        ),
+    ),
+    "conversation_funnels": (
+        "conversation_funnel_id",
+        ("platform", "content_id", "primary_cta"),
+        (
+            "engagement_trigger", "dm_path", "qualification_criteria",
+            "capture_destination", "offer_id", "content_views", "profile_visits",
+            "dm_starts", "owned_contacts", "qualified_leads", "opportunities",
+            "customers", "revenue_pence", "experiment_id",
+        ),
+    ),
+    "audience_ownership": (
+        "audience_segment_id",
+        ("platform", "audience"),
+        (
+            "qualified_social_interactions", "owned_contacts", "capture_destination",
+            "customers", "revenue_pence", "experiment_id",
+        ),
+    ),
+    "value_ladders": (
+        "value_ladder_id",
+        ("buyer", "entry_offer_id", "core_offer_id"),
+        (
+            "premium_offer_id", "recurring_offer_id", "expansion_offer_id", "status", "notes",
+        ),
     ),
 }
 
@@ -71,11 +109,18 @@ REGISTRY_TABLES = {
     "claims": "claims",
     "partners": "partners",
     "revenue_attribution": "attribution",
+    "social_profile_surfaces": "social_profiles",
+    "conversation_funnels": "conversation_funnels",
+    "audience_ownership": "audience_ownership",
+    "value_ladders": "value_ladders",
 }
 
 # Fields whose name ends in these suffixes are stored as integers, so money and counts
 # cannot drift into floats one call site at a time.
-INT_SUFFIXES = ("_pence", "_leads", "opportunities")
+INT_SUFFIXES = (
+    "_pence", "_leads", "_visits", "_clicks", "_starts", "_views", "_contacts",
+    "_interactions", "opportunities", "customers",
+)
 
 
 def _column_type(field: str) -> str:
@@ -105,6 +150,18 @@ def schema_sql() -> str:
             f"CREATE TABLE IF NOT EXISTS {table} (\n    " + ",\n    ".join(columns) + "\n);"
         )
     return "\n\n".join(statements)
+
+
+def migrate_columns(con) -> list[str]:
+    """Add newly declared optional fields to existing generated registry tables."""
+    added = []
+    for table, (_, _, optional) in REGISTRIES.items():
+        existing = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+        for name in optional:
+            if name not in existing:
+                con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {_optional_column(name)}")
+                added.append(f"{table}.{name}")
+    return added
 
 
 def fields(registry: str) -> tuple[str, ...]:
