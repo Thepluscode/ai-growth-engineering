@@ -1,0 +1,11 @@
+priority,company,status,next_action
+1,Central Technology,draft_staged,send once after explicit approval then verify Gmail Sent
+2,Xperience,draft_staged,send once after explicit approval then verify Gmail Sent
+3,totality services,draft_staged,send once after explicit approval then verify Gmail Sent
+4,Carden IT Group,draft_staged,send once after explicit approval then verify Gmail Sent
+5,OryxAlign,draft_staged,send once after explicit approval then verify Gmail Sent
+6,Neuways,draft_staged,send once after explicit approval then verify Gmail Sent
+7,CyberLab,draft_staged,send once after explicit approval then verify Gmail Sent
+8,Waterstons,draft_staged,send once after explicit approval then verify Gmail Sent
+9,Brightsolid,draft_staged,send once after explicit approval then verify Gmail Sent
+10,Probrand,draft_staged,send once after explicit approval then verify Gmail Sent
