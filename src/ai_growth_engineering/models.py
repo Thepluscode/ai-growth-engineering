@@ -54,6 +54,13 @@ class Evidence:
             raise ValueError("inference cannot be marked observed")
 
 
+# Experiment namespaces, one per Digital Marketing domain that can carry an experiment.
+# Documented in docs/ROADMAP.md; enforced here so the taxonomy cannot drift in prose alone.
+EXPERIMENT_NAMESPACES = frozenset(
+    {"ACQ", "CREATIVE", "PAID", "SEO", "CONTENT", "PARTNER", "CRO", "EMAIL", "LIFECYCLE"}
+)
+
+
 @dataclass(frozen=True)
 class ExperimentSpec:
     experiment_id: str
@@ -65,8 +72,14 @@ class ExperimentSpec:
     evidence_ids: tuple[str, ...] = ()
 
     def validate(self) -> None:
-        if not self.experiment_id.startswith("EXP-"):
-            raise ValueError("experiment_id must start with EXP-")
+        parts = self.experiment_id.split("-")
+        if len(parts) != 3 or parts[0] != "EXP":
+            raise ValueError("experiment_id must look like EXP-<NAMESPACE>-<NNNN>")
+        if parts[1] not in EXPERIMENT_NAMESPACES:
+            raise ValueError(
+                f"unknown experiment namespace {parts[1]!r}; "
+                f"add it to EXPERIMENT_NAMESPACES and docs/ROADMAP.md first"
+            )
         if not self.hypothesis.strip():
             raise ValueError("hypothesis is required")
         if not self.primary_metric.strip():

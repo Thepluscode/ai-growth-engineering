@@ -21,6 +21,13 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(record_experiment_result(self.db, "EXP-ACQ-0001", 49, 0.20), "invalid")
         self.assertEqual(record_experiment_result(self.db, "EXP-ACQ-0001", 50, 0.12), "keep")
 
+    def test_experiment_id_namespace_is_enforced(self):
+        for eid in ("EXP-ACQ-0002", "EXP-CREATIVE-0001", "EXP-PAID-0001", "EXP-CRO-0001"):
+            ExperimentSpec(eid, "h", "m", 0.10, 0.05, 50).validate()
+        for eid in ("EXP-BANANA-0001", "EXP-0001", "ACQ-0001"):
+            with self.assertRaises(ValueError):
+                ExperimentSpec(eid, "h", "m", 0.10, 0.05, 50).validate()
+
     def test_seed_and_scoreboard(self):
         csv_path = Path(self.tmp.name) / "prospects.csv"
         csv_path.write_text(
