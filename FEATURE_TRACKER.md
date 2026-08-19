@@ -9,8 +9,8 @@ Last updated: 2026-08-19
 | 20 qualified prospects | DEPLOYED | 21 records: Foresite disqualified; Littlefish added as a sourced UK-wedge replacement; CLI excludes disqualified statuses |
 | Queue-01 deep research | VERIFIED | 10 queue accounts researched from cited public sources; Foresite disqualified; Morcan researched as send replacement |
 | Queue-01 teardowns | VERIFIED | 10 queue decisions plus Morcan replacement under `sales/teardowns/`; observed/inferred/unknown separated |
-| Queue-01 send-ready messages | VERIFIED | 10 qualified drafts in `sales/outbound-messages.md`; sending requires explicit human `EXECUTE` |
-| Qualified outbound sends | PLANNED | 0 sent; staged is not sent |
+| Queue-01 messages | VERIFIED | 10 qualified messages sent through Gmail on 2026-08-19; full copy in `sales/outbound-messages.md` |
+| Qualified outbound sends | VERIFIED | 10 messages sent through Gmail on 2026-08-19 and verified in the Sent folder; recorded in `sales/outreach.csv` |
 | Meaningful replies | PLANNED | 0; no conclusion before 50 qualified sends |
 | Discovery calls | PLANNED | 0; use `sales/discovery-checklist.md` |
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |

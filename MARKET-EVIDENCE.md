@@ -11,7 +11,7 @@ Rule 0b: no further significant engineering until every line below is met with e
 
 | Key | Count | Evidence (names, dates, links — not adjectives) |
 |-----|-------|--------------------------------------------------|
-| contacted | 0 | |
+| contacted | 10 | 2026-08-19 Gmail Sent verification; sales/outreach.csv |
 | conversations | 0 | |
 | confirmed_pain | 0 | |
 | requested | 0 | |

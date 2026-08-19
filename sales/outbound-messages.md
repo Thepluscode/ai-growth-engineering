@@ -1,8 +1,7 @@
 # Batch 01 — Manual Outbound Messages
 
-Status: send-ready drafts, **not sent**. Verify the recipient’s current role, contact channel, and
-suppression status immediately before manual delivery. Log a send only after it actually leaves the
-company channel.
+Status: sent through the authenticated Gmail account on 2026-08-19. All 10 messages were verified in
+the Sent folder and recorded in `sales/outreach.csv`. No immediate delivery failure matched this batch.
 
 ## 1. CloudTech24 — John Hosegood, Head of Sales
 

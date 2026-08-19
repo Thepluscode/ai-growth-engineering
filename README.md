@@ -23,7 +23,7 @@ Immediate market-test scoreboard:
 | Qualified prospects | 20 / 20 |
 | Deep researches | 10 / 10 |
 | Teardowns completed | 10 / 10 |
-| Outreach sent | 0 / 10 |
+| Outreach sent | 10 / 10 |
 | Meaningful replies | ? |
 | Calls | ? |
 
