@@ -1,11 +1,11 @@
 priority,company,status,next_action
-1,cyberISMS,qualified_for_deep_research,verify parent-company decision maker; map Get Started flow
-2,Fortitude Cyber,qualified_for_deep_research,verify David Atkinson as operating founder; map pricing-to-consultation flow
-3,Aursec,qualified_for_deep_research,verify founder's full identity; map health-check and scoping-call routes
-4,Intergence,qualified_for_deep_research,verify commercial decision maker; map free breach-assessment route
-5,Technical Drive,qualified_for_deep_research,verify managing director; map cyber-confidence calculator flow
-6,Opus Technology,qualified_for_deep_research,verify commercial owner for managed IT/cyber; map consultant CTA by service
-7,Slink,qualified_for_deep_research,verify founder or commercial lead; map IT Growth Readiness Assessment flow
-8,Littlefish,qualified_for_deep_research,verify Sean Tickle recipient route; map cyber-assessment enquiry flow
-9,QuoStar,qualified_for_deep_research,verify David Clark or commercial owner; map assessment-to-discovery flow
-10,Chorus,qualified_for_deep_research,verify Nicola Saner or marketing owner; map managed-SOC proposal flow
+1,cyberISMS,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+2,Fortitude Cyber,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+3,Aursec,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+4,Intergence,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+5,Technical Drive,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+6,Opus Technology,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+7,Slink,teardown_complete,verify suppression; submit once through published commercial contact form
+8,Littlefish,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+9,Zenzero,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send
+10,Chorus,sent_awaiting_reply,monitor verified Gmail thread; no duplicate send

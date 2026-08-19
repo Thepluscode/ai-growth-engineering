@@ -93,7 +93,7 @@ separate.
   general sales email in the evidence reviewed.
 - **Research hypothesis:** determine whether the strong readiness-assessment CTA remains congruent from
   sector pages through form completion and follow-up.
-- **Sources:** [Slink](https://slink.co.uk/), [managed IT](https://slink.co.uk/capabilities-managed-it), [contact](https://slink.co.uk/contact-us)
+- **Sources:** [Slink](https://slink.co.uk/), [managed IT](https://slink.co.uk/capabilities-managed-it), [contact](https://slink.co.uk/contact)
 
 ## 8. Littlefish
 
@@ -107,15 +107,16 @@ separate.
   into a suitably specific enquiry and expectation-setting flow.
 - **Sources:** [cyber assessment](https://www.littlefish.co.uk/our-services/cyber-security-services/cyber-assessment/), [Sean Tickle](https://www.littlefish.co.uk/team/sean-tickle/)
 
-## 9. QuoStar
+## 9. Zenzero
 
-- **Observed fit:** UK MSP with managed IT, cloud, transformation, security/compliance and managed XDR.
-- **Observed route/proof:** free discovery/security assessments, award evidence, named CISO David Clark,
-  quantified customer case studies and `hello@quostar.com`.
-- **Buyer route:** verify whether David Clark or the commercial owner is accountable for cyber demand.
-- **Research hypothesis:** determine whether award-led managed-XDR interest is routed to a security-led
-  assessment or a generic discovery conversation.
-- **Sources:** [managed-XDR evidence](https://www.quostar.com/quostar-named-managed-xdr-partner-of-the-year-at-barracudas-prestigious-2025-awards/), [case study](https://www.quostar.com/case-study/crohns-colitis/), [David Clark](https://www.quostar.com/people/david-clark/)
+- **Observed fit:** UK-headquartered MSP spanning managed IT, cyber security, data and AI for
+  mid-market and regulated organisations.
+- **Observed route/proof:** outcome-led cyber navigation, Microsoft designations, B Corp and award
+  evidence, quantified cases, named CEO Michael Bateman and `hello@zenzero.co.uk`.
+- **Buyer route:** route to Michael Bateman through the published general enquiry address.
+- **Research hypothesis:** determine whether cyber outcome selected in navigation remains visible in
+  the generic consultation route.
+- **Sources:** [Zenzero](https://zenzero.co.uk/), [cyber security](https://zenzero.co.uk/cyber-security), [CEO and contact](https://zenzero.co.uk/news/video-interview-zenzero-at-the-world-economic-forum)
 
 ## 10. Chorus
 
@@ -147,3 +148,11 @@ separate.
 - **Decision:** disqualify from the UK-headquartered wedge. Preserve for a future global or
   product-led cybersecurity experiment.
 - **Sources:** [Stingrai](https://www.stingrai.io/), [case studies](https://www.stingrai.io/case-studies)
+
+### QuoStar
+
+- **Observed:** the current QuoStar domain redirects to Zenzero, and the Zenzero support portal treats
+  QuoStar as a legacy client route.
+- **Decision:** disqualify as a standalone account. Replace it with the current Zenzero proposition;
+  do not send the stale QuoStar message or count both brands.
+- **Sources:** [QuoStar redirect](https://www.quostar.com/), [Zenzero support portal](https://portal.zenzero.co.uk/support)
