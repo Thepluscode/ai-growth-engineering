@@ -17,10 +17,17 @@ class EvidenceKind(StrEnum):
 
 
 class ExperimentDecision(StrEnum):
+    """What an experiment's numbers say — never what happens to the business.
+
+    There is deliberately no KILL. A result below the review threshold means this
+    approach is not working as run; it does not mean the market, the offer or the
+    idea is dead, and the system does not get to make that call. Under Rule 0.5b
+    what stops is the spending, and only a person decides that.
+    """
     PREREGISTERED = "preregistered"
     KEEP = "keep"
     ITERATE = "iterate"
-    KILL = "kill"
+    REVIEW = "review"
     INVALID = "invalid"
 
 
@@ -63,6 +70,7 @@ class Evidence:
 EXPERIMENT_NAMESPACES = frozenset(
     {
         "ACQ",
+        "AISEARCH",
         "CONTENT",
         "CREATIVE",
         "CRO",
@@ -85,7 +93,7 @@ class ExperimentSpec:
     hypothesis: str
     primary_metric: str
     success_threshold: float
-    kill_threshold: float
+    review_threshold: float
     minimum_sample: int
     evidence_ids: tuple[str, ...] = ()
 
@@ -125,8 +133,8 @@ class ExperimentSpec:
             raise ValueError("primary_metric is required")
         if self.minimum_sample <= 0:
             raise ValueError("minimum_sample must be > 0")
-        if self.kill_threshold > self.success_threshold:
-            raise ValueError("kill_threshold cannot exceed success_threshold")
+        if self.review_threshold > self.success_threshold:
+            raise ValueError("review_threshold cannot exceed success_threshold")
         if self.budget_pence < 0:
             raise ValueError("budget_pence cannot be negative")
         try:

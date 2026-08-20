@@ -11,7 +11,7 @@ Last updated: 2026-08-19
 | Social conversion and attribution contract | DEPLOYED | Content, profile, DM, contact capture, offer, customer and revenue IDs share one lineage; deterministic tests cover funnel rates, audience capture, legacy schema migration and unknown denominators |
 | Unit and lifecycle economics decision layer | DEPLOYED | Integer-pence models distinguish CAC from contribution profit and add realised 30/90/365-day value, gross profit per acquired customer and expansion rate; deterministic tests cover edge cases |
 | Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
-| `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, KILL below 5% |
+| `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, REVIEW below 5% |
 | 50 qualified prospects | VERIFIED | 57 records: seven are explicitly disqualified; Batches 04 and 05 add 20 current UK accounts; CLI reports 50 and the reseed regression test prevents stale qualification statuses from inflating the count |
 | Queue-01 deep research | VERIFIED | 10 queue accounts researched from cited public sources; Foresite disqualified; Morcan researched as send replacement |
 | Queue-01 teardowns | VERIFIED | 10 queue decisions plus Morcan replacement under `experiments/EXP-ACQ-0001/sales/teardowns/`; observed/inferred/unknown separated |

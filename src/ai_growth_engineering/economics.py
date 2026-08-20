@@ -117,10 +117,14 @@ def allowable_cac(e: UnitEconomics, target_ltv_multiple: float = 3.0) -> int | N
 
 
 def scale_verdict(e: UnitEconomics, target_ltv_multiple: float = 3.0) -> str:
-    """SCALE / HOLD / KILL — one sentence a channel owner cannot argue with.
+    """SCALE / HOLD / STOP_SPEND — one sentence a channel owner cannot argue with.
 
-    INSUFFICIENT_DATA is a distinct answer from KILL. Treating unknown economics as
-    failure kills channels that were never measured, which is how a real edge gets
+    STOP_SPEND, not KILL: what ends is the money going into this channel at these
+    economics. The channel, the offer and the idea all survive, and a person decides
+    whether to change the economics or step away (Rule 0.5b).
+
+    INSUFFICIENT_DATA is a distinct answer from STOP_SPEND. Treating unknown economics
+    as failure stops channels that were never measured, which is how a real edge gets
     thrown away.
     """
     e.validate()
@@ -129,7 +133,7 @@ def scale_verdict(e: UnitEconomics, target_ltv_multiple: float = 3.0) -> str:
     if unit_cac is None or ceiling is None:
         return "INSUFFICIENT_DATA"
     if contribution_profit(e) <= 0:
-        return "KILL"
+        return "STOP_SPEND"
     if unit_cac <= ceiling:
         return "SCALE"
     return "HOLD"

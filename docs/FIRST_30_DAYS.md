@@ -59,5 +59,5 @@ For `EXP-ACQ-0001`:
 
 - >=10% meaningful reply after 50 qualified sends: KEEP
 - 5–9.9%: ITERATE
-- <5%: KILL / materially revise
+- <5%: REVIEW / materially revise
 - <50 sends: INVALID for final decision

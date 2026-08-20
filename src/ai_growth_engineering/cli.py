@@ -91,7 +91,7 @@ def cmd_experiment_add(args: argparse.Namespace) -> None:
             hypothesis=args.hypothesis,
             primary_metric=args.primary_metric,
             success_threshold=args.success_threshold,
-            kill_threshold=args.kill_threshold,
+            review_threshold=args.review_threshold,
             minimum_sample=args.minimum_sample,
             evidence_ids=tuple(args.evidence_id),
             market=args.market,
@@ -192,7 +192,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--hypothesis", required=True)
     p.add_argument("--primary-metric", required=True)
     p.add_argument("--success-threshold", type=float, required=True)
-    p.add_argument("--kill-threshold", type=float, required=True)
+    p.add_argument("--review-threshold", type=float, required=True)
     p.add_argument("--minimum-sample", type=int, required=True)
     p.add_argument("--evidence-id", action="append", default=[])
     p.add_argument("--market", default="")

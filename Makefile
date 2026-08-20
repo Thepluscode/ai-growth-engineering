@@ -5,6 +5,8 @@ DB := .age/growth.db
 .PHONY: test gate init seed scoreboard capability-map demo clean
 
 gate:
+	$(PY) scripts/build_tree.py --selftest
+	$(PY) scripts/build_tree.py --check
 	$(PY) scripts/scope_gate.py --selftest
 	$(PY) scripts/scope_gate.py
 
@@ -24,7 +26,7 @@ scoreboard:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 
 demo: seed
-	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-add --db $(DB) --experiment-id EXP-ACQ-0001 --hypothesis "Pipeline-leak messaging will produce >=10% meaningful reply rate" --primary-metric meaningful_reply_rate --success-threshold 0.10 --kill-threshold 0.05 --minimum-sample 50 || true
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-add --db $(DB) --experiment-id EXP-ACQ-0001 --hypothesis "Pipeline-leak messaging will produce >=10% meaningful reply rate" --primary-metric meaningful_reply_rate --success-threshold 0.10 --review-threshold 0.05 --minimum-sample 50 || true
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 
 clean:

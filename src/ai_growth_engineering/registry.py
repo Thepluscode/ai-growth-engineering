@@ -45,7 +45,7 @@ def add_experiment(db_path: str, spec: ExperimentSpec) -> None:
         con.execute(
             """INSERT INTO experiments(
                  experiment_id, hypothesis, primary_metric, success_threshold,
-                 kill_threshold, minimum_sample, market, buyer, problem, channel,
+                 review_threshold, minimum_sample, market, buyer, problem, channel,
                  control, variant, secondary_metrics, economic_metric, budget_pence,
                  start_date, end_date, learning
                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -54,7 +54,7 @@ def add_experiment(db_path: str, spec: ExperimentSpec) -> None:
                 spec.hypothesis,
                 spec.primary_metric,
                 spec.success_threshold,
-                spec.kill_threshold,
+                spec.review_threshold,
                 spec.minimum_sample,
                 spec.market,
                 spec.buyer,
@@ -95,8 +95,8 @@ def record_experiment_result(
             decision = ExperimentDecision.PREREGISTERED.value
         elif observed_value >= row["success_threshold"]:
             decision = ExperimentDecision.KEEP.value
-        elif observed_value < row["kill_threshold"]:
-            decision = ExperimentDecision.KILL.value
+        elif observed_value < row["review_threshold"]:
+            decision = ExperimentDecision.REVIEW.value
         else:
             decision = ExperimentDecision.ITERATE.value
         con.execute(
@@ -186,3 +186,29 @@ def scoreboard(db_path: str) -> dict[str, int]:
             "paying_customers": con.execute("SELECT COALESCE(SUM(paid),0) FROM outreach").fetchone()[0],
             "collected_revenue_pence": con.execute("SELECT COALESCE(SUM(collected_revenue_pence),0) FROM outreach").fetchone()[0],
         }
+
+
+def claim_publication_check(db_path: str, claim_id: str):
+    """Look up a registered claim and its evidence, then apply ClaimPublicationGate.
+
+    Kept here rather than in policies.py so the policy layer stays pure and testable
+    without a database.
+    """
+    from .policies import ClaimPublicationGate, PolicyDecision
+
+    with connect(db_path) as con:
+        claim = con.execute(
+            "SELECT status, evidence_id FROM claims WHERE claim_id = ?", (claim_id,)
+        ).fetchone()
+        if claim is None:
+            return PolicyDecision(False, False, ("claim_not_registered",))
+        evidence = con.execute(
+            "SELECT confidence, observed FROM evidence WHERE evidence_id = ?",
+            (claim["evidence_id"],),
+        ).fetchone()
+
+    return ClaimPublicationGate.evaluate(
+        claim_status=claim["status"],
+        evidence_confidence=None if evidence is None else evidence["confidence"],
+        evidence_observed=True if evidence is None else bool(evidence["observed"]),
+    )

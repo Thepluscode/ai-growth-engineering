@@ -91,7 +91,7 @@ Every action-producing skill is separated from authority.
 ```text
 GROWTH OPERATOR
       ↓
-    SKILL
+    SREVIEW
       ↓
 PROPOSED ACTION
       ↓
@@ -209,7 +209,7 @@ separate.
 
 `economics.py` uses integer pence to calculate gross profit, acquisition cost, contribution profit,
 CAC, churn-based LTV, realised lifecycle value, payback and allowable CAC. Its scale verdict
-distinguishes `SCALE`, `HOLD`, `KILL` and `INSUFFICIENT_DATA`, so missing measurements cannot be
+distinguishes `SCALE`, `HOLD`, `REVIEW` and `INSUFFICIENT_DATA`, so missing measurements cannot be
 mistaken for either success or failure.
 
 The implementation order remains manual → measured → repeated → standardised → automated →

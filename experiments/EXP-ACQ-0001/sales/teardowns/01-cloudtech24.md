@@ -83,7 +83,7 @@ places only — the homepage hero, beside the existing “Book a discovery call�
 - **Guardrail:** weekly discovery-call bookings must not fall more than 10% — this is what stops a
   cheap conversion win cannibalising the expensive one
 - **KEEP:** ≥3 additional scan requests per 1,000 sessions with the guardrail intact
-- **KILL:** <1 additional per 1,000 sessions, or guardrail breached
+- **REVIEW:** <1 additional per 1,000 sessions, or guardrail breached
 - **Between the two:** ITERATE on placement and label before concluding the offer itself is wrong
 
 If they confirm the scan page already has its own traffic source, fall back to the assessment-CTA

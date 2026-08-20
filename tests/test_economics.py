@@ -60,8 +60,8 @@ class EconomicsTests(unittest.TestCase):
     def test_scale_verdict_scale(self):
         self.assertEqual(scale_verdict(base()), "SCALE")
 
-    def test_scale_verdict_kill_on_negative_contribution(self):
-        self.assertEqual(scale_verdict(base(media_spend_pence=900_00)), "KILL")
+    def test_scale_verdict_stops_spend_on_negative_contribution(self):
+        self.assertEqual(scale_verdict(base(media_spend_pence=900_00)), "STOP_SPEND")
 
     def test_scale_verdict_hold_when_cac_above_ceiling(self):
         # Profitable but paying more per customer than the LTV target allows.
@@ -69,7 +69,7 @@ class EconomicsTests(unittest.TestCase):
         self.assertEqual(scale_verdict(e), "HOLD")
 
     def test_unmeasured_is_not_the_same_as_failed(self):
-        # Treating unknown economics as KILL throws away channels never measured.
+        # Treating unknown economics as STOP_SPEND throws away channels never measured.
         self.assertEqual(scale_verdict(base(churn_rate_monthly=0.0)), "INSUFFICIENT_DATA")
         self.assertEqual(scale_verdict(base(customers=0)), "INSUFFICIENT_DATA")
 

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS experiments (
     hypothesis TEXT NOT NULL,
     primary_metric TEXT NOT NULL,
     success_threshold REAL NOT NULL,
-    kill_threshold REAL NOT NULL,
+    review_threshold REAL NOT NULL,
     minimum_sample INTEGER NOT NULL,
     decision TEXT NOT NULL DEFAULT 'preregistered',
     sample_size INTEGER NOT NULL DEFAULT 0,
@@ -134,11 +134,31 @@ def _add_missing_columns(
     return added
 
 
+def _rename_kill_to_review(con: sqlite3.Connection) -> list[str]:
+    """`kill_threshold` became `review_threshold`, and the `kill` decision became `review`.
+
+    The number is unchanged. What changed is that a result below it no longer pronounces
+    on the business — it asks a person to look. Applied to existing databases so a
+    preregistered experiment keeps its thresholds and its history.
+    """
+    columns = {row[1] for row in con.execute("PRAGMA table_info(experiments)")}
+    changed: list[str] = []
+    if "kill_threshold" in columns and "review_threshold" not in columns:
+        con.execute("ALTER TABLE experiments RENAME COLUMN kill_threshold TO review_threshold")
+        changed.append("experiments.review_threshold")
+    updated = con.execute("UPDATE experiments SET decision = 'review' WHERE decision = 'kill'")
+    if updated.rowcount > 0:
+        changed.append(f"decision:kill->review x{updated.rowcount}")
+    return changed
+
+
 def migrate(con: sqlite3.Connection) -> list[str]:
     """Bring an existing database up to the current schema. Returns what it added."""
-    return _add_missing_columns(
-        con, "experiments", EXPERIMENT_CONTRACT_COLUMNS
-    ) + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
+    return (
+        _rename_kill_to_review(con)
+        + _add_missing_columns(con, "experiments", EXPERIMENT_CONTRACT_COLUMNS)
+        + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
+    )
 
 
 def init_db(db_path: str) -> None:

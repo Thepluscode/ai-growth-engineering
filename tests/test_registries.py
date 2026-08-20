@@ -25,7 +25,16 @@ class RegistryTests(unittest.TestCase):
         init_db(self.db)
 
     def test_every_declared_registry_has_a_table(self):
-        self.assertEqual(len(registries.REGISTRY_TABLES), 14)
+        # The twelve registries the Digital Marketing architecture requires must all
+        # exist. Asserted by name rather than by count so adding a registry does not
+        # break the guard, while a missing one still does.
+        required = {
+            "customer_evidence", "voc", "offers", "proof_inventory", "creatives",
+            "channels", "competitor_patterns", "partners", "experiments",
+            "revenue_attribution", "economics", "claims",
+        }
+        self.assertTrue(required <= set(registries.REGISTRY_TABLES),
+                        f"missing: {sorted(required - set(registries.REGISTRY_TABLES))}")
         with connect(self.db) as con:
             tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         for architecture_name, table in registries.REGISTRY_TABLES.items():
@@ -145,7 +154,7 @@ class ExperimentContractTests(unittest.TestCase):
             experiment_id="EXP-PAID-0001",
             hypothesis="proof-led hooks beat feature hooks",
             primary_metric="qualified_leads",
-            success_threshold=0.10, kill_threshold=0.05, minimum_sample=200,
+            success_threshold=0.10, review_threshold=0.05, minimum_sample=200,
             market="UK SME", buyer="Ops lead", problem="lead quality", channel="meta",
             control="feature hook", variant="proof hook",
             secondary_metrics=("ctr", "cpl"), economic_metric="contribution_profit",
@@ -367,3 +376,49 @@ class OutreachImportTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoKillVerdictTests(unittest.TestCase):
+    """The system reports what the numbers say; it does not pronounce on the business."""
+
+    def test_kill_is_not_a_decision_the_system_can_reach(self):
+        from ai_growth_engineering.models import ExperimentDecision
+        values = {d.value for d in ExperimentDecision}
+        self.assertNotIn("kill", values)
+        self.assertIn("review", values)
+
+    def test_below_threshold_returns_review_not_kill(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db = str(Path(tmp.name) / "g.db")
+        init_db(db)
+        add_experiment(db, ExperimentSpec("EXP-ACQ-0002", "h", "reply", 0.10, 0.05, 50))
+        self.assertEqual(record_experiment_result(db, "EXP-ACQ-0002", 60, 0.01), "review")
+
+    def test_legacy_kill_rows_and_column_are_migrated(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        db = str(Path(tmp.name) / "legacy.db")
+        con = sqlite3.connect(db)
+        con.executescript(
+            """CREATE TABLE experiments (
+                 experiment_id TEXT PRIMARY KEY, hypothesis TEXT NOT NULL,
+                 primary_metric TEXT NOT NULL, success_threshold REAL NOT NULL,
+                 kill_threshold REAL NOT NULL, minimum_sample INTEGER NOT NULL,
+                 decision TEXT NOT NULL DEFAULT 'preregistered',
+                 sample_size INTEGER DEFAULT 0, observed_value REAL);
+               INSERT INTO experiments VALUES
+                 ('EXP-ACQ-0001','h','reply',0.10,0.05,50,'kill',60,0.01);"""
+        )
+        con.commit()
+        con.close()
+
+        init_db(db)
+
+        with connect(db) as c:
+            cols = {r[1] for r in c.execute("PRAGMA table_info(experiments)")}
+            row = c.execute("SELECT decision, review_threshold FROM experiments").fetchone()
+        self.assertIn("review_threshold", cols)
+        self.assertNotIn("kill_threshold", cols)
+        self.assertEqual(row["decision"], "review")
+        self.assertEqual(row["review_threshold"], 0.05)  # the number is unchanged

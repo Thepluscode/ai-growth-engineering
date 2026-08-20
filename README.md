@@ -122,7 +122,7 @@ python -m ai_growth_engineering.cli experiment-add \
   --hypothesis "Pipeline-leak messaging will produce >=10% meaningful reply rate" \
   --primary-metric meaningful_reply_rate \
   --success-threshold 0.10 \
-  --kill-threshold 0.05 \
+  --review-threshold 0.05 \
   --minimum-sample 50
 ```
 
