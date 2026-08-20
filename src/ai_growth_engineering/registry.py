@@ -159,13 +159,14 @@ def import_outreach(db_path: str, csv_path: str) -> tuple[int, int]:
                 continue
             reply = (row.get("meaningful_reply") or "").strip().lower()
             con.execute(
-                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes)
-                   VALUES (?, ?, ?, ?)""",
+                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes, stage)
+                   VALUES (?, ?, ?, ?, ?)""",
                 (
                     company,
                     sent_at,
                     1 if reply in {"1", "true", "yes"} else 0,
                     (row.get("notes") or "").strip(),
+                    (row.get("stage") or "sent_awaiting_reply").strip(),
                 ),
             )
             imported += 1
@@ -178,7 +179,9 @@ def scoreboard(db_path: str) -> dict[str, int]:
             "qualified_prospects": con.execute(
                 "SELECT COUNT(*) FROM prospects WHERE status NOT LIKE 'disqualified%'"
             ).fetchone()[0],
-            "outreach_sent": con.execute("SELECT COUNT(*) FROM outreach WHERE sent_at IS NOT NULL").fetchone()[0],
+            "outreach_sent": con.execute(
+                "SELECT COUNT(*) FROM outreach WHERE sent_at IS NOT NULL AND stage != 'bounced'"
+            ).fetchone()[0],
             "meaningful_responses": con.execute("SELECT COALESCE(SUM(meaningful_reply),0) FROM outreach").fetchone()[0],
             "discovery_calls": con.execute("SELECT COALESCE(SUM(discovery),0) FROM outreach").fetchone()[0],
             "diagnostics_proposed": con.execute("SELECT COALESCE(SUM(diagnostic_proposed),0) FROM outreach").fetchone()[0],

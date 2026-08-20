@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS outreach (
     proposal INTEGER NOT NULL DEFAULT 0,
     paid INTEGER NOT NULL DEFAULT 0,
     collected_revenue_pence INTEGER NOT NULL DEFAULT 0,
-    notes TEXT NOT NULL DEFAULT ''
+    notes TEXT NOT NULL DEFAULT '',
+    stage TEXT NOT NULL DEFAULT 'sent_awaiting_reply'
 );
 
 CREATE TABLE IF NOT EXISTS evidence (
@@ -152,10 +153,16 @@ def _rename_kill_to_review(con: sqlite3.Connection) -> list[str]:
     return changed
 
 
+OUTREACH_COLUMNS = (
+    ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
+)
+
+
 def migrate(con: sqlite3.Connection) -> list[str]:
     """Bring an existing database up to the current schema. Returns what it added."""
     return (
         _rename_kill_to_review(con)
+        + _add_missing_columns(con, "outreach", OUTREACH_COLUMNS)
         + _add_missing_columns(con, "experiments", EXPERIMENT_CONTRACT_COLUMNS)
         + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
     )
