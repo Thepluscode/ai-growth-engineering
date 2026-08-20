@@ -33,6 +33,52 @@ class DemandEvidenceGate:
         return PolicyDecision(True, False, ("demand_gate_passed",))
 
 
+class ClaimPublicationGate:
+    """Whether a specific registered claim may be published.
+
+    `GrowthActionPolicy` only checks that *some* evidence id is attached. That is not the
+    same as being supported: a creator's "$100k/month" cited to the video it came from has
+    an evidence id and no support. This gate reads the claim's registered status and the
+    confidence of the evidence behind it.
+
+    MIN_PUBLIC_CLAIM_CONFIDENCE is a documented default, not a discovered constant. Raise
+    it for regulated or financial claims; it is deliberately not zero, because "we wrote
+    the source down" is the failure mode it exists to catch.
+    """
+
+    MIN_PUBLIC_CLAIM_CONFIDENCE = 0.5
+
+    # Statuses that can never be published, whatever evidence is attached.
+    BLOCKED_STATUSES = frozenset({
+        "creator_claim_rejected_as_benchmark",
+        "rejected",
+        "retracted",
+    })
+
+    @classmethod
+    def evaluate(
+        cls,
+        claim_status: str,
+        evidence_confidence: float | None,
+        evidence_observed: bool = True,
+    ) -> PolicyDecision:
+        if claim_status in cls.BLOCKED_STATUSES:
+            return PolicyDecision(False, False, (f"claim_status_blocked:{claim_status}",))
+        if evidence_confidence is None:
+            return PolicyDecision(False, False, ("claim_has_no_evidence",))
+        if not evidence_observed:
+            return PolicyDecision(False, False, ("claim_rests_on_inference_not_observation",))
+        if evidence_confidence < cls.MIN_PUBLIC_CLAIM_CONFIDENCE:
+            return PolicyDecision(
+                False,
+                False,
+                (f"evidence_confidence_below_floor:{evidence_confidence:.2f}"
+                 f"<{cls.MIN_PUBLIC_CLAIM_CONFIDENCE}",),
+            )
+        # Supported claims still go to a human. Support is not authorisation.
+        return PolicyDecision(True, True, ("claim_supported_requires_approval",))
+
+
 class GrowthActionPolicy:
     """Default authority boundary for action-producing growth agents."""
 
