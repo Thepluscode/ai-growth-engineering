@@ -2,7 +2,7 @@
 
 # measurement
 
-**Measurement and unit economics** — 10 of 16 capabilities implemented.
+**Measurement and unit economics** — 11 of 16 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -19,6 +19,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | Capability | Status |
 | --- | --- |
 | `allowable_cac` | IMPLEMENTED |
+| `analytics_and_reporting` | IMPLEMENTED |
 | `audience_capture_rate` | IMPLEMENTED |
 | `contribution_profit_calculation` | IMPLEMENTED |
 | `economic_kill_switch` | IMPLEMENTED |
@@ -28,7 +29,6 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `revenue_scoreboard` | IMPLEMENTED |
 | `scale_gates` | IMPLEMENTED |
 | `social_funnel_attribution` | IMPLEMENTED |
-| `analytics_and_reporting` | HYPOTHESIS |
 | `attribution_model` | HYPOTHESIS |
 | `budget_experiments` | HYPOTHESIS |
 | `contribution_profit_over_vanity` | SPECIFIED |

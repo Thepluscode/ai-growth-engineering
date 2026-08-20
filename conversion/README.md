@@ -26,7 +26,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `ecommerce_offer_stacks` | HYPOTHESIS |
 | `experiment_surface_builder` | HYPOTHESIS |
 | `functional_decomposition` | HYPOTHESIS |
-| `landing_page_experiments` | HYPOTHESIS |
+| `landing_page_experiments` | SPECIFIED |
 | `lead_capture` | HYPOTHESIS |
 | `lead_generation` | HYPOTHESIS |
 | `page_ephemerality` | HYPOTHESIS |

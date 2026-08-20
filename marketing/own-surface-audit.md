@@ -84,9 +84,9 @@ Not experiments — prerequisites. An experiment declared before these exist wou
 
 | # | Prerequisite | Status |
 |---|---|---|
-| 1 | Fix `www.theplus-tech.com` — half of typed traffic currently fails | **NEEDS YOUR HANDS** — Vercel dashboard, no CLI auth here |
-| 2 | Install one analytics tool | **DONE, unpushed** — Vercel Analytics + two funnel events on branch `instrument-conversion-funnel` |
-| 3 | A capture step that fires a measurable conversion event | **PARTIAL** — `email_draft_opened` now fires; a real backend form remains outstanding |
+| 1 | Fix `www.theplus-tech.com` — half of typed traffic was failing | **DONE 2026-08-20** — CNAME at Cloudflare, 307 to apex, valid cert |
+| 2 | Install one analytics tool | **DONE 2026-08-20** — Vercel Web Analytics live; `contact_intent` verified end to end in the dashboard |
+| 3 | A capture step that fires a measurable conversion event | **PARTIAL** — the mailto click is measured and labelled by offer; there is still no backend form and no captured contact |
 | 4 | Reconcile four offers, or register each with its own buyer | **DONE** — all four in the `offers` registry, conflict now visible as data |
 | 5 | Correct `company-overview.md` web address | **DONE** — corrected to `theplus-tech.com` with the error noted |
 

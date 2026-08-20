@@ -111,7 +111,7 @@
       "capabilities": {
         "growth_leak_teardown": "IMPLEMENTED",
         "offer_creative_page_congruence": "IMPLEMENTED",
-        "landing_page_experiments": "HYPOTHESIS",
+        "landing_page_experiments": "SPECIFIED",
         "rapid_experiment_surfaces": "HYPOTHESIS",
         "experiment_surface_builder": "HYPOTHESIS",
         "page_ephemerality": "HYPOTHESIS",
@@ -154,7 +154,7 @@
         "budget_experiments": "HYPOTHESIS",
         "revenue_attribution_registry": "IMPLEMENTED",
         "attribution_model": "HYPOTHESIS",
-        "analytics_and_reporting": "HYPOTHESIS",
+        "analytics_and_reporting": "IMPLEMENTED",
         "creative_to_revenue_attribution": "HYPOTHESIS",
         "pipeline_measurement": "IMPLEMENTED",
         "social_funnel_attribution": "IMPLEMENTED",
