@@ -2,7 +2,11 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: test gate init seed scoreboard capability-map demo clean
+.PHONY: hooks test gate init seed scoreboard capability-map demo clean
+
+hooks:
+	git config core.hooksPath .githooks
+	@echo "hooks enabled: commits are restricted to main (see AGENTS.md)"
 
 gate:
 	$(PY) scripts/build_tree.py --selftest

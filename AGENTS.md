@@ -24,8 +24,25 @@ This is not a style preference. It has already cost real time twice on 2026-08-2
 Both failures share a shape: `main` stops being the truth, and every tool and
 person that assumes otherwise gets a stale answer with no error to warn them.
 
+A `pre-commit` hook enforces this. It lives in `.githooks/` rather than
+`.git/hooks/` so it survives a clone — a hook that vanishes on clone is the same
+invisible absence it exists to prevent. Enable it once per checkout:
+
+```bash
+make hooks
+```
+
 If a branch is genuinely warranted — a risky migration, work needing review before
-it lands — merge it the same session. Do not leave it to accumulate.
+it lands — say so out loud and merge it the same session:
+
+```bash
+ALLOW_BRANCH_COMMIT=1 git commit ...
+```
+
+The override is an environment variable rather than `--no-verify` so that
+bypassing is deliberate, visible in the shell history, and greppable. Rebase,
+merge, cherry-pick and bisect are unaffected; blocking those would break ordinary
+history repair.
 
 ## Verify a push by reading the remote
 

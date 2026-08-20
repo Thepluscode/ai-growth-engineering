@@ -1,0 +1,54 @@
+#!/bin/sh
+# Refuse commits on anything but main. See AGENTS.md for the two incidents that
+# earned this rule.
+#
+# Versioned deliberately: .git/hooks is per-checkout and would not survive a clone,
+# so the rule would silently not exist for the next agent — the same class of
+# invisible absence it is here to prevent. Enabled by `make hooks`, which sets
+# core.hooksPath to this directory.
+
+set -e
+
+# A rebase, merge, cherry-pick or bisect legitimately commits from a detached HEAD
+# or a temporary branch. Blocking those breaks ordinary history repair.
+git_dir=$(git rev-parse --git-dir)
+for marker in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD BISECT_LOG; do
+    if [ -e "$git_dir/$marker" ]; then
+        exit 0
+    fi
+done
+
+branch=$(git symbolic-ref --quiet --short HEAD || echo "")
+
+# Detached HEAD outside those operations is not a branch problem this hook owns.
+if [ -z "$branch" ] || [ "$branch" = "main" ]; then
+    exit 0
+fi
+
+if [ -n "$ALLOW_BRANCH_COMMIT" ]; then
+    echo "pre-commit: committing on '$branch' — ALLOW_BRANCH_COMMIT set, permitted."
+    echo "            Merge it to main this session; do not leave it to accumulate."
+    exit 0
+fi
+
+cat >&2 <<EOF
+
+  BLOCKED: commit on branch '$branch', not main.
+
+  Work here goes to main directly. Twice on 2026-08-20 branch drift cost real
+  time: production deployed from a codex branch while main held an abandoned
+  scaffold, and 'git push origin main' answered "Everything up-to-date" while
+  fourteen commits sat on another branch. Both failed silently. See AGENTS.md.
+
+  To move this work onto main (branch and main point at the same tree here,
+  so nothing is lost):
+
+      git switch main
+
+  If this branch is genuinely warranted — a risky migration, or work that needs
+  review before it lands — say so explicitly and merge it the same session:
+
+      ALLOW_BRANCH_COMMIT=1 git commit ...
+
+EOF
+exit 1
