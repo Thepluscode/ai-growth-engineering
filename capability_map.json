@@ -66,7 +66,7 @@
         "body_testing": "HYPOTHESIS",
         "creative_fatigue_detection": "HYPOTHESIS",
         "creative_yield": "HYPOTHESIS",
-        "proof_led_creative": "HYPOTHESIS",
+        "proof_led_creative": "SPECIFIED",
         "ai_ugc_controls": "HYPOTHESIS"
       }
     },
@@ -183,7 +183,8 @@
         "decision_latency": "HYPOTHESIS",
         "time_to_decision": "HYPOTHESIS",
         "time_to_action": "HYPOTHESIS",
-        "audit_trail": "HYPOTHESIS"
+        "audit_trail": "HYPOTHESIS",
+        "claim_publication_gate": "IMPLEMENTED"
       }
     }
   }

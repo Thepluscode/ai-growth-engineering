@@ -16,7 +16,7 @@ class CapabilityMapTests(unittest.TestCase):
     def test_map_covers_the_whole_project(self):
         # A map that shrank to a handful of entries is a failed load, not a clean pass.
         totals = capabilities.counts(self.data)
-        self.assertEqual(sum(totals.values()), 139)
+        self.assertGreaterEqual(sum(totals.values()), 140)
         self.assertEqual(len(self.data["domains"]), 8)
 
     def test_source_scope_is_first_class(self):
@@ -156,6 +156,7 @@ class CapabilityMapTests(unittest.TestCase):
             "OFFER": "offer",
             "SOCIAL": "social_distribution",
             "PROFILE": "social_profile",
+            "AISEARCH": "ai_search",
         }
         for namespace in EXPERIMENT_NAMESPACES:
             self.assertIn(namespace, aliases, f"{namespace} has no declared scope")
@@ -164,3 +165,16 @@ class CapabilityMapTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TreeMatchesTheMapTests(unittest.TestCase):
+    """The generated taxonomy must not drift from the capability map."""
+
+    def test_tree_is_current(self):
+        import subprocess, sys, pathlib
+        root = pathlib.Path(__file__).resolve().parents[1]
+        result = subprocess.run(
+            [sys.executable, "scripts/build_tree.py", "--check"],
+            cwd=root, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

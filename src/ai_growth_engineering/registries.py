@@ -87,6 +87,24 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
             "customers", "revenue_pence", "experiment_id",
         ),
     ),
+    "voc": (
+        "voc_id",
+        ("source", "problem"),
+        (
+            "person", "audience", "trigger", "fear", "desired_outcome", "objection",
+            "exact_language", "commercial_intent", "confidence", "evidence_id",
+        ),
+    ),
+    "economics": (
+        "economics_id",
+        ("scope",),
+        (
+            "channel_id", "experiment_id", "period", "revenue_pence", "cogs_pence",
+            "fulfilment_pence", "commissions_pence", "media_spend_pence",
+            "delivery_cost_pence", "sales_cost_pence", "customers",
+            "contribution_profit_pence", "cac_pence", "ltv_pence", "verdict",
+        ),
+    ),
     "value_ladders": (
         "value_ladder_id",
         ("buyer", "entry_offer_id", "core_offer_id"),
@@ -100,6 +118,8 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
 # validation interfaces; the other eight use the generic add/rows interface below.
 REGISTRY_TABLES = {
     "customer_evidence": "evidence",
+    "voc": "voc",
+    "economics": "economics",
     "offers": "offers",
     "proof_inventory": "proof",
     "creatives": "creatives",
