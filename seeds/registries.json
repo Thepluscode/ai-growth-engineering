@@ -120,6 +120,14 @@
       "observed": true,
       "statement": "Reachability is a real constraint on this ICP, not an accident of one bad list. Of 12 UK MSP contact pages checked on 2026-08-20, 5 published a usable commercial address, 3 obfuscated it behind Cloudflare, 2 published only a support address, and 2 published none at all. Three of the four EXP-ACQ-0001 bounces were the company's own published route rejecting or hiding external email.",
       "source": "contact-page audit of 12 UK MSPs, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-ACQ-REACH-02",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "A published, non-obfuscated, non-support address is NOT sufficient for reachability. AMVIA's hello@amvia.co.uk was verified on their own contact page on 2026-08-20 and hard-bounced 'address not found' six seconds after sending. 1 of 5 replacements failed on a criterion designed to prevent exactly that. Publication proves intent, not that the mailbox exists; only a send proves delivery.",
+      "source": "Gmail send 1a01f198f5e7332f + bounce 1a01f19a68dada3c, 2026-08-20"
     }
   ],
   "channels": [
