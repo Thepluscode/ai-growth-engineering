@@ -212,3 +212,57 @@ def claim_publication_check(db_path: str, claim_id: str):
         evidence_confidence=None if evidence is None else evidence["confidence"],
         evidence_observed=True if evidence is None else bool(evidence["observed"]),
     )
+
+
+def seed_registries(db_path: str, seeds_path: str) -> dict[str, int]:
+    """Load registry rows from their source file into the store.
+
+    The store under .age/ is gitignored and rebuildable. Rows inserted ad hoc exist
+    only there and are destroyed by the next rebuild — which has already happened
+    once. Anything worth keeping belongs in the seed file and arrives through here.
+
+    Idempotent: re-running inserts nothing and reports zero.
+    """
+    import json
+
+    from . import registries as _registries
+    from .models import Evidence, EvidenceKind
+
+    with open(seeds_path, encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    loaded: dict[str, int] = {}
+
+    for record in data.get("evidence", []):
+        with connect(db_path) as con:
+            exists = con.execute(
+                "SELECT 1 FROM evidence WHERE evidence_id = ?", (record["evidence_id"],)
+            ).fetchone()
+        if exists:
+            continue
+        add_evidence(db_path, Evidence(
+            evidence_id=record["evidence_id"],
+            kind=EvidenceKind(record["kind"]),
+            statement=record["statement"],
+            source=record["source"],
+            confidence=float(record["confidence"]),
+            observed=bool(record.get("observed", True)),
+        ))
+        loaded["evidence"] = loaded.get("evidence", 0) + 1
+
+    for name in _registries.REGISTRIES:
+        rows = data.get(name)
+        if not rows:
+            continue
+        pk = _registries.REGISTRIES[name][0]
+        for record in rows:
+            with connect(db_path) as con:
+                exists = con.execute(
+                    f"SELECT 1 FROM {name} WHERE {pk} = ?", (record[pk],)
+                ).fetchone()
+            if exists:
+                continue
+            _registries.add(db_path, name, record)
+            loaded[name] = loaded.get(name, 0) + 1
+
+    return loaded

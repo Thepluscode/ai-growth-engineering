@@ -26,6 +26,7 @@ scoreboard:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 
 demo: seed
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli seed-registries --db $(DB)
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-add --db $(DB) --experiment-id EXP-ACQ-0001 --hypothesis "Pipeline-leak messaging will produce >=10% meaningful reply rate" --primary-metric meaningful_reply_rate --success-threshold 0.10 --review-threshold 0.05 --minimum-sample 50 || true
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 

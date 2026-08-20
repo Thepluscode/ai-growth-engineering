@@ -422,3 +422,54 @@ class NoKillVerdictTests(unittest.TestCase):
         self.assertNotIn("kill_threshold", cols)
         self.assertEqual(row["decision"], "review")
         self.assertEqual(row["review_threshold"], 0.05)  # the number is unchanged
+
+
+class SeedDurabilityTests(unittest.TestCase):
+    """Rows that live only in the gitignored store are destroyed by the next rebuild.
+
+    That happened once already: channels, offers, claims and nine evidence rows were
+    lost to `rm -rf .age && make demo`. These assert the seed file is the source of
+    truth and a rebuild restores everything.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        self.seeds = str(Path(__file__).resolve().parents[1] / "seeds" / "registries.json")
+        init_db(self.db)
+
+    def test_seeding_populates_every_registry_in_the_file(self):
+        from ai_growth_engineering.registry import seed_registries
+        loaded = seed_registries(self.db, self.seeds)
+        # Assert a floor before asserting success: an empty file would otherwise "pass".
+        self.assertGreaterEqual(loaded.get("evidence", 0), 5)
+        self.assertGreaterEqual(loaded.get("channels", 0), 5)
+        self.assertGreaterEqual(loaded.get("claims", 0), 5)
+
+    def test_seeding_is_idempotent(self):
+        from ai_growth_engineering.registry import seed_registries
+        seed_registries(self.db, self.seeds)
+        self.assertEqual(seed_registries(self.db, self.seeds), {})
+
+    def test_a_rebuild_restores_what_was_recorded(self):
+        from ai_growth_engineering.registry import seed_registries
+        seed_registries(self.db, self.seeds)
+        before = {k: len(registries.rows(self.db, k)) for k in ("channels", "offers", "claims")}
+
+        rebuilt = str(Path(self.tmp.name) / "rebuilt.db")   # simulates rm -rf .age
+        init_db(rebuilt)
+        seed_registries(rebuilt, self.seeds)
+        after = {k: len(registries.rows(rebuilt, k)) for k in ("channels", "offers", "claims")}
+
+        self.assertEqual(before, after)
+        self.assertTrue(all(v > 0 for v in after.values()))
+
+    def test_rejected_claims_survive_a_rebuild_and_stay_blocked(self):
+        from ai_growth_engineering.registry import claim_publication_check, seed_registries
+        seed_registries(self.db, self.seeds)
+        rejected = [r for r in registries.rows(self.db, "claims")
+                    if r["status"] == "creator_claim_rejected_as_benchmark"]
+        self.assertGreaterEqual(len(rejected), 1)
+        for row in rejected:
+            self.assertFalse(claim_publication_check(self.db, row["claim_id"]).allowed)

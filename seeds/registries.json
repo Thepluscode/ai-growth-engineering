@@ -1,0 +1,137 @@
+{
+  "note": "Source of truth for registry rows that are not derived from another file. The store at .age/ is gitignored and rebuildable; anything recorded only there is lost on the next rebuild. Add rows here, not by ad-hoc insert.",
+  "evidence": [
+    {
+      "evidence_id": "EV-OWN-001",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "www.theplus-tech.com failed to connect (000) while theplus-tech.com returned 200; typed www traffic was lost. Fixed 2026-08-20, see EV-OWN-009.",
+      "source": "curl -L three URL forms + dig, 2026-08-19"
+    },
+    {
+      "evidence_id": "EV-OWN-002",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "No analytics on the owned site: full 118KB source checked for gtag, GTM, google-analytics, Plausible, PostHog, Fathom, Umami, Clarity, Hotjar. None present. Resolved 2026-08-20, see EV-OWN-008.",
+      "source": "https://theplus-tech.com source, 2026-08-19"
+    },
+    {
+      "evidence_id": "EV-OWN-003",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "The owned site has no backend form and no thank-you URL; 16 mailto links are the only capture mechanism. Still true after instrumentation - the click is now measured, but nothing is captured.",
+      "source": "src/components/HomePage.tsx, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-OWN-004",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "Six distinct CTAs and four different offers across README, unpublished page, live site and company-overview.md, against our own Rule of One.",
+      "source": "marketing/own-surface-audit.md section 4"
+    },
+    {
+      "evidence_id": "EV-OWN-005",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "company-overview.md recorded 'Web. www.theplus.tech' but that domain returns 404 on Wix nameservers; the live site is theplus-tech.com. The same dead domain was also the site's metadataBase, so every Open Graph image and canonical resolved against a host serving nothing. Both corrected 2026-08-20.",
+      "source": "knowledge-base/company-overview.md and app/layout.tsx vs curl, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-OWN-006",
+      "kind": "inference",
+      "confidence": 0.65,
+      "observed": false,
+      "statement": "Outbound was the only channel run to date because it was the only one that worked without measurement; every other channel needs a denominator and a conversion event the surface could not produce.",
+      "source": "marketing/own-surface-audit.md section 2"
+    },
+    {
+      "evidence_id": "EV-OWN-007",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Production deployed from branch codex/autopsy-preview while main held an abandoned Vite scaffold from 22 May. Any tool assuming main is the site got the wrong answer. Promoted to main 2026-08-20.",
+      "source": "git ls-remote Thepluscode/theplus-tech-website, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-OWN-008",
+      "kind": "analytics",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "Owned site is measured: Vercel Web Analytics live (/_vercel/insights/script.js 404->200 with a control path still 404) and the contact_intent event confirmed end to end in the Vercel dashboard after a real CTA click.",
+      "source": "https://theplus-tech.com + Vercel Analytics Events, operator-verified 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-OWN-009",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "www.theplus-tech.com resolves and 307-redirects to the apex with a valid certificate (CN=www.theplus-tech.com); previously it failed to connect entirely.",
+      "source": "dig + curl --resolve, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-SRC-KARSTEN",
+      "kind": "third_party",
+      "confidence": 0.25,
+      "observed": true,
+      "statement": "Third-party written summary of a creator video on building a digital product business. Figures are creator marketing claims restated by a summariser; no independent verification located.",
+      "source": "https://vibecoderz.ru/notes/digital-product-business-guide-2026"
+    },
+    {
+      "evidence_id": "EV-META-TRIAL-REELS",
+      "kind": "third_party",
+      "confidence": 0.7,
+      "observed": true,
+      "statement": "Meta reports that among creators who posted more after using Trial Reels, 80% saw increased non-follower reach. Meta's own product measurement of a self-selected group, not a general promise of organic reach.",
+      "source": "https://about.fb.com/news/2025/10/improving-your-recommendations-apps-ai-meta/"
+    },
+    {
+      "evidence_id": "EV-MANYCHAT-DM",
+      "kind": "third_party",
+      "confidence": 0.7,
+      "observed": true,
+      "statement": "Comment/keyword-triggered DM automation is a real capability, bounded by Meta's interaction and messaging-window rules; unsolicited automated DMs are not permitted.",
+      "source": "https://manychat.com/blog/instagram-dm-automation-rules/"
+    },
+    {
+      "evidence_id": "EV-GUMROAD-MOR",
+      "kind": "third_party",
+      "confidence": 0.75,
+      "observed": true,
+      "statement": "Gumroad acts as merchant of record and handles applicable sales-tax/VAT collection and remittance, including UK/EU digital-product VAT. Supports commodity-infrastructure-first over building checkout.",
+      "source": "https://gumroad.com/help/article/121-sales-tax-on-gumroad"
+    }
+  ],
+  "channels": [
+    {"channel_id": "CH-OWNED-SITE", "name": "theplus-tech.com", "kind": "owned", "status": "live_measured", "notes": "Vercel Web Analytics + contact_intent event verified in dashboard 2026-08-20; www redirect fixed; still 6 CTAs and no backend form"},
+    {"channel_id": "CH-OUTBOUND", "name": "Direct B2B outbound", "kind": "outbound", "status": "active", "notes": "EXP-ACQ-0001; 49 of 50 qualified sends, reply window open"},
+    {"channel_id": "CH-SEO", "name": "Organic search", "kind": "earned", "status": "unmeasured", "notes": "sitemap.xml and robots.txt serve 200; rankings unknown"},
+    {"channel_id": "CH-CONTENT", "name": "Content", "kind": "owned", "status": "not_started", "notes": "/insights exists on the site; no content programme running"},
+    {"channel_id": "CH-SOCIAL", "name": "Social", "kind": "earned", "status": "not_started", "notes": "no measured presence recorded"},
+    {"channel_id": "CH-EMAIL", "name": "Email / lifecycle", "kind": "owned", "status": "not_started", "notes": "'Request subscription' is a mailto, no list"},
+    {"channel_id": "CH-PAID", "name": "Paid media", "kind": "paid", "status": "unblocked_unstarted", "notes": "attribution now possible since 2026-08-20; no spend"},
+    {"channel_id": "CH-PARTNER", "name": "Partners / affiliates", "kind": "partner", "status": "not_started", "notes": "no partners recorded"}
+  ],
+  "offers": [
+    {"offer_id": "OFF-TEARDOWN", "buyer": "Founder/MD of UK cyber/MSP", "problem": "acquisition not becoming qualified pipeline", "outcome": "a diagnosed growth leak", "price_pence": 0, "proof": "Growth Leak Teardown (free entry offer)", "cta": "reply to outbound"},
+    {"offer_id": "OFF-SPRINT", "buyer": "Founder/MD of UK cyber/MSP", "problem": "acquisition not becoming qualified pipeline", "outcome": "measured pipeline improvement over 30 days", "price_pence": 0, "proof": "30-Day Pipeline Engineering Sprint", "cta": "discovery call"},
+    {"offer_id": "OFF-AI-COMPLIANCE", "buyer": "Head of Risk / compliance owner", "problem": "unclear which AI systems fall in scope", "outcome": "scope determination and a fix-first list", "trigger": "EU AI Act deadlines", "price_pence": 120000, "proof": "one-day AI compliance diagnostic (page written, unpublished)", "cta": "email"},
+    {"offer_id": "OFF-ARCH-ASSESSMENT", "buyer": "Technical decision maker", "problem": "consequential AI/payment/security actions ungoverned", "outcome": "architecture assessment of control gaps", "price_pence": 0, "proof": "Architecture assessment / technical briefing / design-partner pilot (live site, unpriced)", "cta": "mailto"}
+  ],
+  "claims": [
+    {"claim_id": "CLM-CR-001", "statement": "95% of beginners skip market research", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-002", "statement": "Instagram is the best organic platform", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-003", "statement": "AI does 90% of digital-product creation", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-004", "statement": "You can get sales on day one", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-005", "statement": "80% of sales happen in DMs", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-006", "statement": "$70k profit from an AI monk account", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-CR-007", "statement": "$100k/month digital product business", "evidence_id": "EV-SRC-KARSTEN", "status": "creator_claim_rejected_as_benchmark", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-AC-001", "statement": "Instagram can distribute content beyond an account's followers; it is not automatically the best channel for a given buyer.", "evidence_id": "EV-META-TRIAL-REELS", "status": "accepted_directional", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-AC-002", "statement": "Comment-to-DM automation is available within Meta's interaction and messaging-window rules.", "evidence_id": "EV-MANYCHAT-DM", "status": "accepted_directional", "reviewed_at": "2026-08-20"},
+    {"claim_id": "CLM-AC-003", "statement": "Commodity checkout with merchant-of-record VAT handling removes any near-term reason to build our own.", "evidence_id": "EV-GUMROAD-MOR", "status": "accepted_directional", "reviewed_at": "2026-08-20"}
+  ]
+}
