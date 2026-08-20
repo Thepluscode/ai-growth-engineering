@@ -112,6 +112,14 @@
       "observed": true,
       "statement": "4 of 49 EXP-ACQ-0001 sends hard-bounced and never reached anyone: Inology IT (address not found), Central Technology (M365 group rejects external senders), CyberLab (address not found), OryxAlign (550 blocked). A fifth, Texaport, delivered but was auto-logged as service-desk ticket 0095170, where no commercial owner will read it. Effective delivered sample is 45, not 49.",
       "source": "Gmail bounce search + sender-domain search across all folders, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-ACQ-REACH-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Reachability is a real constraint on this ICP, not an accident of one bad list. Of 12 UK MSP contact pages checked on 2026-08-20, 5 published a usable commercial address, 3 obfuscated it behind Cloudflare, 2 published only a support address, and 2 published none at all. Three of the four EXP-ACQ-0001 bounces were the company's own published route rejecting or hiding external email.",
+      "source": "contact-page audit of 12 UK MSPs, 2026-08-20"
     }
   ],
   "channels": [
