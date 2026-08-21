@@ -78,8 +78,48 @@ Never store the rendered rate. A rate cannot be recomputed, pooled across weeks,
    the honest reading, not a loophole.
 4. Preregister. From that point the contract is frozen.
 
+## First reading — 2026-08-21, ~24 hours in
+
+```
+sessions            47
+contact_intent       3
+rate              6.4%   95% CI (Wilson) 2.2% - 17.2%
+```
+
+**Traffic exists.** I predicted a near-zero denominator and was wrong. At 47/day the site sees
+roughly 1,300 sessions a month, which puts a two-arm test inside 2-7 weeks depending on the effect
+size worth detecting.
+
+**The reading is contaminated and must not become the baseline.** At least one of the three events is
+our own click while verifying the instrumentation on 2026-08-20, and our sessions sit in the
+denominator. What that does to the number:
+
+| | rate | 95% CI |
+|---|---|---|
+| as reported | 3/47 = 6.4% | 2.2% - 17.2% |
+| minus 1 self-click | 2/46 = 4.3% | 1.2% - 14.5% |
+| minus 2 self-clicks | 1/45 = 2.2% | 0.4% - 11.6% |
+
+A threshold set anywhere in that spread would be set on our own behaviour. The interval also spans
+an order of magnitude, so even uncontaminated, n=47 cannot fix a threshold.
+
+Recorded as `EV-BASELINE-01` at confidence 0.6 — an order-of-magnitude signal that traffic exists,
+not a baseline rate.
+
+## Fix before the window continues
+
+1. **Exclude internal traffic.** Until then every verification click inflates the numerator, and the
+   effect is largest exactly when the sample is smallest. Vercel Analytics has no IP filter, so the
+   options are a `localStorage` opt-out flag checked in `FunnelTracking`, or tagging internal
+   sessions with a property and filtering at read time. The second keeps the raw data intact.
+2. **Never verify instrumentation against production again.** Use a preview deployment. The check
+   that proves the event fires is the same action that corrupts the measurement.
+3. **Get the `path` split.** Six CTAs against four offers; a blended rate hides which offer anyone
+   wants, and that is the more useful number.
+
 ## Standing risk
 
-Four weeks of a near-zero denominator is itself the finding. If it arrives, the next move is not a
-better hook — it is building an audience, and no amount of persuasion engineering substitutes for
-having someone to persuade.
+The window may still return too little to test on. But the first reading says the constraint is
+likelier to be *effect size* than audience: at 6.4% a doubling resolves in two weeks, while a 50%
+lift needs seven. Choose the hypothesis to match what the traffic can actually resolve, rather than
+picking the effect first and discovering later it was never detectable.
