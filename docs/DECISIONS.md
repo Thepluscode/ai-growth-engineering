@@ -10,6 +10,18 @@ experiments.
 are the operating domain. AI, automation, evidence controls and experiment tooling support that work;
 they are not a separate market or a cybersecurity product.
 
+## D-009 — No experiment without a baseline
+
+**Decision:** `EXP-CREATIVE-0001` is not preregistered until the owned-site baseline window closes
+on 2026-09-18. A 4-week measurement period runs first, with nothing changed on the site.
+
+**Reason:** thresholds set without a baseline are invented, and the freeze rule then protects a
+number that never meant anything. Power analysis puts the cheapest valid test at 870 sessions across
+both arms; whether the site can supply that is exactly what the window measures.
+
+**Revisit:** at close. If four weeks of traffic is not within an order of magnitude of that figure,
+the constraint is audience and no creative experiment is runnable on this surface.
+
 ## D-001 — Service before SaaS
 
 **Decision:** Do not build a customer-facing Growth SaaS before repeated paid workflow evidence.

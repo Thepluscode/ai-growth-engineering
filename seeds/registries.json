@@ -128,6 +128,14 @@
       "observed": true,
       "statement": "A published, non-obfuscated, non-support address is NOT sufficient for reachability. AMVIA's hello@amvia.co.uk was verified on their own contact page on 2026-08-20 and hard-bounced 'address not found' six seconds after sending. 1 of 5 replacements failed on a criterion designed to prevent exactly that. Publication proves intent, not that the mailbox exists; only a send proves delivery.",
       "source": "Gmail send 1a01f198f5e7332f + bounce 1a01f19a68dada3c, 2026-08-20"
+    },
+    {
+      "evidence_id": "EV-CREATIVE-BLOCK-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "EXP-CREATIVE-0001 could not be preregistered on 2026-08-21: no baseline exists for contact_intent, so success and review thresholds could only have been invented. Power analysis shows 870 sessions across both arms in the most generous case (5% baseline doubling) and 15,500 in the least (1% to 1.5%). Outbound is the only channel with real exposure and is occupied by EXP-ACQ-0001; every other channel is not_started. The constraint is audience, not experiment machinery.",
+      "source": "power analysis + channels registry + empty experiment_trust_results, 2026-08-21"
     }
   ],
   "channels": [
