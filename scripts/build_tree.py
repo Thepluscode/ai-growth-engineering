@@ -28,7 +28,7 @@ AREAS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ("1_market_intelligence",),
     ),
     "strategy": (
-        ("segmentation", "positioning", "awareness", "offers", "messaging"),
+        ("segmentation", "positioning", "awareness", "offers", "messaging", "persuasion"),
         ("2_strategy",),
     ),
     "creative": (

@@ -2,7 +2,7 @@
 
 # strategy
 
-**Strategy — positioning, offers, pricing, messaging** — 6 of 15 capabilities implemented.
+**Strategy — positioning, offers, pricing, messaging** — 12 of 27 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -13,25 +13,38 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 - `awareness/`
 - `offers/`
 - `messaging/`
+- `persuasion/`
 
 ## Capabilities and honest status
 
 | Capability | Status |
 | --- | --- |
+| `angle_registry` | IMPLEMENTED |
+| `belief_shift_map` | IMPLEMENTED |
+| `cta_awareness_matching` | IMPLEMENTED |
 | `message_congruence_score` | IMPLEMENTED |
 | `offer_registry` | IMPLEMENTED |
 | `offer_strength_score` | IMPLEMENTED |
+| `persuasion_integrity_gate` | IMPLEMENTED |
 | `proof_inventory` | IMPLEMENTED |
+| `psychological_driver_map` | IMPLEMENTED |
 | `rule_of_one_gate` | IMPLEMENTED |
+| `scarcity_claim_controls` | IMPLEMENTED |
 | `value_ladder_registry` | IMPLEMENTED |
+| `angle_performance_intelligence` | HYPOTHESIS |
 | `brand_strategy` | HYPOTHESIS |
+| `contrarian_angle_engineering` | SPECIFIED |
+| `earned_authority_model` | SPECIFIED |
 | `messaging_strategy` | HYPOTHESIS |
 | `offer_architecture` | HYPOTHESIS |
 | `offer_experiment_registry` | HYPOTHESIS |
 | `offer_to_revenue_lineage` | HYPOTHESIS |
+| `persuasion_engineering_workflow` | SPECIFIED |
 | `positioning_model` | HYPOTHESIS |
 | `pricing_model` | HYPOTHESIS |
 | `proof_hierarchy` | HYPOTHESIS |
 | `segmentation` | HYPOTHESIS |
+| `story_structure` | SPECIFIED |
+| `trust_guardrail_metrics` | HYPOTHESIS |
 
 `IMPLEMENTED` = code exists and a deterministic test covers it. `SPECIFIED` = written as a skill, template or policy, not executable. `HYPOTHESIS` = named and understood, nothing built.

@@ -45,7 +45,19 @@
         "offer_to_revenue_lineage": "HYPOTHESIS",
         "pricing_model": "HYPOTHESIS",
         "messaging_strategy": "HYPOTHESIS",
-        "value_ladder_registry": "IMPLEMENTED"
+        "value_ladder_registry": "IMPLEMENTED",
+        "persuasion_integrity_gate": "IMPLEMENTED",
+        "angle_registry": "IMPLEMENTED",
+        "belief_shift_map": "IMPLEMENTED",
+        "psychological_driver_map": "IMPLEMENTED",
+        "scarcity_claim_controls": "IMPLEMENTED",
+        "cta_awareness_matching": "IMPLEMENTED",
+        "persuasion_engineering_workflow": "SPECIFIED",
+        "contrarian_angle_engineering": "SPECIFIED",
+        "story_structure": "SPECIFIED",
+        "earned_authority_model": "SPECIFIED",
+        "trust_guardrail_metrics": "HYPOTHESIS",
+        "angle_performance_intelligence": "HYPOTHESIS"
       }
     },
     "3_creative": {

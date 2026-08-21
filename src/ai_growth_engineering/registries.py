@@ -105,6 +105,30 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
             "contribution_profit_pence", "cac_pence", "ltv_pence", "verdict",
         ),
     ),
+    "angles": (
+        "angle_id",
+        ("audience", "problem", "current_belief", "contrarian_belief"),
+        (
+            "emotional_driver", "logical_driver", "mechanism", "proof", "hook",
+            "offer_id", "cta", "experiment_id", "evidence_id", "integrity_status",
+            "qualified_conversions", "opportunities", "revenue_pence",
+        ),
+    ),
+    "belief_shifts": (
+        "belief_shift_id",
+        ("audience", "current_belief", "new_belief"),
+        ("objection", "evidence_id", "action_that_follows", "angle_id"),
+    ),
+    "drivers": (
+        "driver_id",
+        ("audience", "kind", "driver"),
+        ("evidence_id", "voc_id", "verbatim", "strength"),
+    ),
+    "scarcity_claims": (
+        "scarcity_claim_id",
+        ("statement", "verification"),
+        ("capacity", "committed", "expiry", "status", "claim_id"),
+    ),
     "value_ladders": (
         "value_ladder_id",
         ("buyer", "entry_offer_id", "core_offer_id"),
@@ -119,6 +143,10 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
 REGISTRY_TABLES = {
     "customer_evidence": "evidence",
     "voc": "voc",
+    "angles": "angles",
+    "belief_shifts": "belief_shifts",
+    "drivers": "drivers",
+    "scarcity_claims": "scarcity_claims",
     "economics": "economics",
     "offers": "offers",
     "proof_inventory": "proof",
@@ -140,6 +168,9 @@ REGISTRY_TABLES = {
 INT_SUFFIXES = (
     "_pence", "_leads", "_visits", "_clicks", "_starts", "_views", "_contacts",
     "_interactions", "opportunities", "customers",
+    # A scarcity capacity stored as text would compare as a string, so "10" < "2"
+    # and a false limit could pass the gate that exists to catch it.
+    "capacity", "committed", "_conversions",
 )
 
 
