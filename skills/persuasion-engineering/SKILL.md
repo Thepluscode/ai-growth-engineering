@@ -90,9 +90,27 @@ analysis, customer evidence, transparent methodology. If a claim cannot survive
 
 ## Measure trust, not only conversion
 
-Every persuasion experiment carries a guardrail alongside its primary metric: unsubscribe rate,
-complaint rate, refund rate, reply sentiment. A lift in qualified conversion that moves a guardrail
-is not a win — it is a cost deferred to a quarter where nobody will connect it back.
+Enforced, not advised. `KEEP` requires the primary metric to win **and** every required guardrail
+to pass. A breach returns `REVIEW`; missing or underpowered guardrail data returns `PREREGISTERED`,
+because not knowing is not permission to conclude.
+
+```python
+preregister_trust_guardrails(db, "EXP-CREATIVE-0001", [
+    TrustGuardrailSpec(metric="unsubscribe_rate", baseline=0.012, max_absolute=0.020,
+                       max_adverse_delta=0.005, minimum_sample=500, source="12-month baseline")])
+```
+
+Declare guardrails **before exposure**. Once observations exist the contract is frozen — thresholds,
+baseline, direction and required status cannot move. Raising a complaint cap after seeing the number
+is moving a Sharpe threshold after a backtest.
+
+Guardrails are channel-specific (`CHANNEL_GUARDRAILS`). A metric that cannot apply is declared
+`required=False` with a reason, never quietly omitted — omission is indistinguishable from
+forgetting. Observations are stored as numerator and denominator, never as a rendered percentage.
+
+**Sentiment is diagnostic only** and cannot be a required gate. `sentiment = -0.63` reads as
+precision while potentially being nonsense; before it can block anything it needs a pinned
+classifier version, a written label definition, a validation set and human calibration.
 
 Namespace: `EXP-CREATIVE-*` for angle and hook tests, `EXP-CRO-*` for page and CTA tests.
 

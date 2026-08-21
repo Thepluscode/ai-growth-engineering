@@ -94,7 +94,20 @@ def record_experiment_result(
             # EXP-ACQ-0001 explicitly forbids a final conclusion before 50 sends.
             decision = ExperimentDecision.PREREGISTERED.value
         elif observed_value >= row["success_threshold"]:
-            decision = ExperimentDecision.KEEP.value
+            # The primary metric won. That earns a KEEP only if trust held: a conversion
+            # lift bought with unsubscribes, complaints or refunds is a cost deferred to a
+            # quarter where nobody connects it back. Non-compensatory by construction —
+            # no amount of primary-metric success offsets a breach.
+            verdict = trust_verdict(db_path, experiment_id)
+            if verdict.passed:
+                decision = ExperimentDecision.KEEP.value
+            elif verdict.pending:
+                # Missing or underpowered guardrail data is not permission to conclude.
+                decision = ExperimentDecision.PREREGISTERED.value
+            else:
+                # A breach hands the decision to a person; it never kills the business.
+                decision = ExperimentDecision.REVIEW.value
+            learning = "; ".join(filter(None, [learning, *verdict.reasons]))
         elif observed_value < row["review_threshold"]:
             decision = ExperimentDecision.REVIEW.value
         else:
@@ -269,3 +282,115 @@ def seed_registries(db_path: str, seeds_path: str) -> dict[str, int]:
             loaded[name] = loaded.get(name, 0) + 1
 
     return loaded
+
+
+def preregister_trust_guardrails(
+    db_path: str, experiment_id: str, specs: list
+) -> int:
+    """Declare guardrails BEFORE exposure begins.
+
+    Refuses to change a frozen field once the experiment has observations. Raising the
+    complaint cap from 0.2% to 1.0% after seeing 0.8% is moving a Sharpe threshold after
+    a backtest; the correct move is a new experiment, not an edited one.
+    """
+    from .trust import TrustGuardrailSpec
+
+    with connect(db_path) as con:
+        if con.execute(
+            "SELECT 1 FROM experiments WHERE experiment_id = ?", (experiment_id,)
+        ).fetchone() is None:
+            raise ValueError(f"experiment {experiment_id} is not preregistered")
+
+        has_observations = con.execute(
+            "SELECT COUNT(*) FROM experiment_trust_results WHERE experiment_id = ?",
+            (experiment_id,),
+        ).fetchone()[0] > 0
+
+        written = 0
+        for spec in specs:
+            spec.validate()
+            existing = con.execute(
+                "SELECT * FROM experiment_trust_guardrails WHERE experiment_id=? AND metric=?",
+                (experiment_id, spec.metric),
+            ).fetchone()
+
+            if existing and has_observations:
+                for field in TrustGuardrailSpec.FROZEN_FIELDS:
+                    old, new = existing[field], getattr(spec, field)
+                    if field == "required":
+                        new = int(new)
+                    if old != new:
+                        raise ValueError(
+                            f"guardrail contract is frozen: {experiment_id}.{spec.metric}."
+                            f"{field} cannot change from {old!r} to {new!r} after observations "
+                            "exist. Create a new experiment instead."
+                        )
+
+            con.execute(
+                """INSERT OR REPLACE INTO experiment_trust_guardrails(
+                     experiment_id, metric, direction, baseline, max_absolute,
+                     max_adverse_delta, max_relative_increase, minimum_sample,
+                     required, source, not_applicable_reason
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (experiment_id, spec.metric, spec.direction, spec.baseline,
+                 spec.max_absolute, spec.max_adverse_delta, spec.max_relative_increase,
+                 spec.minimum_sample, int(spec.required), spec.source,
+                 spec.not_applicable_reason),
+            )
+            written += 1
+        return written
+
+
+def record_trust_observation(db_path: str, experiment_id: str, obs) -> None:
+    """Store numerator and denominator, never a rendered percentage."""
+    obs.validate()
+    with connect(db_path) as con:
+        declared = con.execute(
+            "SELECT 1 FROM experiment_trust_guardrails WHERE experiment_id=? AND metric=?",
+            (experiment_id, obs.metric),
+        ).fetchone()
+        if declared is None:
+            raise ValueError(
+                f"{obs.metric!r} was not preregistered for {experiment_id}; "
+                "a guardrail declared after the fact is not a guardrail"
+            )
+        con.execute(
+            """INSERT INTO experiment_trust_results(
+                 experiment_id, metric, numerator, denominator, observed_value,
+                 observed_at, evidence_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (experiment_id, obs.metric, obs.numerator, obs.denominator,
+             obs.value, obs.observed_at, obs.evidence_id),
+        )
+
+
+def trust_verdict(db_path: str, experiment_id: str):
+    """Evaluate every declared guardrail against its latest observation."""
+    from .trust import TrustGuardrailSpec, TrustObservation, evaluate_all
+
+    with connect(db_path) as con:
+        specs = [
+            TrustGuardrailSpec(
+                metric=r["metric"], direction=r["direction"], baseline=r["baseline"],
+                max_absolute=r["max_absolute"], max_adverse_delta=r["max_adverse_delta"],
+                max_relative_increase=r["max_relative_increase"],
+                minimum_sample=r["minimum_sample"], required=bool(r["required"]),
+                source=r["source"], not_applicable_reason=r["not_applicable_reason"],
+            )
+            for r in con.execute(
+                "SELECT * FROM experiment_trust_guardrails WHERE experiment_id=? ORDER BY metric",
+                (experiment_id,),
+            )
+        ]
+        observations = {}
+        for r in con.execute(
+            """SELECT metric, numerator, denominator, observed_at, evidence_id
+               FROM experiment_trust_results WHERE experiment_id=?
+               ORDER BY id""",
+            (experiment_id,),
+        ):
+            observations[r["metric"]] = TrustObservation(
+                metric=r["metric"], numerator=r["numerator"], denominator=r["denominator"],
+                observed_at=r["observed_at"], evidence_id=r["evidence_id"],
+            )
+    return evaluate_all(specs, observations)

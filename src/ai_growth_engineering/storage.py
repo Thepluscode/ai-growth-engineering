@@ -73,6 +73,34 @@ CREATE TABLE IF NOT EXISTS experiment_evidence (
     PRIMARY KEY (experiment_id, evidence_id)
 );
 
+CREATE TABLE IF NOT EXISTS experiment_trust_guardrails (
+    experiment_id TEXT NOT NULL REFERENCES experiments(experiment_id),
+    metric TEXT NOT NULL,
+    direction TEXT NOT NULL DEFAULT 'lower_is_better',
+    baseline REAL,
+    max_absolute REAL,
+    max_adverse_delta REAL,
+    max_relative_increase REAL,
+    minimum_sample INTEGER NOT NULL DEFAULT 0,
+    required INTEGER NOT NULL DEFAULT 1,
+    source TEXT NOT NULL DEFAULT '',
+    not_applicable_reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (experiment_id, metric)
+);
+
+CREATE TABLE IF NOT EXISTS experiment_trust_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL REFERENCES experiments(experiment_id),
+    metric TEXT NOT NULL,
+    numerator INTEGER NOT NULL,
+    denominator INTEGER NOT NULL,
+    observed_value REAL,
+    observed_at TEXT NOT NULL DEFAULT '',
+    evidence_id TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS suppression (
     identity TEXT PRIMARY KEY,
     reason TEXT NOT NULL,

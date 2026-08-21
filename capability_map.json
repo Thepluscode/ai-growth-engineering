@@ -56,7 +56,7 @@
         "contrarian_angle_engineering": "SPECIFIED",
         "story_structure": "SPECIFIED",
         "earned_authority_model": "SPECIFIED",
-        "trust_guardrail_metrics": "HYPOTHESIS",
+        "trust_guardrail_metrics": "IMPLEMENTED",
         "angle_performance_intelligence": "HYPOTHESIS"
       }
     },

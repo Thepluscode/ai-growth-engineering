@@ -2,7 +2,7 @@
 
 # strategy
 
-**Strategy — positioning, offers, pricing, messaging** — 12 of 27 capabilities implemented.
+**Strategy — positioning, offers, pricing, messaging** — 13 of 27 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -30,6 +30,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `psychological_driver_map` | IMPLEMENTED |
 | `rule_of_one_gate` | IMPLEMENTED |
 | `scarcity_claim_controls` | IMPLEMENTED |
+| `trust_guardrail_metrics` | IMPLEMENTED |
 | `value_ladder_registry` | IMPLEMENTED |
 | `angle_performance_intelligence` | HYPOTHESIS |
 | `brand_strategy` | HYPOTHESIS |
@@ -45,6 +46,5 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `proof_hierarchy` | HYPOTHESIS |
 | `segmentation` | HYPOTHESIS |
 | `story_structure` | SPECIFIED |
-| `trust_guardrail_metrics` | HYPOTHESIS |
 
 `IMPLEMENTED` = code exists and a deterministic test covers it. `SPECIFIED` = written as a skill, template or policy, not executable. `HYPOTHESIS` = named and understood, nothing built.
