@@ -1,6 +1,6 @@
 # Digital Marketing Project — Feature and Market Tracker
 
-Last updated: 2026-08-19
+Last updated: 2026-08-27
 
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
@@ -11,7 +11,8 @@ Last updated: 2026-08-19
 | Social conversion and attribution contract | DEPLOYED | Content, profile, DM, contact capture, offer, customer and revenue IDs share one lineage; deterministic tests cover funnel rates, audience capture, legacy schema migration and unknown denominators |
 | Unit and lifecycle economics decision layer | DEPLOYED | Integer-pence models distinguish CAC from contribution profit and add realised 30/90/365-day value, gross profit per acquired customer and expansion rate; deterministic tests cover edge cases |
 | Revenue-evidence OS `v0.1.0` | VERIFIED | Public [release](https://github.com/Thepluscode/ai-growth-engineering/releases/tag/v0.1.0) at commit `2af2070`; remote [test workflow](https://github.com/Thepluscode/ai-growth-engineering/actions/runs/32263253558) passed |
-| `EXP-ACQ-0001` preregistration | DEPLOYED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, REVIEW below 5% |
+| `EXP-ACQ-0001` preregistration | VERIFIED | 50-send minimum; KEEP at >=10%, ITERATE at 5-9.9%, REVIEW below 5%; contract held to the end without amendment |
+| `EXP-ACQ-0001` verdict | VERIFIED | `REVIEW` at n=50, observed 0.0, recorded 2026-08-27 by `age experiment-result`; written up in `experiments/EXP-ACQ-0001/VERDICT.md` |
 | 50 qualified prospects | VERIFIED | 57 records: seven are explicitly disqualified; Batches 04 and 05 add 20 current UK accounts; CLI reports 50 and the reseed regression test prevents stale qualification statuses from inflating the count |
 | Queue-01 deep research | VERIFIED | 10 queue accounts researched from cited public sources; Foresite disqualified; Morcan researched as send replacement |
 | Queue-01 teardowns | VERIFIED | 10 queue decisions plus Morcan replacement under `experiments/EXP-ACQ-0001/sales/teardowns/`; observed/inferred/unknown separated |
@@ -26,13 +27,16 @@ Last updated: 2026-08-19
 | Queue-04 messages | DEPLOYED | 10 personalised messages staged and verified as Gmail drafts after duplicate and suppression checks; none counted as sent |
 | Queue-05 qualification and teardowns | VERIFIED | 10 current accounts qualified; Six Degrees disqualified as an enterprise-scale outlier and replaced with Inology; all 100 required teardown sections and inference labels validated |
 | Queue-05 messages | DEPLOYED | 10 personalised messages staged and verified as Gmail drafts after duplicate and suppression checks; none counted as sent |
-| Qualified outbound sends | IN PROGRESS | 19 total confirmed sends; sends 20–50 are mapped one-to-one in `sales/execution-manifest-50.csv`; no message or form submission is counted without evidence |
+| Qualified outbound sends | VERIFIED | 50 counted sends from 55 rows; `age import-outreach` then `age scoreboard` reports `outreach_sent 50/100`, five bounces excluded |
+| Send recipient composition | VERIFIED | 48 of 50 went to a role inbox; 2 reached a named buyer's own address. The route actually tested was shared-inbox email, not buyer email |
 | Queue-01 follow-up plan | DEPLOYED | Manual, value-adding first follow-ups prepared in `experiments/EXP-ACQ-0001/sales/follow-up-plan.md`; do not send before reply and suppression review on 2026-08-24 |
-| Meaningful replies | PLANNED | 0; 2026-08-19 inbox audit found no buyer reply; Texaport's intake ticket remains automation, not a conversation; no conclusion before 50 qualified sends |
+| Meaningful replies | VERIFIED | 0 of 50. Wilson 95% CI 0-7.1%; P(0 replies at a true 10%) = 0.52%, at a true 5% = 7.7%. Texaport's intake ticket remains automation, not a conversation |
+| Named-buyer route | PLANNED | n=2, P(0 replies at a true 10%) = 81%. Untested, and must not be reported as failed |
 | Discovery calls | PLANNED | 0; use `experiments/EXP-ACQ-0001/sales/discovery-checklist.md` |
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |
 | First payment / customer dataset (`v0.2`) | PLANNED | No evidence yet |
-| Commercial `v0.2` gate | IN PROGRESS | Architecture slice is implemented; commercial evidence is 19 confirmed sends, 0 meaningful replies and 0 discovery calls; 31 additional routes are staged but not counted; no conclusion before 50 confirmed qualified sends |
+| Commercial `v0.2` gate | IN PROGRESS | Architecture slice is implemented; commercial evidence is 50 counted sends, 0 meaningful replies, 0 discovery calls, 0 revenue. `age gate-check` reports REVENUE GATE: NOT MET |
+| Owned-site baseline window | IN PROGRESS | Opened 2026-08-21, closes 2026-09-18. Internal-traffic exclusion shipped and verified live: `tpt_internal_traffic` is present in the production bundle served from theplus-tech.com on 2026-08-27. `path` split is instrumented. No clean reading taken yet |
 
 ## Current experiment freeze
 

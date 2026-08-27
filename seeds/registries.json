@@ -144,6 +144,30 @@
       "observed": true,
       "statement": "First owned-site reading, ~24h from 2026-08-20: 47 sessions, 3 contact_intent events, 6.4% (95% CI 2.2-17.2%). CONTAMINATED: at least one event is our own verification click when confirming the instrumentation, and our sessions are in the denominator. Treat as an order-of-magnitude signal that traffic exists, not as a baseline rate. Confidence 0.6 for that reason.",
       "source": "Vercel Analytics, operator-read 2026-08-21"
+    },
+    {
+      "evidence_id": "EV-ACQ-VERDICT-01",
+      "kind": "experiment",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "EXP-ACQ-0001 reached its 50-send minimum and recorded REVIEW on 2026-08-27: 50 counted sends (55 rows, 5 bounces excluded), 0 meaningful replies, observed 0.0 against a 0.10 KEEP and 0.05 REVIEW threshold. Wilson 95% CI 0-7.1%. P(0 replies given a true 10% rate) = 0.52%, given a true 5% rate = 7.7%. The 10% hypothesis is dead for the route as executed; 5% is improbable but not excluded.",
+      "source": "age import-outreach + age scoreboard + age experiment-result against experiments/EXP-ACQ-0001/sales/outreach.csv, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-ACQ-RECIPIENT-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "48 of EXP-ACQ-0001's 50 counted sends went to a role inbox (info@, contact@, enquiries@, sales@, support@, cyber@, cra@, uksales@, tellmemore@); 2 reached a named buyer's own address (Blue Frontier, Technical Drive). The channel tested was cold email to a shared inbox, not cold email to a buyer. At n=2 the named-buyer route returns zero replies 81% of the time even at a true 10% rate, so it is untested and must not be reported as failed. Successor experiments must record recipient_class per send and report the two rates separately.",
+      "source": "recipient address parse of experiments/EXP-ACQ-0001/sales/outreach.csv, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-BASELINE-02",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Internal-traffic exclusion is live in production. theplus-tech-website@79513d2 'Stop measuring ourselves' (2026-08-22 06:42 BST) drops pageviews and custom events together for a flagged session; the marker tpt_internal_traffic and the event name contact_intent are both present in the JavaScript bundle served from https://theplus-tech.com on 2026-08-27, verified by fetching every chunk from the origin rather than by reading the branch. Vercel has no retroactive filter, so the clean baseline window is 2026-08-22 to 2026-09-18 and the 20th-to-22nd traffic remains a mixture.",
+      "source": "curl of https://theplus-tech.com plus grep of the served chunks, 2026-08-27"
     }
   ],
   "channels": [
