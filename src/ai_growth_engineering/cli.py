@@ -9,6 +9,7 @@ from .models import ExperimentSpec
 from .registry import (
     add_experiment,
     import_outreach,
+    reply_rate_by_recipient_class,
     seed_registries,
     record_experiment_result,
     scoreboard,
@@ -54,6 +55,19 @@ def cmd_scoreboard(args: argparse.Namespace) -> None:
             print(f"{key:28} {_money(actual):>12} / {_money(target)}")
         else:
             print(f"{key:28} {actual:>12} / {target}")
+
+
+def cmd_recipient_split(args: argparse.Namespace) -> None:
+    """The two rates EXP-ACQ-0001 needed and did not have."""
+    init_db(args.db)
+    counts = reply_rate_by_recipient_class(args.db)
+    print(f"{'recipient_class':>16}  {'sent':>5}  {'replies':>7}  rate")
+    for name, row in counts.items():
+        rate = f"{row['replies'] / row['sent']:.1%}" if row["sent"] else "n/a"
+        print(f"{name:>16}  {row['sent']:>5}  {row['replies']:>7}  {rate}")
+    if counts.get("unclassified", {}).get("sent"):
+        # Loud, because an unclassified send is the defect this command exists to catch.
+        print("\nunclassified sends carry no conclusion: nobody knows who read them")
 
 
 def cmd_gate_check(args: argparse.Namespace) -> None:
@@ -184,6 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("seed-prospects"); dbarg(p); p.add_argument("csv_path"); p.set_defaults(func=cmd_seed)
     p = sub.add_parser("scoreboard"); dbarg(p); p.set_defaults(func=cmd_scoreboard)
     p = sub.add_parser("gate-check"); dbarg(p); p.set_defaults(func=cmd_gate_check)
+    p = sub.add_parser("recipient-split"); dbarg(p); p.set_defaults(func=cmd_recipient_split)
     p = sub.add_parser("import-outreach"); dbarg(p); p.add_argument("csv_path")
     p.set_defaults(func=cmd_import_outreach)
     p = sub.add_parser("seed-registries"); dbarg(p)

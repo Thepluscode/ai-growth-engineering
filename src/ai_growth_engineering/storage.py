@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS outreach (
     paid INTEGER NOT NULL DEFAULT 0,
     collected_revenue_pence INTEGER NOT NULL DEFAULT 0,
     notes TEXT NOT NULL DEFAULT '',
-    stage TEXT NOT NULL DEFAULT 'sent_awaiting_reply'
+    stage TEXT NOT NULL DEFAULT 'sent_awaiting_reply',
+    recipient_class TEXT NOT NULL DEFAULT 'unclassified'
 );
 
 CREATE TABLE IF NOT EXISTS evidence (
@@ -183,6 +184,11 @@ def _rename_kill_to_review(con: sqlite3.Connection) -> list[str]:
 
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
+    # Added 2026-08-27 after EXP-ACQ-0001 discovered that 48 of its 50 "qualified
+    # sends" went to a shared inbox. Existing rows migrate to 'unclassified' rather
+    # than to a guess: an inferred class would let the same blended rate come back
+    # wearing a column name.
+    ("recipient_class", "TEXT NOT NULL DEFAULT 'unclassified'"),
 )
 
 

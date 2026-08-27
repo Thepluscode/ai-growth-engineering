@@ -86,6 +86,7 @@
       "title": "Distribution channels",
       "capabilities": {
         "outbound_quality_gate": "IMPLEMENTED",
+        "recipient_class_gate": "IMPLEMENTED",
         "suppression_registry": "IMPLEMENTED",
         "channel_registry": "IMPLEMENTED",
         "outreach_research_workflow": "SPECIFIED",

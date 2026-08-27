@@ -32,6 +32,9 @@ Last updated: 2026-08-27
 | Queue-01 follow-up plan | DEPLOYED | Manual, value-adding first follow-ups prepared in `experiments/EXP-ACQ-0001/sales/follow-up-plan.md`; do not send before reply and suppression review on 2026-08-24 |
 | Meaningful replies | VERIFIED | 0 of 50. Wilson 95% CI 0-7.1%; P(0 replies at a true 10%) = 0.52%, at a true 5% = 7.7%. Texaport's intake ticket remains automation, not a conversation |
 | Named-buyer route | PLANNED | n=2, P(0 replies at a true 10%) = 81%. Untested, and must not be reported as failed |
+| `recipient_class` on every send | VERIFIED | Required validated column; unknown values raise instead of defaulting; legacy rows report `unclassified` rather than joining a route. `age recipient-split` reports named_buyer 2/0 and role_inbox 48/0. Mutation-checked from a green baseline: `KILLED`, precise, file restored byte-identical |
+| `EXP-ACQ-0002` preregistration | DEPLOYED | Named-buyer route only; 30-send minimum, same 10%/5% thresholds so the routes stay comparable; contract frozen in `experiments/EXP-ACQ-0002/PREREGISTRATION.md`; zero sends executed |
+| `EXP-ACQ-0002` contact discovery | PLANNED | Contact discovery is a gate, not a step: an account with no reachable named buyer is excluded, never downgraded to its shared inbox |
 | Discovery calls | PLANNED | 0; use `experiments/EXP-ACQ-0001/sales/discovery-checklist.md` |
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |
 | First payment / customer dataset (`v0.2`) | PLANNED | No evidence yet |

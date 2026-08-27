@@ -172,18 +172,68 @@ def import_outreach(db_path: str, csv_path: str) -> tuple[int, int]:
                 continue
             reply = (row.get("meaningful_reply") or "").strip().lower()
             con.execute(
-                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes, stage)
-                   VALUES (?, ?, ?, ?, ?)""",
+                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes, stage, recipient_class)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
                 (
                     company,
                     sent_at,
                     1 if reply in {"1", "true", "yes"} else 0,
                     (row.get("notes") or "").strip(),
                     (row.get("stage") or "sent_awaiting_reply").strip(),
+                    parse_recipient_class(row.get("recipient_class"), company),
                 ),
             )
             imported += 1
     return imported, skipped
+
+
+RECIPIENT_CLASSES = ("named_buyer", "role_inbox", "unclassified")
+
+
+def parse_recipient_class(value: str | None, company: str = "") -> str:
+    """Who the message actually reached, taken from the row rather than guessed.
+
+    EXP-ACQ-0001 recorded 50 "qualified sends" and concluded REVIEW at 0 replies.
+    48 of them had gone to info@, contact@, enquiries@ and the like; two reached a
+    named buyer. The blended rate answered a question nobody asked, and at n=2 the
+    route that mattered was never tested at all.
+
+    An unrecognised value raises rather than falling back to a default. A silent
+    fallback is how a typo becomes an entire class of sends nobody can find again.
+    """
+    text = (value or "").strip().lower().replace("-", "_") or "unclassified"
+    if text not in RECIPIENT_CLASSES:
+        raise ValueError(
+            f"unknown recipient_class {value!r}"
+            + (f" for {company}" if company else "")
+            + f"; expected one of {', '.join(RECIPIENT_CLASSES)}"
+        )
+    return text
+
+
+def reply_rate_by_recipient_class(db_path: str) -> dict[str, dict[str, int]]:
+    """Delivered sends and replies per recipient class, never blended.
+
+    Bounces are excluded on the same grounds as in `scoreboard`: a message that did
+    not arrive is not a send. `unclassified` is reported as its own row rather than
+    folded into either class, because "we do not know who read it" is a finding and
+    hiding it inside a denominator is how EXP-ACQ-0001 lost a route.
+    """
+    counts = {name: {"sent": 0, "replies": 0} for name in RECIPIENT_CLASSES}
+    with connect(db_path) as con:
+        rows = con.execute(
+            """SELECT recipient_class, COUNT(*) AS sent,
+                      COALESCE(SUM(meaningful_reply), 0) AS replies
+               FROM outreach
+               WHERE sent_at IS NOT NULL AND stage != 'bounced'
+               GROUP BY recipient_class"""
+        ).fetchall()
+    for row in rows:
+        name = row["recipient_class"] or "unclassified"
+        counts.setdefault(name, {"sent": 0, "replies": 0})
+        counts[name]["sent"] += row["sent"]
+        counts[name]["replies"] += row["replies"]
+    return counts
 
 
 def scoreboard(db_path: str) -> dict[str, int]:
