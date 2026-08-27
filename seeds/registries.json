@@ -176,6 +176,30 @@
       "observed": true,
       "statement": "EXP-ACQ-0002 preregistered 2026-08-27 to test the route EXP-ACQ-0001 never tested: the same message delivered to a named buyer's own mailbox. KEEP >=10%, ITERATE 5-9.9%, REVIEW <5% (unchanged, so the two routes stay comparable), minimum sample 30 delivered named_buyer sends. n=30 rejects KEEP if it returns zero (P=4.2% at a true 10%) but cannot reject ITERATE (P=21.5% at a true 5%); roughly 60 would be needed for that. Contact discovery is an admission gate, not a step. Zero sends executed: outreach is external surface and is proposed, not run unattended.",
       "source": "experiments/EXP-ACQ-0002/PREREGISTRATION.md + age experiment-add, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-ACQ-0002-DISCOVERY-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Contact discovery for EXP-ACQ-0002 found 0 reachable named-buyer mailboxes across 18 observed UK MSP accounts (Wilson 95% CI 0-17.6%, implying a ceiling of ~10 across all 55). Reaching the 30-send minimum would require a 54.5% publication rate; P(observing 0 in 18 at that rate) = 7e-7. EXP-ACQ-0001 independently found 2 personal addresses across 27 named accounts (7.4%, upper bound 23.4% = 13 accounts). Named decision-makers were found for essentially every account with public LinkedIn profiles: the constraint is the mailbox, not the person. Mid-market UK MSPs do not publish commercial decision-makers' addresses, so for this ICP cold email is structurally a shared-inbox channel - already measured at 0/48. EXP-ACQ-0002 does not start; its contract was not relaxed to fit the supply.",
+      "source": "experiments/EXP-ACQ-0002/DISCOVERY-RESULT.md; first-party page fetches and searches, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-ACQ-0002-AGGREGATOR-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Every apparent named-buyer address in the discovery run came from an enrichment aggregator and none survived first-party verification. pjob@intergence.com was reported by a search summariser as listed in Intergence's official contact details; the contact page carries only contact@, support@ and itsupport@, and the leadership page names six people and publishes no address. Others were masked (m*****@zenzero.co.uk, l******@ramsac.com), inferred from a stated format, or mutually inconsistent (three different addresses for Wavex's CEO). An inferred address is a hypothesis about a mail server, which is where four of EXP-ACQ-0001's five lost sends died.",
+      "source": "WebFetch of intergence.com/contact and /why-intergence versus search summaries, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-ACQ-0001-DEFECT-02",
+      "kind": "observation",
+      "confidence": 0.75,
+      "observed": true,
+      "statement": "EXP-ACQ-0001's first outreach row names 'John Hosegood, Head of Sales' at CloudTech24. Public sources show him as the author of a customer review of CloudTech24, not as an employee. The send went to sales@cloudtech24.com so the counted sample is unaffected, but the row names a buyer who was never at the company and must not be reused.",
+      "source": "web search during EXP-ACQ-0002 contact discovery, 2026-08-27"
     }
   ],
   "channels": [

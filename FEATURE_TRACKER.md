@@ -34,7 +34,10 @@ Last updated: 2026-08-27
 | Named-buyer route | PLANNED | n=2, P(0 replies at a true 10%) = 81%. Untested, and must not be reported as failed |
 | `recipient_class` on every send | VERIFIED | Required validated column; unknown values raise instead of defaulting; legacy rows report `unclassified` rather than joining a route. `age recipient-split` reports named_buyer 2/0 and role_inbox 48/0. Mutation-checked from a green baseline: `KILLED`, precise, file restored byte-identical |
 | `EXP-ACQ-0002` preregistration | DEPLOYED | Named-buyer route only; 30-send minimum, same 10%/5% thresholds so the routes stay comparable; contract frozen in `experiments/EXP-ACQ-0002/PREREGISTRATION.md`; zero sends executed |
-| `EXP-ACQ-0002` contact discovery | PLANNED | Contact discovery is a gate, not a step: an account with no reachable named buyer is excluded, never downgraded to its shared inbox |
+| `EXP-ACQ-0002` contact discovery | VERIFIED | **0 reachable named-buyer mailboxes across 18 observed accounts.** Wilson 95% CI 0-17.6%, ceiling ~10 of 55; 30 would need a 54.5% publication rate (P = 7e-7). Written up in `experiments/EXP-ACQ-0002/DISCOVERY-RESULT.md` |
+| `EXP-ACQ-0002` execution | BLOCKED | Does not start. The contract stands unamended and unrun; it was not relaxed to fit the supply. Revival condition: 30 named-buyer addresses obtained without guessing |
+| Email wedge for this ICP | VERIFIED CLOSED | Mid-market UK MSPs do not publish commercial decision-makers' addresses, so cold email is structurally a shared-inbox channel here — measured at 0/48. A property of the segment, not of the message |
+| LinkedIn route | PLANNED | Named decision-makers with public profiles exist for essentially every account. A different channel: needs its own preregistration and its own `recipient_class`, never a substitution inside this sample |
 | Discovery calls | PLANNED | 0; use `experiments/EXP-ACQ-0001/sales/discovery-checklist.md` |
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |
 | First payment / customer dataset (`v0.2`) | PLANNED | No evidence yet |
