@@ -262,7 +262,7 @@
       "kind": "observation",
       "confidence": 0.95,
       "observed": true,
-      "statement": "theplus-tech.com production deploys from main; the current production deployment is 79513d2 'Stop measuring ourselves'. The redesign/v2 branch holds 38 changed files (+2706/-1922) including a colour scheme, favicon, anti-slop copy audit, on-system 404, stylesheet coverage guard, contrast guard, mobile layout work and a generated app/sitemap.ts - none of it deployed. This is the shape of the failure CLAUDE.md records: main and the served site agree, but substantial work sits on a branch nobody is serving.",
+      "statement": "RESOLVED 2026-08-28. theplus-tech.com production deploys from main; the current production deployment is 79513d2 'Stop measuring ourselves'. The redesign/v2 branch holds 38 changed files (+2706/-1922) including a colour scheme, favicon, anti-slop copy audit, on-system 404, stylesheet coverage guard, contrast guard, mobile layout work and a generated app/sitemap.ts - none of it deployed. This is the shape of the failure CLAUDE.md records: main and the served site agree, but substantial work sits on a branch nobody is serving. Shipped: fast-forwarded to main and deployed, production now main@86654c5.",
       "source": "vercel api /v6/deployments target=production and git diff --stat main..redesign/v2, 2026-08-28"
     },
     {
@@ -272,6 +272,30 @@
       "observed": false,
       "statement": "LinkedIn organic opened as a measurement period rather than an experiment: no EXP id, no hypothesis, no thresholds, minimum sample 8 posts. The primary reading is viewer job titles and companies, not impressions - impressions from other founders, agencies and developers would be a false positive where the number rises and the ICP stays absent. The unit is the post and the median is reported alongside the total, because LinkedIn supplies the distribution and one post that travels would otherwise define a baseline nothing reproduces. Engagement pods and reciprocal likes are excluded outright. All metrics are free on a standard account, so neither the LinkedIn Premium nor the Vercel Pro decision blocks it.",
       "source": "channels/social/MEASUREMENT-WINDOW.md, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-WEBSITE-SHIP-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "theplus-tech.com redesign shipped 2026-08-28. Branch proven green first (tsc clean, 33 tests, build across 11 routes), fast-forwarded to main, deployed, then verified against the live origin rather than the deploy status. Live: / 200, /workflow-audit 200, /workflow-audit/sample-report 200, /insights 200, /privacy 200, /sitemap.xml 200, /robots.txt 200, /nope 404. /workflow-audit had been returning 404 in production - the only page describing the GBP1,500 offer. Homepage dropped from 118,170 to 20,145 bytes as the 3D hero and its libraries went. The internal-traffic exclusion survived the merge: tpt_internal_traffic and contact_intent are both still in the served bundle.",
+      "source": "vercel api deployments + curl of https://theplus-tech.com, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-WEBSITE-FAVICON-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "The redesign shipped a favicon that was served but never referenced. public/favicon.svg and public/site.webmanifest both returned 200 from the day they were added while the rendered HTML carried no rel=icon and no rel=manifest, so every browser fell back to /favicon.ico, which 404s. A file in public/ is served, not linked - Next injects the tag only for app/icon.* or for what metadata declares. Found by fetching the deployed page and grepping it rather than by trusting the commit message that said 'favicon'. Fixed in 86654c5 and both link tags confirmed in the live HTML.",
+      "source": "curl of https://theplus-tech.com plus .next build output, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-VERCEL-EDGE-CACHE-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "A Vercel deploy reaching READY is not proof the apex serves it. Immediately after the favicon deploy went READY the apex returned the previous HTML with x-vercel-cache: HIT and age: 180, byte-identical to the pre-deploy copy, and a cache-busting query string did not change the cache key. The deployment URL itself 302s under deployment protection, so the origin check needs 'vercel curl', which returned the correct 20,145-byte page with both link tags. The apex caught up shortly after with x-vercel-cache: PRERENDER and age: 0. Ask the origin, not the edge - and re-check the edge before claiming a user can see it.",
+      "source": "curl response headers against theplus-tech.com and vercel curl against the deployment URL, 2026-08-28"
     }
   ],
   "channels": [

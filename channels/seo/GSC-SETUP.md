@@ -48,10 +48,28 @@ Impressions, clicks, average position and the queries the site actually appears 
 denominator organic search has never had. Until then the channel cannot be judged, and judging it
 without those figures would be the same mistake as the withdrawn `EV-BASELINE-01`.
 
+## The sitemap improved on 2026-08-28, and my earlier note about it was wrong
+
+`redesign/v2` shipped, replacing the hand-written `public/sitemap.xml` with a generated
+`app/sitemap.ts`. Served now:
+
+```
+/                                /insights
+/workflow-audit                  /privacy
+/workflow-audit/sample-report    /insights/<two posts>
+```
+
+The old static file listed only three URLs and **omitted `/workflow-audit` and its sample report —
+the pages that describe the paid offer**, and the ones most worth indexing. That was the real
+defect, not the dates.
+
+The dates: this file previously called `lastmod` "stale at 2026-08-13". That was true of the old
+static file and is **not** true of the generated one. The new sitemap emits `lastModified` only for
+the insight posts, from their real `publishedAt`; static pages carry no date rather than an invented
+one. Correct by design — a fabricated `lastModified` is worse than an absent one, because crawlers
+discount dates they learn not to trust.
+
 ## Deliberately not done
 
-- **The sitemap's stale `lastmod`** (`2026-08-13` on every URL). Production serves a static
-  `public/sitemap.xml` from `main`; the `redesign/v2` branch already replaces it with a generated
-  `app/sitemap.ts`. Patching `main` would duplicate work a merge delivers.
-- **Any other SEO work.** The site has ~47 visitors a month and no Search Console. Tuning a page
-  nobody can measure is the activity that looks like progress.
+**Any other SEO work.** The site has ~47 visitors a month and no Search Console. Tuning a page
+nobody can measure is the activity that looks like progress.

@@ -55,7 +55,10 @@ Last updated: 2026-08-27
 | Organic search | UNMEASURABLE | `robots.txt` and `sitemap.xml` serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and **Google Search Console is not connected**. Without GSC the channel has no denominator. Sitemap `lastmod` stale at 2026-08-13 |
 | LinkedIn organic | MEASUREMENT OPEN | Window defined in `channels/social/MEASUREMENT-WINDOW.md`: no `EXP-` id, no thresholds, minimum **8 posts**. Primary reading is **viewer job titles and companies**, not impressions — a rising number with the ICP absent is the named false positive. Unit is the post; median reported with the total. All metrics free; neither open spend decision blocks it |
 | Google Search Console | ONE ACTION LEFT | A `google-site-verification` TXT **already exists** beside a Workspace SPF record, so a Domain property under the same Google account should verify immediately — no DNS or site change. DNS is on Cloudflare, not Vercel. Steps in `channels/seo/GSC-SETUP.md` |
-| Website branch drift | FLAGGED | Production serves `main@79513d2`. `redesign/v2` holds **38 files, +2706/−1922** undeployed — colour scheme, favicon, copy audit, 404, stylesheet and contrast guards, mobile layout, generated sitemap. The exact shape `CLAUDE.md` warns about |
+| Website redesign | VERIFIED SHIPPED | `redesign/v2` merged and deployed 2026-08-28; production is `main@86654c5`. Verified against the live origin: `/workflow-audit` and its sample report now **200** after returning **404** in production — the only pages describing the £1,500 offer. `/nope` 404s. Homepage 118,170 → 20,145 bytes |
+| Analytics survived the merge | VERIFIED | `tpt_internal_traffic` and `contact_intent` both still present in the served bundle after the redesign landed |
+| Favicon defect | VERIFIED FIXED | Shipped **served but unreferenced** — asset 200, no `rel="icon"` in the HTML, browsers falling back to a 404ing `/favicon.ico`. Found by grepping the deployed page, not by reading the commit message |
+| Vercel edge cache trap | RECORDED | READY is not "users can see it". The apex served the pre-deploy HTML at `x-vercel-cache: HIT, age: 180`, and a cache-busting query did not change the key. Deployment URLs 302 under protection, so the origin check needs `vercel curl` |
 
 ## Current experiment freeze
 
