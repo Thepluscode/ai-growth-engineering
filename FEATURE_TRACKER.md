@@ -50,6 +50,10 @@ Last updated: 2026-08-27
 | Conversion numerator | BLOCKED | `contact_intent` is a custom event; `events/count` returns **402 — requires Pro or Enterprise** and the team is on `hobby`. The numerator is unreadable now and in future without an upgrade |
 | `EXP-CREATIVE-0001` | NOT RUNNABLE | Constraint is audience, not creative. At 11 visitors/week the most generous power cell (870 sessions, 5%→10%) takes **1.5 years**; 1%→1.5% takes 27 years. Nothing preregistered |
 | Distribution | VERIFIED CONSTRAINT | Three independent measurements agree: shared-inbox email 0/48, personal email route unreachable, owned site ~47 visitors/month with zero referrers. Nothing in creative, offer or messaging has been falsified — none of it has been given a sample |
+| Channel registry accuracy | VERIFIED | Six of eight rows corrected against measurement in `seeds/registries.json`. `CH-OWNED-SITE` and `CH-PAID` both carried conclusions derived from the withdrawn 2026-08-20 reading |
+| Untried channel screen | VERIFIED | `channels/CHANNEL-SCREEN.md`, criteria fixed before assessment. Criterion 3 reorders everything: visitor counts are free, conversions are 402-paywalled, so any channel judged by an on-site conversion is unmeasurable today |
+| Organic search | UNMEASURABLE | `robots.txt` and `sitemap.xml` serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and **Google Search Console is not connected**. Without GSC the channel has no denominator. Sitemap `lastmod` stale at 2026-08-13 |
+| LinkedIn organic | PROPOSED | The only channel where buyers were **observed** — profiles at 10/10 accounts vs 0 published addresses. Posting is free: the 5-per-month cap applies to personalised connection notes, not publishing, so `EXP-ACQ-0003`'s spend decision does not block it. Proposed as a measurement period, not preregistered |
 
 ## Current experiment freeze
 

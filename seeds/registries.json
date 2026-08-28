@@ -255,22 +255,22 @@
       "channel_id": "CH-OWNED-SITE",
       "name": "theplus-tech.com",
       "kind": "owned",
-      "status": "live_measured",
-      "notes": "Vercel Web Analytics + contact_intent event verified in dashboard 2026-08-20; www redirect fixed; still 6 CTAs and no backend form"
+      "status": "live_measured_thin",
+      "notes": "CORRECTED 2026-08-28. The 2026-08-20 dashboard reading was wrong: Vercel's API gives 11 visitors / 14 pageviews for the clean 7-day window (~47/month), not the ~1,300/month recorded. Every referrer is empty. contact_intent is a custom event and returns 402 on the hobby plan, so the conversion numerator is unreadable. Visitor counts are free; conversions are not."
     },
     {
       "channel_id": "CH-OUTBOUND",
       "name": "Direct B2B outbound",
       "kind": "outbound",
-      "status": "active",
-      "notes": "EXP-ACQ-0001; 49 of 50 qualified sends, reply window open"
+      "status": "measured_closed",
+      "notes": "EXP-ACQ-0001 closed at its 50-send minimum: 0 meaningful replies, decision REVIEW. 48 of 50 went to a role inbox. EXP-ACQ-0002's discovery found 0 reachable named-buyer mailboxes across 18 accounts, so the personal email route is closed too without paying."
     },
     {
       "channel_id": "CH-SEO",
       "name": "Organic search",
       "kind": "earned",
-      "status": "unmeasured",
-      "notes": "sitemap.xml and robots.txt serve 200; rankings unknown"
+      "status": "unmeasurable",
+      "notes": "robots.txt and sitemap.xml serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and Google Search Console is NOT connected. Without GSC this channel has no denominator at all. Domain is 15 days old. Sitemap lastmod is stale at 2026-08-13."
     },
     {
       "channel_id": "CH-CONTENT",
@@ -283,22 +283,22 @@
       "channel_id": "CH-SOCIAL",
       "name": "Social",
       "kind": "earned",
-      "status": "not_started",
-      "notes": "no measured presence recorded"
+      "status": "candidate",
+      "notes": "The only channel where the buyers were observed: named decision-makers with public LinkedIn profiles at 10 of 10 accounts checked during EXP-ACQ-0002 discovery, against 0 published email addresses. Organic posting is free - the 5-per-month cap found in EXP-ACQ-0003 applies to personalised connection notes, not to publishing. Metric readable in LinkedIn's own analytics, so it does not depend on Vercel Pro. Proposed as a measurement period, not preregistered."
     },
     {
       "channel_id": "CH-EMAIL",
       "name": "Email / lifecycle",
       "kind": "owned",
       "status": "not_started",
-      "notes": "'Request subscription' is a mailto, no list"
+      "notes": "No list exists and 'Request subscription' is still a mailto. Dead until some other channel produces an audience."
     },
     {
       "channel_id": "CH-PAID",
       "name": "Paid media",
       "kind": "paid",
-      "status": "unblocked_unstarted",
-      "notes": "attribution now possible since 2026-08-20; no spend"
+      "status": "blocked",
+      "notes": "Blocked twice: it costs money, and the on-site conversion event it would be judged by returns 402 on the hobby plan. Attribution was recorded as unblocked on 2026-08-20; that was based on the same reading now withdrawn."
     },
     {
       "channel_id": "CH-PARTNER",
