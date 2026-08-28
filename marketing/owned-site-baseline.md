@@ -145,6 +145,98 @@ retroactive filter, so the 20th-to-22nd traffic is a mixture and cannot be separ
 derived from it. The pooled numerator and denominator for the baseline are taken from 2026-08-22
 onward only.
 
+## Closed early — 2026-08-28
+
+The window was opened for four weeks. It closed after one, because the reading is decisive and
+holding it open would only make a settled answer later.
+
+Read from Vercel's own API through the authenticated CLI (`vercel api /v1/query/web-analytics/...`),
+not from the dashboard. Every figure below is the API's echoed window, not the one requested — the
+endpoint silently clamps `from`/`to` and only honours `since`/`until`, and the first call came back
+answering a window nine days wider than it was asked for.
+
+### Daily series, the entire life of the measurement
+
+Web Analytics was enabled 2026-08-20 11:25 BST. There is no earlier data to have.
+
+```
+2026-08-20   15 visitors   26 pageviews     <- instrumentation verified against production
+2026-08-21    9            10
+2026-08-22    6             9               <- internal-traffic exclusion goes live
+2026-08-23    0             0
+2026-08-24    2             2
+2026-08-25    2             2
+2026-08-26    0             0
+2026-08-27    0             0
+2026-08-28    1             1
+             --           ---
+all time     35            50
+clean window 11            14               (2026-08-22 onward)
+```
+
+Referrers: **one row, empty hostname, all 35 visitors.** Nothing is referring anyone. Paths: `/` 34
+visitors, `/insights` 1, `/privacy` 1.
+
+### `EV-BASELINE-01` was wrong, and by an order of magnitude
+
+It recorded *"47 sessions, 3 contact_intent events, ~24 hours in"* and concluded traffic exists at
+roughly 1,300 sessions a month. The API cannot reproduce that. As of 2026-08-21 the cumulative
+totals were **24 visitors and 36 pageviews**, and no single day ever reached 47 of anything. The
+figure survives no window and no metric.
+
+Checked before saying so: dropping the `environment` filter changes nothing — grouping by
+environment returns a single `production` row with the same 35 and 50 — so it is not preview
+traffic hidden by a filter. `requestPath` `/` now shows exactly 47 *cumulative pageviews*, which is
+a suggestive coincidence and is **not** asserted as the cause; on 2026-08-21 that cumulative was 36.
+
+The honest reading: **1.6 visitors a day, about 47 a month.** The original prediction in this
+document was a near-zero denominator, retracted on 2026-08-21 with "I predicted a near-zero
+denominator and was wrong". It was not wrong. A misread number overturned a correct prediction,
+which is worse than having no reading at all.
+
+### The numerator cannot be read on this plan
+
+```
+$ vercel api /v1/query/web-analytics/events/count?...
+Error: Accessing Analytics custom events requires an Enterprise or Pro plan. (402)
+```
+
+The team is on `hobby`. `contact_intent` is a **custom event**, so the conversion numerator is
+behind a paywall. The three events in `EV-BASELINE-01` cannot be re-verified, and no future
+`contact_intent` count can be obtained either without upgrading.
+
+So the window was never going to produce a baseline: its denominator is 30x smaller than recorded
+and its numerator is unreadable.
+
+### The site cannot carry an A/B test
+
+At 11 visitors a week, against the power table above:
+
+| baseline -> target | sessions both arms | time to fill |
+|---|---|---|
+| 5% -> 10% | 870 | **1.5 years** |
+| 2% -> 4% | 2,282 | 4.0 years |
+| 5% -> 7.5% | 2,942 | 5.1 years |
+| 1% -> 2% | 4,638 | 8.1 years |
+| 2% -> 3% | 7,652 | 13.4 years |
+| 1% -> 1.5% | 15,500 | 27.1 years |
+
+The most generous cell in the table takes eighteen months.
+
+### Verdict
+
+**`EXP-CREATIVE-0001` is not runnable on this surface, and the constraint is audience, not
+creative.** This is what the document said to say if four weeks came back an order of magnitude
+short. It came back two orders short in one.
+
+No creative experiment is preregistered. The site does not need a better hero; it needs anyone at
+all to arrive, and with every referrer empty there is currently no channel pointing at it. That is
+the work — and it is the same finding the outbound track reached from the other direction:
+`EXP-ACQ-0001` closed the shared-inbox route at 0/48, `EXP-ACQ-0002` found the personal route
+unreachable, and the owned surface has no audience to test on. **Distribution is the constraint
+across every channel measured so far.** Nothing in the creative, offer or messaging layer is
+falsified by this; none of it has been given a sample.
+
 ## Standing risk
 
 The window may still return too little to test on. But the first reading says the constraint is

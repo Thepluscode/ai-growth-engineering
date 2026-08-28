@@ -140,10 +140,10 @@
     {
       "evidence_id": "EV-BASELINE-01",
       "kind": "analytics",
-      "confidence": 0.6,
-      "observed": true,
-      "statement": "First owned-site reading, ~24h from 2026-08-20: 47 sessions, 3 contact_intent events, 6.4% (95% CI 2.2-17.2%). CONTAMINATED: at least one event is our own verification click when confirming the instrumentation, and our sessions are in the denominator. Treat as an order-of-magnitude signal that traffic exists, not as a baseline rate. Confidence 0.6 for that reason.",
-      "source": "Vercel Analytics, operator-read 2026-08-21"
+      "confidence": 0.0,
+      "observed": false,
+      "statement": "CORRECTED 2026-08-28 AND WITHDRAWN. Originally recorded as '47 sessions, 3 contact_intent, ~24h from 2026-08-20, 6.4%'. Vercel's Web Analytics API cannot reproduce it: as of 2026-08-21 the cumulative totals were 24 visitors and 36 pageviews, and no single day reached 47 of anything. Not a filter artefact - grouping by environment returns one production row with the same totals. The conclusion drawn from it ('traffic exists, ~1,300 sessions/month, a two-arm test resolves in 2-7 weeks') was wrong by roughly 30x and overturned a correct prior prediction of a near-zero denominator. Superseded by EV-BASELINE-03. Kept rather than deleted so the correction is auditable.",
+      "source": "Vercel Analytics, operator-read 2026-08-21; withdrawn after vercel api /v1/query/web-analytics readings, 2026-08-28"
     },
     {
       "evidence_id": "EV-ACQ-VERDICT-01",
@@ -224,6 +224,30 @@
       "observed": true,
       "statement": "The LinkedIn route is not metrically comparable to EXP-ACQ-0001. Email had one step (arrived or bounced); LinkedIn has invite -> accept -> message -> reply. A connection request is not a delivery: an unaccepted invite is never read and is not a bounce either, it is a silent non-event. Reusing the 10%/5% thresholds would compare two different quantities. The honest primary metric is a funnel with invite-accept rate as the new unknown, which has no baseline. The note is also character-limited, so the OBSERVATION + ECONOMIC HYPOTHESIS + CTA message cannot be sent as written - the channel change forces a message change, and that confound must be designed around before running, not explained afterwards.",
       "source": "experiments/EXP-ACQ-0003/FEASIBILITY.md, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-BASELINE-03",
+      "kind": "analytics",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "Owned-site traffic, read from Vercel's Web Analytics API via the authenticated CLI. Analytics was enabled 2026-08-20 11:25 BST; there is no earlier data. Daily visitors/pageviews: 08-20 15/26, 08-21 9/10, 08-22 6/9, 08-23 0/0, 08-24 2/2, 08-25 2/2, 08-26 0/0, 08-27 0/0, 08-28 1/1. All time 35 visitors / 50 pageviews; clean window from 2026-08-22 is 11 visitors / 14 pageviews in seven days - about 1.6 visitors a day or 47 a month. Referrers: a single empty-hostname row covering all 35 visitors, so no channel is referring anyone. Paths: / 34 visitors, /insights 1, /privacy 1. Note the endpoint silently ignores from/to and only honours since/until, so the echoed query window must be read rather than the requested one.",
+      "source": "vercel api /v1/query/web-analytics/visits/{count,aggregate}, project prj_Fpt5BwpDH0QFcOCs3gVKtAQlDnkZ, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-BASELINE-04",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "The conversion numerator is paywalled. /v1/query/web-analytics/events/count returns 'Accessing Analytics custom events requires an Enterprise or Pro plan. (402)' and the team billing plan is 'hobby'. contact_intent is a custom event, so it cannot be counted now or in future without upgrading. The baseline window therefore could never have produced a rate: its denominator was 30x smaller than recorded and its numerator is unreadable.",
+      "source": "vercel api /v1/query/web-analytics/events/count and /v2/teams/team_JWW8xTlVH2SSt7GttdohcEnO, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-CREATIVE-VERDICT-01",
+      "kind": "experiment",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "EXP-CREATIVE-0001 is not runnable on theplus-tech.com and the constraint is audience, not creative. At 11 visitors a week the most generous cell in the preregistered power table (870 sessions across both arms, 5% to 10%) takes 1.5 years to fill; 1% to 1.5% takes 27 years. The baseline window was opened for four weeks on 2026-08-21 and closed after one because the reading is decisive. No creative experiment is preregistered. Combined with EXP-ACQ-0001 closing the shared-inbox route at 0/48 and EXP-ACQ-0002 finding the personal route unreachable, distribution is the constraint across every channel measured so far; nothing in the creative, offer or messaging layer has been falsified because none of it has been given a sample.",
+      "source": "marketing/owned-site-baseline.md close-out, 2026-08-28"
     }
   ],
   "channels": [

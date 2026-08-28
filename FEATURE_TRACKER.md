@@ -45,7 +45,11 @@ Last updated: 2026-08-27
 | First proposal | PLANNED | Sell Diagnostic or Sprint only when discovery economics support it |
 | First payment / customer dataset (`v0.2`) | PLANNED | No evidence yet |
 | Commercial `v0.2` gate | IN PROGRESS | Architecture slice is implemented; commercial evidence is 50 counted sends, 0 meaningful replies, 0 discovery calls, 0 revenue. `age gate-check` reports REVENUE GATE: NOT MET |
-| Owned-site baseline window | IN PROGRESS | Opened 2026-08-21, closes 2026-09-18. Internal-traffic exclusion shipped and verified live: `tpt_internal_traffic` is present in the production bundle served from theplus-tech.com on 2026-08-27. `path` split is instrumented. No clean reading taken yet |
+| Owned-site baseline window | VERIFIED CLOSED | Closed early 2026-08-28. Read from Vercel's API, not the dashboard: **11 visitors / 14 pageviews in the clean 7-day window** (~1.6/day, ~47/month). All 35 all-time visitors have an empty referrer — no channel is pointing at the site |
+| `EV-BASELINE-01` | WITHDRAWN | "47 sessions, 3 events, 6.4%" cannot be reproduced. Cumulative as of 2026-08-21 was 24 visitors / 36 pageviews; no day reached 47 of anything, and it is not an environment-filter artefact. The conclusion drawn from it was wrong by ~30x and overturned a correct prediction |
+| Conversion numerator | BLOCKED | `contact_intent` is a custom event; `events/count` returns **402 — requires Pro or Enterprise** and the team is on `hobby`. The numerator is unreadable now and in future without an upgrade |
+| `EXP-CREATIVE-0001` | NOT RUNNABLE | Constraint is audience, not creative. At 11 visitors/week the most generous power cell (870 sessions, 5%→10%) takes **1.5 years**; 1%→1.5% takes 27 years. Nothing preregistered |
+| Distribution | VERIFIED CONSTRAINT | Three independent measurements agree: shared-inbox email 0/48, personal email route unreachable, owned site ~47 visitors/month with zero referrers. Nothing in creative, offer or messaging has been falsified — none of it has been given a sample |
 
 ## Current experiment freeze
 
