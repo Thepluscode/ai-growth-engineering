@@ -200,6 +200,30 @@
       "observed": true,
       "statement": "EXP-ACQ-0001's first outreach row names 'John Hosegood, Head of Sales' at CloudTech24. Public sources show him as the author of a customer review of CloudTech24, not as an employee. The send went to sales@cloudtech24.com so the counted sample is unaffected, but the row names a buyer who was never at the company and must not be reused.",
       "source": "web search during EXP-ACQ-0002 contact discovery, 2026-08-27"
+    },
+    {
+      "evidence_id": "EV-ACQ-0003-FEASIBILITY-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "LinkedIn Help states verbatim: 'Basic and free LinkedIn members can include a personalized message to five connection requests per month. LinkedIn Premium members can send unlimited personalized messages with their connection requests.' Five per month makes a 30-send minimum take six months on a free account, so the LinkedIn route cannot be run unpaid. LinkedIn does not publish its invitation thresholds ('LinkedIn Support cannot disclose the type or reason for the restriction'); the widely-quoted weekly caps and note character limits come from automation vendors selling tools to exceed them and are recorded as unverified.",
+      "source": "linkedin.com/help/linkedin/answer/a550555 and a551012, read 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-ACQ-0003-COST-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "LinkedIn's own compare-plans page lists Sales Navigator Core at US$119.99/month (US$1,079.88/year) and Advanced at US$159.99/month (US$1,799.88/year), both with 50 InMail credits per month. GBP figures appear on the page but were not captured; a widely-quoted GBP94.99 for Core is unverified. Sales Navigator is likely the wrong purchase: the binding constraint is personalised connection notes, which any Premium account unlocks, and Premium is cheaper. Sales Navigator's search filters and InMail credits are not needed when the account list already exists in sales/teardowns/.",
+      "source": "business.linkedin.com/sales-solutions/compare-plans, read 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-ACQ-0003-METRIC-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "The LinkedIn route is not metrically comparable to EXP-ACQ-0001. Email had one step (arrived or bounced); LinkedIn has invite -> accept -> message -> reply. A connection request is not a delivery: an unaccepted invite is never read and is not a bounce either, it is a silent non-event. Reusing the 10%/5% thresholds would compare two different quantities. The honest primary metric is a funnel with invite-accept rate as the new unknown, which has no baseline. The note is also character-limited, so the OBSERVATION + ECONOMIC HYPOTHESIS + CTA message cannot be sent as written - the channel change forces a message change, and that confound must be designed around before running, not explained afterwards.",
+      "source": "experiments/EXP-ACQ-0003/FEASIBILITY.md, 2026-08-28"
     }
   ],
   "channels": [

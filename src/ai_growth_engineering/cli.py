@@ -9,7 +9,7 @@ from .models import ExperimentSpec
 from .registry import (
     add_experiment,
     import_outreach,
-    reply_rate_by_recipient_class,
+    reply_rate_by_route,
     seed_registries,
     record_experiment_result,
     scoreboard,
@@ -58,16 +58,17 @@ def cmd_scoreboard(args: argparse.Namespace) -> None:
 
 
 def cmd_recipient_split(args: argparse.Namespace) -> None:
-    """The two rates EXP-ACQ-0001 needed and did not have."""
+    """The rates EXP-ACQ-0001 needed and did not have, never blended."""
     init_db(args.db)
-    counts = reply_rate_by_recipient_class(args.db)
-    print(f"{'recipient_class':>16}  {'sent':>5}  {'replies':>7}  rate")
-    for name, row in counts.items():
+    routes = reply_rate_by_route(args.db)
+    print(f"{'route':>28}  {'sent':>5}  {'replies':>7}  rate")
+    for name, row in sorted(routes.items()):
         rate = f"{row['replies'] / row['sent']:.1%}" if row["sent"] else "n/a"
-        print(f"{name:>16}  {row['sent']:>5}  {row['replies']:>7}  {rate}")
-    if counts.get("unclassified", {}).get("sent"):
-        # Loud, because an unclassified send is the defect this command exists to catch.
-        print("\nunclassified sends carry no conclusion: nobody knows who read them")
+        print(f"{name:>28}  {row['sent']:>5}  {row['replies']:>7}  {rate}")
+    unknown = [n for n in routes if "unknown" in n or "unclassified" in n]
+    if unknown:
+        # Loud, because an unattributed send is the defect this command exists to catch.
+        print(f"\nno conclusion available for: {', '.join(sorted(unknown))}")
 
 
 def cmd_gate_check(args: argparse.Namespace) -> None:

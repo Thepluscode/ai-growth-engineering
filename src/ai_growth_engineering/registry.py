@@ -172,8 +172,8 @@ def import_outreach(db_path: str, csv_path: str) -> tuple[int, int]:
                 continue
             reply = (row.get("meaningful_reply") or "").strip().lower()
             con.execute(
-                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes, stage, recipient_class)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO outreach(company, sent_at, meaningful_reply, notes, stage, recipient_class, channel)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     company,
                     sent_at,
@@ -181,6 +181,7 @@ def import_outreach(db_path: str, csv_path: str) -> tuple[int, int]:
                     (row.get("notes") or "").strip(),
                     (row.get("stage") or "sent_awaiting_reply").strip(),
                     parse_recipient_class(row.get("recipient_class"), company),
+                    (row.get("channel") or "unknown").strip().lower() or "unknown",
                 ),
             )
             imported += 1
@@ -211,29 +212,36 @@ def parse_recipient_class(value: str | None, company: str = "") -> str:
     return text
 
 
-def reply_rate_by_recipient_class(db_path: str) -> dict[str, dict[str, int]]:
-    """Delivered sends and replies per recipient class, never blended.
+def reply_rate_by_route(db_path: str) -> dict[str, dict[str, int]]:
+    """Delivered sends and replies per route, where a route is channel + recipient class.
 
-    Bounces are excluded on the same grounds as in `scoreboard`: a message that did
-    not arrive is not a send. `unclassified` is reported as its own row rather than
-    folded into either class, because "we do not know who read it" is a finding and
-    hiding it inside a denominator is how EXP-ACQ-0001 lost a route.
+    Keyed "channel/recipient_class" because those are the two ways a reply rate has
+    already been wrong here. EXP-ACQ-0001 blended a named buyer with 48 shared inboxes
+    and read the result as a market answer; EXP-ACQ-0002's discovery then proposed
+    LinkedIn as the replacement route, which would have blended two channels the same
+    way. Neither split can be recovered after the fact from a stored rate.
+
+    Bounces are excluded on the same grounds as in `scoreboard`: a message that did not
+    arrive is not a send. `unclassified` and `unknown` appear as their own routes rather
+    than being folded into a real one, because "we do not know" is a finding.
     """
-    counts = {name: {"sent": 0, "replies": 0} for name in RECIPIENT_CLASSES}
+    routes: dict[str, dict[str, int]] = {}
     with connect(db_path) as con:
         rows = con.execute(
-            """SELECT recipient_class, COUNT(*) AS sent,
+            """SELECT COALESCE(NULLIF(channel, ''), 'unknown') AS channel,
+                      COALESCE(NULLIF(recipient_class, ''), 'unclassified') AS recipient_class,
+                      COUNT(*) AS sent,
                       COALESCE(SUM(meaningful_reply), 0) AS replies
                FROM outreach
                WHERE sent_at IS NOT NULL AND stage != 'bounced'
-               GROUP BY recipient_class"""
+               GROUP BY channel, recipient_class"""
         ).fetchall()
     for row in rows:
-        name = row["recipient_class"] or "unclassified"
-        counts.setdefault(name, {"sent": 0, "replies": 0})
-        counts[name]["sent"] += row["sent"]
-        counts[name]["replies"] += row["replies"]
-    return counts
+        routes[f"{row['channel']}/{row['recipient_class']}"] = {
+            "sent": row["sent"],
+            "replies": row["replies"],
+        }
+    return routes
 
 
 def scoreboard(db_path: str) -> dict[str, int]:

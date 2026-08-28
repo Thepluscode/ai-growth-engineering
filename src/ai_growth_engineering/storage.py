@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS outreach (
     collected_revenue_pence INTEGER NOT NULL DEFAULT 0,
     notes TEXT NOT NULL DEFAULT '',
     stage TEXT NOT NULL DEFAULT 'sent_awaiting_reply',
-    recipient_class TEXT NOT NULL DEFAULT 'unclassified'
+    recipient_class TEXT NOT NULL DEFAULT 'unclassified',
+    channel TEXT NOT NULL DEFAULT 'unknown'
 );
 
 CREATE TABLE IF NOT EXISTS evidence (
@@ -189,6 +190,12 @@ OUTREACH_COLUMNS = (
     # than to a guess: an inferred class would let the same blended rate come back
     # wearing a column name.
     ("recipient_class", "TEXT NOT NULL DEFAULT 'unclassified'"),
+    # Added 2026-08-28. recipient_class answers who received it; this answers how it
+    # got there. EXP-ACQ-0002's discovery closed the email route for this ICP and put
+    # LinkedIn forward as the candidate replacement — two channels with different
+    # delivery behaviour, and nothing in the store stopped their replies landing in one
+    # rate. A rate is never computed across two channels.
+    ("channel", "TEXT NOT NULL DEFAULT 'unknown'"),
 )
 
 
