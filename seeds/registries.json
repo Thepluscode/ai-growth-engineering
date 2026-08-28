@@ -248,6 +248,30 @@
       "observed": true,
       "statement": "EXP-CREATIVE-0001 is not runnable on theplus-tech.com and the constraint is audience, not creative. At 11 visitors a week the most generous cell in the preregistered power table (870 sessions across both arms, 5% to 10%) takes 1.5 years to fill; 1% to 1.5% takes 27 years. The baseline window was opened for four weeks on 2026-08-21 and closed after one because the reading is decisive. No creative experiment is preregistered. Combined with EXP-ACQ-0001 closing the shared-inbox route at 0/48 and EXP-ACQ-0002 finding the personal route unreachable, distribution is the constraint across every channel measured so far; nothing in the creative, offer or messaging layer has been falsified because none of it has been given a sample.",
       "source": "marketing/owned-site-baseline.md close-out, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-SEO-GSC-01",
+      "kind": "observation",
+      "confidence": 0.85,
+      "observed": true,
+      "statement": "theplus-tech.com already carries a Google verification TXT record (google-site-verification=vvkI4omOpS7EuCwrFFX9TZ_zaoGMyA-P2WGToq9d8tQ) alongside an SPF record pointing at Google Workspace. Google uses one verification system for Search Console and Workspace and tokens are per-Google-account, so adding a Domain property in Search Console under the same account should verify immediately with no DNS or site change. DNS is authoritatively on Cloudflare (ian/brianna.ns.cloudflare.com), not Vercel, so any new TXT is added there and alongside the existing record rather than replacing it.",
+      "source": "dig TXT theplus-tech.com and vercel domains/dns ls, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-WEBSITE-BRANCH-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "theplus-tech.com production deploys from main; the current production deployment is 79513d2 'Stop measuring ourselves'. The redesign/v2 branch holds 38 changed files (+2706/-1922) including a colour scheme, favicon, anti-slop copy audit, on-system 404, stylesheet coverage guard, contrast guard, mobile layout work and a generated app/sitemap.ts - none of it deployed. This is the shape of the failure CLAUDE.md records: main and the served site agree, but substantial work sits on a branch nobody is serving.",
+      "source": "vercel api /v6/deployments target=production and git diff --stat main..redesign/v2, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-SOCIAL-WINDOW-01",
+      "kind": "observation",
+      "confidence": 0.8,
+      "observed": false,
+      "statement": "LinkedIn organic opened as a measurement period rather than an experiment: no EXP id, no hypothesis, no thresholds, minimum sample 8 posts. The primary reading is viewer job titles and companies, not impressions - impressions from other founders, agencies and developers would be a false positive where the number rises and the ICP stays absent. The unit is the post and the median is reported alongside the total, because LinkedIn supplies the distribution and one post that travels would otherwise define a baseline nothing reproduces. Engagement pods and reciprocal likes are excluded outright. All metrics are free on a standard account, so neither the LinkedIn Premium nor the Vercel Pro decision blocks it.",
+      "source": "channels/social/MEASUREMENT-WINDOW.md, 2026-08-28"
     }
   ],
   "channels": [
@@ -270,7 +294,7 @@
       "name": "Organic search",
       "kind": "earned",
       "status": "unmeasurable",
-      "notes": "robots.txt and sitemap.xml serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and Google Search Console is NOT connected. Without GSC this channel has no denominator at all. Domain is 15 days old. Sitemap lastmod is stale at 2026-08-13."
+      "notes": "robots.txt and sitemap.xml serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and Google Search Console is NOT connected. Without GSC this channel has no denominator at all. Domain is 15 days old. Sitemap lastmod is stale at 2026-08-13. A google-site-verification TXT already exists alongside a Google Workspace SPF record, so a Domain property under the same Google account should verify immediately - see channels/seo/GSC-SETUP.md."
     },
     {
       "channel_id": "CH-CONTENT",
@@ -283,8 +307,8 @@
       "channel_id": "CH-SOCIAL",
       "name": "Social",
       "kind": "earned",
-      "status": "candidate",
-      "notes": "The only channel where the buyers were observed: named decision-makers with public LinkedIn profiles at 10 of 10 accounts checked during EXP-ACQ-0002 discovery, against 0 published email addresses. Organic posting is free - the 5-per-month cap found in EXP-ACQ-0003 applies to personalised connection notes, not to publishing. Metric readable in LinkedIn's own analytics, so it does not depend on Vercel Pro. Proposed as a measurement period, not preregistered."
+      "status": "measurement_open",
+      "notes": "The only channel where the buyers were observed: named decision-makers with public LinkedIn profiles at 10 of 10 accounts checked during EXP-ACQ-0002 discovery, against 0 published email addresses. Organic posting is free - the 5-per-month cap found in EXP-ACQ-0003 applies to personalised connection notes, not to publishing. Metric readable in LinkedIn's own analytics, so it does not depend on Vercel Pro. Proposed as a measurement period, not preregistered. Measurement window defined in channels/social/MEASUREMENT-WINDOW.md; opens on the first post, minimum 8 posts."
     },
     {
       "channel_id": "CH-EMAIL",

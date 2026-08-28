@@ -53,7 +53,9 @@ Last updated: 2026-08-27
 | Channel registry accuracy | VERIFIED | Six of eight rows corrected against measurement in `seeds/registries.json`. `CH-OWNED-SITE` and `CH-PAID` both carried conclusions derived from the withdrawn 2026-08-20 reading |
 | Untried channel screen | VERIFIED | `channels/CHANNEL-SCREEN.md`, criteria fixed before assessment. Criterion 3 reorders everything: visitor counts are free, conversions are 402-paywalled, so any channel judged by an on-site conversion is unmeasurable today |
 | Organic search | UNMEASURABLE | `robots.txt` and `sitemap.xml` serve 200 and the sitemap is well-formed, but two exact-phrase searches returned nothing from the domain and **Google Search Console is not connected**. Without GSC the channel has no denominator. Sitemap `lastmod` stale at 2026-08-13 |
-| LinkedIn organic | PROPOSED | The only channel where buyers were **observed** — profiles at 10/10 accounts vs 0 published addresses. Posting is free: the 5-per-month cap applies to personalised connection notes, not publishing, so `EXP-ACQ-0003`'s spend decision does not block it. Proposed as a measurement period, not preregistered |
+| LinkedIn organic | MEASUREMENT OPEN | Window defined in `channels/social/MEASUREMENT-WINDOW.md`: no `EXP-` id, no thresholds, minimum **8 posts**. Primary reading is **viewer job titles and companies**, not impressions — a rising number with the ICP absent is the named false positive. Unit is the post; median reported with the total. All metrics free; neither open spend decision blocks it |
+| Google Search Console | ONE ACTION LEFT | A `google-site-verification` TXT **already exists** beside a Workspace SPF record, so a Domain property under the same Google account should verify immediately — no DNS or site change. DNS is on Cloudflare, not Vercel. Steps in `channels/seo/GSC-SETUP.md` |
+| Website branch drift | FLAGGED | Production serves `main@79513d2`. `redesign/v2` holds **38 files, +2706/−1922** undeployed — colour scheme, favicon, copy audit, 404, stylesheet and contrast guards, mobile layout, generated sitemap. The exact shape `CLAUDE.md` warns about |
 
 ## Current experiment freeze
 
