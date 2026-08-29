@@ -58,6 +58,10 @@ Last updated: 2026-08-27
 | Website redesign | VERIFIED SHIPPED | `redesign/v2` merged and deployed 2026-08-28; production is `main@86654c5`. Verified against the live origin: `/workflow-audit` and its sample report now **200** after returning **404** in production — the only pages describing the £1,500 offer. `/nope` 404s. Homepage 118,170 → 20,145 bytes |
 | Analytics survived the merge | VERIFIED | `tpt_internal_traffic` and `contact_intent` both still present in the served bundle after the redesign landed |
 | Favicon defect | VERIFIED FIXED | Shipped **served but unreferenced** — asset 200, no `rel="icon"` in the HTML, browsers falling back to a 404ing `/favicon.ico`. Found by grepping the deployed page, not by reading the commit message |
+| Site visual review | VERIFIED | Done in a real browser at 1440 and 390 on 2026-08-29. 0px overflow both widths, all routes 200, `/nope` 404, one console error and it was my own probe. `marketing/visual-review-2026-08-29.md` |
+| Internal-traffic exclusion | VERIFIED END TO END | First real-browser test: `?internal=1` set `tpt_internal_traffic="1"` and logged `internal traffic exclusion: ON`. The review used it, so it did not contaminate the measurement |
+| Offer congruence | **DO_NOT_SPEND** | The site sells **two different products at one price**. Ten deliverable labels across homepage and `/workflow-audit`, five each side, **zero shared**. Three names in one click path: "Rescue Sprint" / "AI Workflow Opportunity Audit" / "audit" in body vs "sprint" in buttons. `CongruenceScore` 16/30 — visual 5, offer 0. Independently confirms the paid-media block |
+| Contact address | FLAGGED | Every CTA on both pages is `mailto:ogievatheophilus@gmail.com`, and the offer page says "**Confidential** enquiries to" it. The domain already runs Google Workspace, so a domain mailbox is one console action away |
 | Vercel edge cache trap | RECORDED | READY is not "users can see it". The apex served the pre-deploy HTML at `x-vercel-cache: HIT, age: 180`, and a cache-busting query did not change the key. Deployment URLs 302 under protection, so the origin check needs `vercel curl` |
 
 ## Current experiment freeze

@@ -5,3 +5,7 @@ __pycache__/
 *.db
 .DS_Store
 .claude/settings.local.json
+
+# Playwright MCP artefacts from visual review — regenerate, do not commit
+.playwright-mcp/
+*.png

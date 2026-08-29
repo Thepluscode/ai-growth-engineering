@@ -296,6 +296,30 @@
       "observed": true,
       "statement": "A Vercel deploy reaching READY is not proof the apex serves it. Immediately after the favicon deploy went READY the apex returned the previous HTML with x-vercel-cache: HIT and age: 180, byte-identical to the pre-deploy copy, and a cache-busting query string did not change the cache key. The deployment URL itself 302s under deployment protection, so the origin check needs 'vercel curl', which returned the correct 20,145-byte page with both link tags. The apex caught up shortly after with x-vercel-cache: PRERENDER and age: 0. Ask the origin, not the edge - and re-check the edge before claiming a user can see it.",
       "source": "curl response headers against theplus-tech.com and vercel curl against the deployment URL, 2026-08-28"
+    },
+    {
+      "evidence_id": "EV-SITE-CONGRUENCE-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "The site sells two different products at one price. A buyer clicking 'Rescue Sprint 1500' on the homepage lands on /workflow-audit whose deliverables do not overlap with what the homepage promised: ten labels extracted from the DOM of both pages, five on each side, ZERO shared. Homepage: workflow and evidence-source map, reusable answer bank, missing-controls report, exportable response pack, 30-day automation roadmap. Landing page: workflow map, opportunity register, risk and compliance flags, ROI estimate, 30-day build roadmap. Naming is three-way inconsistent in the same click path - homepage H2 'Security Questionnaire Rescue Sprint', page title 'AI Workflow Opportunity Audit', page H1 'Find the workflow worth automating', body says 'audit', buttons say 'sprint'. Scored with the repo's own CongruenceScore: audience 4, problem 2, message 1, visual 5, offer 0, cta 4 = 16/30, DO_NOT_SPEND. visual 5 against offer 0 is the whole finding: it looks like one product and describes two. This independently confirms the channel screen's block on paid media by a different route. Which offer is real is a positioning decision and was deliberately not resolved here.",
+      "source": "Playwright DOM extraction of theplus-tech.com and /workflow-audit + CongruenceScore, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-SITE-GMAIL-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "Every call to action on the homepage and the paid-offer page resolves to mailto:ogievatheophilus@gmail.com, and the sprint page footer reads 'Confidential enquiries to ogievatheophilus@gmail.com'. The offer is evidence, compliance and security posture sold to regulated buyers, so the word confidential beside a personal Gmail address undercuts the argument before the page is read. The domain already runs Google Workspace (v=spf1 include:_spf.google.com on theplus-tech.com), so a domain mailbox is likely already available or one console action away - cheap to fix rather than a project.",
+      "source": "Playwright mailto extraction + dig TXT theplus-tech.com, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-SITE-VISUAL-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Visual review of the shipped redesign in a real browser engine at 1440 and 390. scrollWidth - clientWidth = 0 on both the homepage and the sprint page at 390, single column, masthead wraps rather than toggling, evidence tables stay inside their containers. All checked routes 200 and /nope 404s; the only console error in the session was the reviewer's own probe of /nope. The review ran with ?internal=1, which tested the internal-traffic exclusion end to end for the first time: localStorage tpt_internal_traffic = '1' and console '[analytics] internal traffic exclusion: ON'. Typography at reading distance and colour on a calibrated display remain unreviewed - a rendering engine at two widths is not a person's eye.",
+      "source": "marketing/visual-review-2026-08-29.md, 2026-08-29"
     }
   ],
   "channels": [
