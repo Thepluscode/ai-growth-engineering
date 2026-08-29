@@ -320,6 +320,30 @@
       "observed": true,
       "statement": "Visual review of the shipped redesign in a real browser engine at 1440 and 390. scrollWidth - clientWidth = 0 on both the homepage and the sprint page at 390, single column, masthead wraps rather than toggling, evidence tables stay inside their containers. All checked routes 200 and /nope 404s; the only console error in the session was the reviewer's own probe of /nope. The review ran with ?internal=1, which tested the internal-traffic exclusion end to end for the first time: localStorage tpt_internal_traffic = '1' and console '[analytics] internal traffic exclusion: ON'. Typography at reading distance and colour on a calibrated display remain unreviewed - a rendering engine at two widths is not a person's eye.",
       "source": "marketing/visual-review-2026-08-29.md, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-OFFER-REGISTRY-GAP-01",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "The offer registry did not contain the company's own flagship. It held OFF-TEARDOWN, OFF-SPRINT, OFF-AI-COMPLIANCE and OFF-ARCH-ASSESSMENT while the live site's one purchasable offer - the GBP1,500 Security Questionnaire Rescue Sprint, marked binding twice in the website's PRODUCT.md - was absent. Added as OFF-RESCUE-SPRINT with 0 sends and 0 buyers.",
+      "source": "seeds/registries.json against theplus-tech-website/PRODUCT.md and src/site-data.ts, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-OFFER-CONFLICT-01",
+      "kind": "observation",
+      "confidence": 0.85,
+      "observed": true,
+      "statement": "The company markets two different problems to the same buyer. EXP-ACQ-0001's 50 sends pitched OFF-TEARDOWN: a free growth-leak teardown of the prospect's own site, problem 'acquisition not becoming qualified pipeline', laddering to a 30-Day Pipeline Engineering Sprint. The live site sells OFF-RESCUE-SPRINT at GBP1,500, problem 'trust answers rebuilt from scratch on every deal'. Both target founders and MDs of UK cyber firms and MSPs. Neither has a buyer. This is a strategy conflict rather than a copy defect and was deliberately not resolved: the outbound offer has measured non-response on the shared-inbox route (0/48) and the site offer has never been taken to market at all, so no evidence distinguishes them.",
+      "source": "seeds/registries.json offers + experiments/EXP-ACQ-0001/sales/outbound-messages.md, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-SITE-CONGRUENCE-02",
+      "kind": "observation",
+      "confidence": 0.9,
+      "observed": true,
+      "statement": "Offer congruence fixed and verified live 2026-08-29 (main@c030e5b). All five flagship deliverables now appear on BOTH theplus-tech.com and /workflow-audit - 5/5 shared where it was 0/10 - and the four old-offer labels (Opportunity register, ROI estimate, Risk and compliance flags, AI Workflow Opportunity Audit) return 0 occurrences on the live page. Page title is now 'Security Questionnaire Rescue Sprint'. CongruenceScore went 16/30 DO_NOT_SPEND to 29/30 ELIGIBLE_FOR_TEST; message_match is held at 4 rather than 5 because the URL is still /workflow-audit and a buyer sees it. Root cause was a duplicated offer definition, not positioning: site-data.ts already declared flagship as 'the one purchasable offer, price and framing binding' and the page imported it for the price while redefining the deliverables beside it. Fixed by making flagship the single source and guarding it with a binding-declaration test and a negative test, both observed failing first.",
+      "source": "curl of both live pages + CongruenceScore, 2026-08-29"
     }
   ],
   "channels": [
@@ -417,6 +441,15 @@
       "price_pence": 0,
       "proof": "Architecture assessment / technical briefing / design-partner pilot (live site, unpriced)",
       "cta": "mailto"
+    },
+    {
+      "offer_id": "OFF-RESCUE-SPRINT",
+      "buyer": "Team whose enterprise deals are stalled on security questionnaires",
+      "problem": "trust answers and their evidence rebuilt from scratch on every deal",
+      "outcome": "a reusable answer bank and the missing controls named before a buyer finds them",
+      "price_pence": 150000,
+      "proof": "Security Questionnaire Rescue Sprint - the live site's only purchasable offer; PRODUCT.md marks the framing binding; 0 sends, 0 buyers",
+      "cta": "mailto from theplus-tech.com and /workflow-audit"
     }
   ],
   "claims": [
