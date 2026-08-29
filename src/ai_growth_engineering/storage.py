@@ -108,6 +108,31 @@ CREATE TABLE IF NOT EXISTS suppression (
     reason TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS outbound_drafts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    company TEXT NOT NULL,
+    recipient_identity TEXT NOT NULL,
+    recipient_class TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    observation TEXT NOT NULL,
+    economic_hypothesis TEXT NOT NULL,
+    cta TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_approval',
+    outreach_id INTEGER REFERENCES outreach(id),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    approved_at TEXT,
+    sent_at TEXT,
+    replied_at TEXT,
+    rejected_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbound_drafts_status
+ON outbound_drafts(status, created_at);
 """
 
 

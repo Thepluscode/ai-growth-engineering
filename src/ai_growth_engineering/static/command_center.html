@@ -77,6 +77,8 @@
     .next-title { margin: 15px 0 6px; font-size: 18px; font-weight: 650; letter-spacing: -.02em; }
     .next-copy { max-width: 680px; margin: 0; color: var(--muted); font-size: 12px; }
     .next-meta { display: flex; gap: 26px; margin-top: 17px; color: var(--faint); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+    .action-link { display: inline-flex; align-items: center; min-height: 34px; margin-top: 19px; padding: 0 13px; border-radius: 6px; color: #fff; background: var(--blue); font-size: 10px; font-weight: 700; transition: background .16s ease, transform .16s ease; }
+    .action-link:hover { background: #1e4fb9; transform: translateY(-1px); }
     .section { scroll-margin-top: 90px; margin-top: 30px; }
     .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 13px; }
     .section-heading h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
@@ -102,15 +104,54 @@
     .table tbody tr:hover { background: #fbfcfd; }
     .table .number { color: var(--ink); font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
     .rate { font-weight: 700; }
+    .workbench-grid { display: grid; grid-template-columns: minmax(360px, .82fr) minmax(0, 1.18fr); }
+    .composer { padding: 22px; border-right: 1px solid var(--line); }
+    .queue { min-width: 0; background: var(--surface-subtle); }
+    .workflow-line { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 19px; }
+    .workflow-line span { display: inline-flex; align-items: center; min-height: 23px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: #fff; font-family: var(--mono); font-size: 8px; }
+    .workflow-line span + span::before { content: "→"; margin-right: 7px; color: var(--faint); }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field { min-width: 0; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; color: #4f5c6e; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .field label small { color: var(--faint); font-size: 8px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink); background: #fff; font: 11px/1.45 var(--body); transition: border .16s ease, box-shadow .16s ease; }
+    .field input, .field select { height: 38px; padding: 0 11px; }
+    .field textarea { min-height: 82px; padding: 10px 11px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(38,94,215,.1); }
+    .form-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 17px; border-top: 1px solid var(--line); }
+    .form-note { max-width: 310px; margin: 0; color: var(--muted); font-size: 9px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; color: #435064; background: #fff; cursor: pointer; font-size: 9px; font-weight: 700; white-space: nowrap; transition: border .16s ease, background .16s ease, transform .16s ease; }
+    .button:hover { border-color: #aeb7c3; background: #f8f9fb; transform: translateY(-1px); }
+    .button.primary { border-color: var(--blue); color: #fff; background: var(--blue); }
+    .button.primary:hover { background: #1e4fb9; }
+    .button.danger { border-color: #e8c8c4; color: var(--red); background: #fffafa; }
+    .button:disabled { opacity: .48; cursor: wait; transform: none; }
+    .feedback { min-height: 34px; margin: 16px 0 0; padding: 9px 11px; border-radius: 6px; color: var(--muted); background: #f2f4f7; font-size: 10px; }
+    .feedback:empty { display: none; }
+    .feedback[data-level="error"] { color: var(--red); background: var(--red-soft); }
+    .feedback[data-level="success"] { color: var(--green); background: var(--green-soft); }
+    .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 55px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+    .queue-head h4 { margin: 0; font-size: 11px; }
+    .queue-counts { display: flex; gap: 8px; color: var(--faint); font-family: var(--mono); font-size: 8px; }
+    .draft-list { display: grid; max-height: 790px; overflow-y: auto; }
+    .draft-card { padding: 19px 20px; border-top: 1px solid var(--line); background: #fff; }
+    .draft-card:first-child { border-top: 0; }
+    .draft-card[data-status="approved"] { box-shadow: inset 3px 0 var(--amber); }
+    .draft-card[data-status="sent"], .draft-card[data-status="replied"] { box-shadow: inset 3px 0 var(--green); }
+    .draft-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--faint); font-family: var(--mono); font-size: 8px; }
+    .draft-message { margin: 14px 0 0; padding: 13px 14px; border: 1px solid #e8ebef; border-radius: 6px; color: #364255; background: var(--surface-subtle); font: 10px/1.6 var(--body); white-space: pre-wrap; }
+    .draft-source { display: inline-block; max-width: 100%; margin-top: 10px; overflow: hidden; color: var(--blue); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .draft-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
     .list { display: grid; }
     .list-item { padding: 17px 20px; border-top: 1px solid #edf0f2; }
     .list-item:first-child { border-top: 0; }
     .item-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
     .id { color: var(--blue); font-family: var(--mono); font-size: 9px; font-weight: 650; }
     .badge { display: inline-flex; align-items: center; min-height: 21px; padding: 2px 7px; border-radius: 999px; color: #536073; background: #f0f2f5; font-size: 8px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
-    .badge[data-state*="blocked"], .badge[data-state*="closed"], .badge[data-state="review"] { color: var(--red); background: var(--red-soft); }
-    .badge[data-state*="open"], .badge[data-state*="live"], .badge[data-state="eligible"] { color: var(--green); background: var(--green-soft); }
-    .badge[data-state*="progress"], .badge[data-state="preregistered"], .badge[data-state="research"] { color: var(--amber); background: var(--amber-soft); }
+    .badge[data-state*="blocked"], .badge[data-state*="closed"], .badge[data-state="review"], .badge[data-state="rejected"] { color: var(--red); background: var(--red-soft); }
+    .badge[data-state*="open"], .badge[data-state*="live"], .badge[data-state="eligible"], .badge[data-state="sent"], .badge[data-state="replied"] { color: var(--green); background: var(--green-soft); }
+    .badge[data-state*="progress"], .badge[data-state="preregistered"], .badge[data-state="research"], .badge[data-state="pending_approval"], .badge[data-state="approved"] { color: var(--amber); background: var(--amber-soft); }
     .item-title { margin: 10px 0 0; color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.4; }
     .item-copy { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
     .experiment-progress { display: flex; align-items: center; gap: 12px; margin-top: 13px; }
@@ -155,6 +196,8 @@
       .app { grid-template-columns: 210px minmax(0, 1fr); }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .layout-2 { grid-template-columns: 1fr; }
+      .workbench-grid { grid-template-columns: 1fr; }
+      .composer { border-right: 0; border-bottom: 1px solid var(--line); }
       .channels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .channel:not(:nth-child(4n+1)) { border-left: 0; }
       .channel:nth-child(even) { border-left: 1px solid #edf0f2; }
@@ -176,6 +219,8 @@
       .next-move { border-top: 1px solid var(--line); border-left: 0; }
       .status-reason, .status-freshness { margin-left: 0; }
       .evidence, .authority { grid-template-columns: 1fr; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
       .evidence details:nth-child(even), .authority-block + .authority-block { border-left: 0; }
       .authority-block + .authority-block { border-top: 1px solid var(--line); }
     }
@@ -187,6 +232,9 @@
       .section-code { display: none; }
       .next-move-head { align-items: start; }
       .next-meta { flex-direction: column; gap: 5px; }
+      .form-foot { align-items: stretch; flex-direction: column; }
+      .button.primary { width: 100%; }
+      .queue-counts { display: none; }
       .footer { flex-direction: column; }
     }
   </style>
@@ -198,20 +246,46 @@
       <div class="nav-label">Workspace</div>
       <nav class="nav" aria-label="Command Center sections">
         <a href="#overview"><span class="nav-icon">01</span>Overview</a>
-        <a href="#performance"><span class="nav-icon">02</span>Performance</a>
-        <a href="#experiments"><span class="nav-icon">03</span>Experiments</a>
-        <a href="#evidence"><span class="nav-icon">04</span>Evidence</a>
-        <a href="#portfolio"><span class="nav-icon">05</span>Portfolio</a>
-        <a href="#channels"><span class="nav-icon">06</span>Channels</a>
+        <a href="#workbench"><span class="nav-icon">02</span>Workbench</a>
+        <a href="#performance"><span class="nav-icon">03</span>Performance</a>
+        <a href="#experiments"><span class="nav-icon">04</span>Experiments</a>
+        <a href="#evidence"><span class="nav-icon">05</span>Evidence</a>
+        <a href="#portfolio"><span class="nav-icon">06</span>Portfolio</a>
+        <a href="#channels"><span class="nav-icon">07</span>Channels</a>
       </nav>
-      <div class="sidebar-foot"><div class="system-line"><span class="system-dot" aria-hidden="true"></span>Evidence store online</div><p class="system-mode" id="mode">Internal · read only · propose only</p></div>
+      <div class="sidebar-foot"><div class="system-line"><span class="system-dot" aria-hidden="true"></span>Workflow engine online</div><p class="system-mode" id="mode">Internal · human gated · no autosend</p></div>
     </aside>
     <div class="workspace">
-      <header class="topbar"><div><h1 class="page-title">Command Center</h1><p class="page-context">Commercial operating system</p></div><div class="topbar-meta"><span class="read-only">Read only</span><span class="sync" id="generated">Synchronising…</span></div></header>
+      <header class="topbar"><div><h1 class="page-title">Command Center</h1><p class="page-context">Commercial operating system</p></div><div class="topbar-meta"><span class="read-only">Human gated</span><span class="sync" id="generated">Synchronising…</span></div></header>
       <main class="content" id="overview">
         <section class="status-panel" aria-labelledby="constraint-title">
           <div class="status-summary"><p class="overline">Current operating constraint</p><div class="status-row"><span class="status-icon" id="status-icon" data-level="red" aria-hidden="true">!</span><h2 class="status-title loading" id="constraint-title">Reading state</h2></div><p class="status-reason" id="constraint-reason">Connecting to the evidence store.</p><div class="status-freshness"><span>Last external contact</span><strong id="freshness">Unknown</strong></div></div>
-          <div class="next-move"><div class="next-move-head"><p class="overline">Recommended next move</p><span class="approval-chip">Approval required</span></div><h3 class="next-title" id="action-title">Waiting for evidence</h3><p class="next-copy" id="action-copy">The operator proposes one action after reading the commercial state.</p><div class="next-meta"><span>Metric · <strong id="action-metric">—</strong></span><span id="action-approval">Human approval required</span></div></div>
+          <div class="next-move"><div class="next-move-head"><p class="overline">Recommended next move</p><span class="approval-chip">Approval required</span></div><h3 class="next-title" id="action-title">Waiting for evidence</h3><p class="next-copy" id="action-copy">The operator proposes one action after reading the commercial state.</p><div class="next-meta"><span>Metric · <strong id="action-metric">—</strong></span><span id="action-approval">Human approval required</span></div><a class="action-link" href="#workbench">Open outbound workbench →</a></div>
+        </section>
+        <section class="section panel" id="workbench" aria-labelledby="workbench-title">
+          <header class="panel-head"><div><h3 id="workbench-title">Outbound workbench</h3></div><span class="panel-label">Draft → approve → copy → record</span></header>
+          <div class="workbench-grid">
+            <form class="composer" id="draft-form">
+              <div class="workflow-line" aria-label="Workflow stages"><span>1 Source</span><span>2 Draft</span><span>3 Approve</span><span>4 Send manually</span><span>5 Record</span></div>
+              <div class="field-grid">
+                <div class="field full"><label for="prospect-id">Prospect <small>Disqualified accounts excluded</small></label><select id="prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                <div class="field"><label for="recipient-identity">Recipient identity</label><input id="recipient-identity" name="recipient_identity" type="text" placeholder="buyer@company.com or profile URL" autocomplete="off" required></div>
+                <div class="field"><label for="source-url">Observed source</label><input id="source-url" name="source_url" type="url" placeholder="https://company.com/page" required></div>
+                <div class="field"><label for="channel">Channel</label><select id="channel" name="channel"><option value="email">Email</option><option value="linkedin">LinkedIn</option><option value="contact_form">Contact form</option></select></div>
+                <div class="field"><label for="recipient-class">Recipient class</label><select id="recipient-class" name="recipient_class"><option value="named_buyer">Named buyer</option><option value="role_inbox">Role inbox</option></select></div>
+                <div class="field full"><label for="observation">Observation <small>Only what the source proves</small></label><textarea id="observation" name="observation" minlength="30" maxlength="1200" placeholder="What is directly observable on the cited page?" required></textarea></div>
+                <div class="field full"><label for="economic-hypothesis">Economic hypothesis <small>Inference, not diagnosis</small></label><textarea id="economic-hypothesis" name="economic_hypothesis" minlength="30" maxlength="1200" placeholder="What commercial effect might the observation create?" required></textarea></div>
+                <div class="field full"><label for="cta">Low-friction CTA <small>Question only; no meeting ask</small></label><input id="cta" name="cta" type="text" maxlength="180" value="Want me to send the one-page experiment map?" required></div>
+                <div class="field full"><label for="metric">Primary metric</label><input id="metric" name="metric" type="text" value="qualified_conversation_rate" required></div>
+              </div>
+              <div class="form-foot"><p class="form-note">This creates a teardown and approval draft. It never sends a message.</p><button class="button primary" id="create-draft" type="submit">Create approval draft</button></div>
+              <div class="feedback" id="workbench-feedback" role="status" aria-live="polite"></div>
+            </form>
+            <div class="queue">
+              <div class="queue-head"><h4>Approval queue</h4><div class="queue-counts" id="queue-counts">Loading…</div></div>
+              <div class="draft-list" id="draft-list"><div class="empty">Loading outbound workflow…</div></div>
+            </div>
+          </div>
         </section>
         <section class="section" aria-labelledby="scoreboard-title"><div class="section-heading"><div><h2 id="scoreboard-title">Commercial scoreboard</h2><p>Movement from qualified account to collected revenue</p></div><span class="section-code">Current / target</span></div><div class="metrics" id="scoreboard"></div></section>
         <section class="section layout-2" id="performance">
@@ -224,7 +298,7 @@
         </section>
         <section class="section panel" aria-labelledby="authority-title"><header class="panel-head"><h3 id="authority-title">Operating authority</h3><span class="panel-label">Deny by default</span></header><div class="authority"><div class="authority-block"><h4>Operator may</h4><ul id="allowed"></ul></div><div class="authority-block deny"><h4>Human approval required</h4><ul id="approval"></ul></div></div></section>
         <section class="section panel" id="channels" aria-labelledby="channels-title"><header class="panel-head"><h3 id="channels-title">Channel portfolio</h3><span class="panel-label">Access / condition</span></header><div class="channels" id="channel-list"></div></section>
-        <footer class="footer"><span>AI Growth Engineering · internal operating surface</span><span>No send · no spend · no publish</span></footer>
+        <footer class="footer"><span>AI Growth Engineering · human-gated operating surface</span><span>No autosend · no spend · no publish</span></footer>
       </main>
     </div>
   </div>
@@ -262,12 +336,85 @@
       const root = $('channel-list'); root.replaceChildren(); if (!rows.length) { root.append(empty('No channels recorded.')); return; }
       rows.forEach((row) => { const card = node('article', 'channel'); card.append(badge(row.status), node('h4', 'channel-name', row.name), node('div', 'channel-kind', row.kind || 'unclassified'), node('p', 'channel-notes', row.notes || 'No operating note recorded.')); root.append(card); });
     }
+    function renderWorkbench(data) {
+      window.workbenchData = data;
+      const select = $('prospect-id'); const selected = select.value; select.replaceChildren(node('option', '', 'Choose a prospect'));
+      select.firstChild.value = '';
+      data.prospects.forEach((prospect) => { const option = node('option', '', `${prospect.company} · ${stateName(prospect.status)}`); option.value = String(prospect.id); select.append(option); });
+      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+      const counts = data.counts;
+      $('queue-counts').textContent = `${counts.pending_approval} pending · ${counts.approved} approved · ${counts.sent + counts.replied} recorded`;
+      const root = $('draft-list'); root.replaceChildren();
+      if (!data.drafts.length) { root.append(empty('No drafts yet. Create one from sourced evidence.')); return; }
+      data.drafts.forEach((row) => {
+        const card = node('article', 'draft-card'); card.dataset.status = row.status;
+        const top = node('div', 'item-top'); top.append(node('span', 'id', `DRAFT-${String(row.id).padStart(4, '0')}`), badge(row.status)); card.append(top);
+        card.append(node('p', 'item-title', row.company));
+        card.append(node('div', 'draft-meta', `${row.channel} · ${stateName(row.recipient_class)} · ${row.recipient_identity}`));
+        card.append(node('div', 'draft-message', row.message));
+        const source = node('a', 'draft-source', row.source_url); source.href = row.source_url; source.target = '_blank'; source.rel = 'noreferrer'; card.append(source);
+        const actions = node('div', 'draft-actions');
+        const addAction = (label, action, style = '') => { const control = node('button', `button ${style}`.trim(), label); control.type = 'button'; control.dataset.action = action; control.dataset.draftId = String(row.id); actions.append(control); };
+        addAction('Copy message', 'copy');
+        if (row.status === 'pending_approval') { addAction('Approve', 'approve', 'primary'); addAction('Reject', 'reject', 'danger'); }
+        if (row.status === 'approved') addAction('Record manual send', 'record-send', 'primary');
+        if (row.status === 'sent') addAction('Record meaningful reply', 'record-reply', 'primary');
+        card.append(actions); root.append(card);
+      });
+    }
+    function loadWorkbench() {
+      return fetch('/api/workbench', { cache: 'no-store' }).then((response) => {
+        if (!response.ok) throw new Error(`workbench request failed: ${response.status}`);
+        return response.json();
+      }).then(renderWorkbench).catch((error) => setFeedback(error.message, 'error'));
+    }
+    function setFeedback(message, level = '') { const root = $('workbench-feedback'); root.textContent = message; root.dataset.level = level; }
+    async function mutate(path, payload = {}) {
+      const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Command-Center-Intent': 'mutate' }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || data.error || `request failed: ${response.status}`);
+      return data;
+    }
     function render(state) {
       $('generated').textContent = `Updated ${new Date(state.generated_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`; $('mode').textContent = state.mode.replaceAll(' / ', ' · '); $('constraint-title').textContent = state.status.label; $('constraint-title').classList.remove('loading'); $('status-icon').dataset.level = state.status.level; $('status-icon').textContent = state.status.level === 'green' ? '✓' : state.status.level === 'amber' ? '•' : '!'; $('constraint-reason').textContent = state.status.reason; $('freshness').textContent = state.freshness.last_external_contact ? `${state.freshness.last_external_contact} · ${state.freshness.days_since_external_contact} days ago` : 'No contact recorded'; $('action-title').textContent = state.recommendation.title; $('action-copy').textContent = state.recommendation.action; $('action-metric').textContent = state.recommendation.primary_metric; $('action-approval').textContent = state.recommendation.approval;
       renderScoreboard(state.scoreboard); renderRoutes(state.routes); renderExperiments(state.experiments); renderEvidence(state.evidence); renderOpportunities(state.opportunities); renderAuthority(state.authority); renderChannels(state.channels);
     }
-    function loadState() { fetch('/api/state', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`state request failed: ${response.status}`); return response.json(); }).then(render).catch((error) => { $('constraint-title').textContent = 'State unavailable'; $('constraint-title').classList.remove('loading'); $('constraint-reason').textContent = error.message; }); }
-    loadState(); window.setInterval(loadState, 30000);
+    function loadState() { return fetch('/api/state', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`state request failed: ${response.status}`); return response.json(); }).then(render).catch((error) => { $('constraint-title').textContent = 'State unavailable'; $('constraint-title').classList.remove('loading'); $('constraint-reason').textContent = error.message; }); }
+    $('prospect-id').addEventListener('change', (event) => {
+      const prospect = window.workbenchData?.prospects.find((row) => String(row.id) === event.target.value);
+      if (prospect) $('source-url').value = prospect.source_url || prospect.website || '';
+    });
+    $('draft-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); const control = $('create-draft'); control.disabled = true; setFeedback('Validating evidence and suppression…');
+      try {
+        const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id);
+        const result = await mutate('/api/outbound/drafts', payload);
+        setFeedback(`Draft #${result.draft.id} created and waiting for approval. Nothing was sent.`, 'success');
+        $('observation').value = ''; $('economic-hypothesis').value = '';
+        await Promise.all([loadWorkbench(), loadState()]);
+      } catch (error) { setFeedback(error.message, 'error'); } finally { control.disabled = false; }
+    });
+    $('draft-list').addEventListener('click', async (event) => {
+      const control = event.target.closest('button[data-action]'); if (!control) return;
+      const draft = window.workbenchData?.drafts.find((row) => String(row.id) === control.dataset.draftId); if (!draft) return;
+      const action = control.dataset.action;
+      if (action === 'copy') {
+        try { await navigator.clipboard.writeText(draft.message); setFeedback(`Draft #${draft.id} copied. Send it manually in the chosen channel.`, 'success'); }
+        catch { setFeedback('Clipboard access failed. Select and copy the message directly.', 'error'); }
+        return;
+      }
+      if (action === 'reject' && !window.confirm(`Reject draft #${draft.id}? The record will be preserved.`)) return;
+      if (action === 'record-send' && !window.confirm('This does not send the message. Confirm only if you already sent it manually.')) return;
+      if (action === 'record-reply' && !window.confirm('Confirm that this recipient sent a meaningful human reply.')) return;
+      control.disabled = true;
+      try {
+        const result = await mutate(`/api/outbound/drafts/${draft.id}/${action}`);
+        const messages = { approve: 'Approved. Copy and send it manually.', reject: 'Rejected and preserved.', 'record-send': 'Manual send recorded in the commercial scoreboard.', 'record-reply': 'Meaningful reply recorded.' };
+        setFeedback(`Draft #${result.draft.id}: ${messages[action]}`, 'success');
+        await Promise.all([loadWorkbench(), loadState()]);
+      } catch (error) { setFeedback(error.message, 'error'); control.disabled = false; }
+    });
+    loadState(); loadWorkbench(); window.setInterval(() => { loadState(); loadWorkbench(); }, 30000);
   </script>
 </body>
 </html>

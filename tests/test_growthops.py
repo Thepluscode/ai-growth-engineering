@@ -20,7 +20,7 @@ class GrowthOpsTests(unittest.TestCase):
         state = command_center_state(self.db, today=date(2026, 8, 29))
         self.assertEqual(state["status"]["label"], "CONTACT FREEZE")
         self.assertFalse(state["recommendation"]["executable"])
-        self.assertEqual(state["authority"]["mode"], "PROPOSE_ONLY")
+        self.assertEqual(state["authority"]["mode"], "HUMAN_GATED")
         self.assertIn("contact a customer or prospect", state["authority"]["human_approval_required"])
 
     def test_stale_external_contact_activates_freeze(self):

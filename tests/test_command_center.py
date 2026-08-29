@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 
 from ai_growth_engineering.command_center import build_server
+from ai_growth_engineering.storage import connect
 
 
 class CommandCenterServerTests(unittest.TestCase):
@@ -32,7 +33,10 @@ class CommandCenterServerTests(unittest.TestCase):
             self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         with urllib.request.urlopen(self.base + "/api/state") as response:
             state = json.load(response)
-        self.assertEqual(state["authority"]["mode"], "PROPOSE_ONLY")
+        self.assertEqual(state["authority"]["mode"], "HUMAN_GATED")
+        with urllib.request.urlopen(self.base + "/api/workbench") as response:
+            workbench = json.load(response)
+        self.assertEqual(workbench["drafts"], [])
 
     def test_write_routes_are_refused(self):
         request = urllib.request.Request(self.base + "/api/state", method="POST", data=b"{}")
@@ -41,6 +45,66 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertEqual(error.exception.code, 405)
         self.assertEqual(error.exception.headers["Allow"], "GET")
         error.exception.close()
+
+    def test_mutation_requires_an_explicit_intent_header(self):
+        request = urllib.request.Request(
+            self.base + "/api/outbound/drafts",
+            method="POST",
+            data=b"{}",
+            headers={"Content-Type": "application/json"},
+        )
+        with self.assertRaises(urllib.error.HTTPError) as error:
+            urllib.request.urlopen(request)
+        self.assertEqual(error.exception.code, 403)
+        error.exception.close()
+
+    def test_outbound_workflow_runs_through_the_http_surface(self):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(
+                     company, website, priority, target_roles, evidence, source_url, status
+                   ) VALUES ('Acme', 'https://example.com', 'A', 'Founder', 'B2B service provider',
+                             'https://example.com', 'qualified')"""
+            )
+        payload = {
+            "prospect_id": 1,
+            "recipient_identity": "founder@example.com",
+            "recipient_class": "named_buyer",
+            "channel": "email",
+            "observation": "Your managed-security pages route assessment demand into the general enquiry form.",
+            "economic_hypothesis": "That shared path may suppress qualified conversations rather than traffic being the constraint.",
+            "cta": "Want me to send the one-page experiment map?",
+            "metric": "qualified_conversation_rate",
+            "source_url": "https://example.com/security",
+        }
+        created = self.post("/api/outbound/drafts", payload, expected=201)
+        draft_id = created["draft"]["id"]
+        self.assertEqual(created["draft"]["status"], "pending_approval")
+        approved = self.post(f"/api/outbound/drafts/{draft_id}/approve", {})
+        self.assertEqual(approved["draft"]["status"], "approved")
+        sent = self.post(f"/api/outbound/drafts/{draft_id}/record-send", {})
+        self.assertEqual(sent["draft"]["status"], "sent")
+        replied = self.post(f"/api/outbound/drafts/{draft_id}/record-reply", {})
+        self.assertEqual(replied["draft"]["status"], "replied")
+        with urllib.request.urlopen(self.base + "/api/state") as response:
+            state = json.load(response)
+        metrics = {row["key"]: row["value"] for row in state["scoreboard"]}
+        self.assertEqual(metrics["outreach_sent"], 1)
+        self.assertEqual(metrics["meaningful_responses"], 1)
+
+    def post(self, path: str, payload: dict, *, expected: int = 200) -> dict:
+        request = urllib.request.Request(
+            self.base + path,
+            method="POST",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Content-Type": "application/json",
+                "X-Command-Center-Intent": "mutate",
+            },
+        )
+        with urllib.request.urlopen(request) as response:
+            self.assertEqual(response.status, expected)
+            return json.load(response)
 
     def test_unknown_route_is_not_found(self):
         with self.assertRaises(urllib.error.HTTPError) as error:

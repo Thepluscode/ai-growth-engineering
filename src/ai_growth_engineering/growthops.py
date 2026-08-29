@@ -1,7 +1,7 @@
 """Bounded GrowthOps operator for internal commercial decision support.
 
-It reads operational state and proposes one next move. It cannot send, spend,
-publish, or modify the underlying data.
+It reads operational state and proposes one next move. The surrounding workbench may
+persist human-approved workflow state, but it cannot send, spend or publish externally.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ METRIC_LABELS = {
 
 
 def command_center_state(db_path: str, *, today: date | None = None) -> dict[str, Any]:
-    """Assemble the read-only operating state consumed by the Command Center."""
+    """Assemble the operating state consumed by the Command Center."""
     today = today or date.today()
     metrics = scoreboard(db_path)
     last_contact = _last_contact_date(db_path)
@@ -47,7 +47,7 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
 
     return {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
-        "mode": "INTERNAL / READ ONLY / PROPOSE ONLY",
+        "mode": "INTERNAL / HUMAN GATED / NO AUTOSEND",
         "status": {
             "level": constraint[0],
             "label": constraint[1],
@@ -77,12 +77,13 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
         "opportunities": _opportunities(db_path),
         "channels": _channels(db_path),
         "authority": {
-            "mode": "PROPOSE_ONLY",
+            "mode": "HUMAN_GATED",
             "allowed": [
                 "read operational data",
                 "identify the highest-priority constraint",
                 "rank evidence-backed options",
-                "draft a proposed action",
+                "create sourced teardown and outbound drafts",
+                "record an operator-confirmed send or reply",
             ],
             "human_approval_required": [
                 "contact a customer or prospect",

@@ -350,8 +350,8 @@
       "kind": "observation",
       "confidence": 0.95,
       "observed": true,
-      "statement": "After the initial visual direction was rejected as unprofessional, the internal GrowthOps Command Center was rebuilt as a restrained light operations console and rendered against the real local operating store at 1440x900 and 390x844. Both widths had scrollWidth equal to clientWidth (0px horizontal overflow); eight metrics, two experiments, eight evidence records, five product opportunities and eight channels rendered; the state remained CONTACT FREEZE; and email/named_buyer 2/0 remained separate from email/role_inbox 48/0. Browser console warnings and errors: zero after adding an embedded favicon. The HTTP contract independently returns 405 for POST and its security headers remain regression-tested.",
-      "source": "in-app browser render + command-center HTTP tests, 2026-08-29"
+      "statement": "The GrowthOps Command Center now executes a human-gated outbound lifecycle rather than only reporting state. A real-browser test against an isolated store created a sourced observation + economic hypothesis + low-friction CTA draft, persisted its teardown, approved it, recorded an operator-confirmed manual send, then recorded a meaningful reply. The scoreboard moved from 0/0 to one delivered and one reply; route integrity reported email/named_buyer 1/1. The production-shaped store exposed 51 selectable actionable prospects with disqualified rows excluded. Desktop and mobile had zero horizontal overflow and zero console errors. There is no autosend interface; suppression is checked at draft creation and immediately before a manual send can be recorded.",
+      "source": "isolated browser lifecycle + command-center HTTP and workbench tests, 2026-08-29"
     }
   ],
   "channels": [
