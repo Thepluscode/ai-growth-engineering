@@ -48,13 +48,14 @@ covers it), `SPECIFIED` (written as a skill, template or policy but not executab
 (named and understood, nothing built).
 
 ```bash
-make capability-map     # current: IMPLEMENTED 61 · SPECIFIED 19 · HYPOTHESIS 84
+make capability-map     # current: IMPLEMENTED 63 · SPECIFIED 19 · HYPOTHESIS 82
 ```
 
 Scope is declared in that file, **not** in empty directories. A directory appears when a capability
 reaches `IMPLEMENTED`; an empty package is a claim the repository cannot back, and it makes the
-architecture look built when it is not. Promotion out of `HYPOTHESIS` requires a market experiment or
-a repeated paid delivery need.
+architecture look built when it is not. Customer-facing products and autonomous actions require a
+market experiment or repeated paid-delivery need. A named internal operational use may justify a
+bounded internal tool, but not a product claim or external authority.
 
 ## The engine is market-neutral
 
@@ -252,7 +253,19 @@ agentic. These contracts do not authorise channel integrations or autonomous act
 - AI-generated bulk outreach
 - autonomous social messaging or comment-to-DM automation
 - customer-facing dashboard
-- Growth Command Center
 - proprietary SaaS
 
 Those require repeated paid workflow evidence first.
+
+## Internal GrowthOps boundary
+
+The GrowthOps operator and Command Center are internal, read-only operating tools. The operator
+turns the current scoreboard, route splits, experiments, evidence and product gates into one proposed
+next action. The browser surface makes that state visible on localhost. Neither component can send,
+publish, spend, change a budget or rewrite an experiment contract; those actions require a human.
+
+```text
+EVIDENCE STORE → DETERMINISTIC CONSTRAINT → ONE PROPOSED ACTION → HUMAN DECISION
+                                                              ↓
+                                                NO AUTONOMOUS EXTERNAL ACTION
+```

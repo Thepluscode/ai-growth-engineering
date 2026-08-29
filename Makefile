@@ -2,7 +2,7 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: hooks test gate init seed scoreboard capability-map demo clean
+.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean
 
 hooks:
 	git config core.hooksPath .githooks
@@ -28,6 +28,9 @@ capability-map:
 
 scoreboard:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
+
+command-center: demo
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli command-center --db $(DB) --open-browser
 
 demo: seed
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli seed-registries --db $(DB)

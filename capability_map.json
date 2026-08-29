@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "note": "The Digital Marketing Project's full operating scope. Every capability derived from the source research is listed here as a first-class entry, with an honest build status. This file is the architecture; directories are created only when a capability reaches IMPLEMENTED. Status vocabulary: IMPLEMENTED = code exists and is covered by a deterministic test; SPECIFIED = written down as a skill, template or policy but not executable; HYPOTHESIS = named and understood, nothing built. Promotion requires a market experiment or repeated paid delivery need, never enthusiasm.",
+  "note": "The Digital Marketing Project's full operating scope. Every capability derived from the source research is listed here as a first-class entry, with an honest build status. This file is the architecture; directories are created only when a capability reaches IMPLEMENTED. Status vocabulary: IMPLEMENTED = code exists and is covered by a deterministic test; SPECIFIED = written down as a skill, template or policy but not executable; HYPOTHESIS = named and understood, nothing built. Customer-facing products and autonomous actions require market or repeated paid-delivery evidence; a named internal operational use may justify a bounded internal tool.",
   "status_vocabulary": [
     "IMPLEMENTED",
     "SPECIFIED",
@@ -199,7 +199,7 @@
         "bounded_operator_skills": "SPECIFIED",
         "growth_authority_matrix": "HYPOTHESIS",
         "growth_state": "HYPOTHESIS",
-        "growth_ops_agent": "HYPOTHESIS",
+        "growth_ops_agent": "IMPLEMENTED",
         "growth_event_bus": "HYPOTHESIS",
         "growth_control_plane": "HYPOTHESIS",
         "generated_internal_tools": "HYPOTHESIS",
@@ -208,7 +208,7 @@
         "time_to_action": "HYPOTHESIS",
         "audit_trail": "HYPOTHESIS",
         "claim_publication_gate": "IMPLEMENTED",
-        "growth_command_center": "HYPOTHESIS"
+        "growth_command_center": "IMPLEMENTED"
       }
     }
   }

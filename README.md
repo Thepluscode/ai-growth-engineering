@@ -103,6 +103,24 @@ recurrence, data, state, automation, integration and ongoing value; software is 
 The current portfolio contains the five existing offers. None passes the build gate, so none has a
 priority score and no new product build is authorised.
 
+## Internal GrowthOps Command Center
+
+The internal operator reads the existing evidence, experiments, route-level outreach, product gates
+and commercial scoreboard, then proposes exactly one next action. It is deliberately read-only:
+customer contact, publishing, spend and experiment-contract changes remain behind human approval.
+
+Launch the visible local interface:
+
+```bash
+make command-center
+```
+
+Or point it at an existing store without reseeding:
+
+```bash
+age command-center --db .age/growth.db --open-browser
+```
+
 ## Quick start
 
 ```bash
@@ -147,7 +165,7 @@ python -m unittest discover -s tests -v
 ```text
 capability_map.json         full Digital Marketing scope, 164 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
-                            universal registries, experiment contract and unit economics
+                            GrowthOps operator, Command Center, registries and economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)
 experiments/EXP-ACQ-0001/   the UK cyber/MSP experiment: prospects, queue, teardowns, outreach
 skills/                     portable workflow skills

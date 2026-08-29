@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GrowthOps Command Center</title>
+  <style>
+    :root {
+      --ink: #0b0d0c;
+      --panel: #111412;
+      --paper: #ece9df;
+      --muted: #969b92;
+      --line: #30352f;
+      --signal: #c7ff35;
+      --red: #ff5b45;
+      --amber: #ffbe3f;
+      --green: #63e6a5;
+      --display: "Iowan Old Style", "Baskerville", "Times New Roman", serif;
+      --mono: "SFMono-Regular", "Cascadia Mono", "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--ink); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--paper);
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px) 0 0 / 48px 48px,
+        var(--ink);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .13;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      z-index: 20;
+    }
+    button, a { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 2px solid var(--signal); outline-offset: 4px; }
+    .shell { width: min(1600px, 100%); margin: 0 auto; padding: 18px 22px 64px; }
+    .toprail {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      min-height: 46px;
+      border-top: 1px solid var(--paper);
+      border-bottom: 1px solid var(--line);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-size: 11px;
+    }
+    .brand { color: var(--signal); font-weight: 700; }
+    .toprail strong { color: var(--paper); }
+    .stamp { text-align: right; color: var(--muted); }
+    .live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 8px; background: var(--signal); border-radius: 50%; box-shadow: 0 0 12px var(--signal); }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(320px, .7fr);
+      min-height: 430px;
+      border-bottom: 1px solid var(--paper);
+    }
+    .hero-main { padding: 64px 34px 54px 0; border-right: 1px solid var(--line); }
+    .eyebrow { margin: 0 0 20px; color: var(--muted); text-transform: uppercase; letter-spacing: .14em; font-size: 11px; }
+    .status-word {
+      margin: 0;
+      max-width: 920px;
+      font-family: var(--display);
+      font-size: clamp(62px, 9vw, 148px);
+      font-weight: 400;
+      letter-spacing: -.065em;
+      line-height: .78;
+      text-transform: uppercase;
+    }
+    .status-word[data-level="red"] { color: var(--red); }
+    .status-word[data-level="amber"] { color: var(--amber); }
+    .status-word[data-level="green"] { color: var(--green); }
+    .status-reason { max-width: 720px; margin: 34px 0 0; color: #c8cbc3; font-size: 15px; }
+    .hero-side { display: flex; flex-direction: column; justify-content: space-between; padding: 64px 0 54px 34px; }
+    .mode-plate { color: var(--signal); writing-mode: vertical-rl; align-self: flex-end; letter-spacing: .16em; font-size: 10px; }
+    .hero-index { font-family: var(--display); font-size: 80px; color: var(--line); line-height: 1; }
+    .freshness { padding-top: 22px; border-top: 1px solid var(--line); }
+    .freshness strong { display: block; margin-top: 6px; color: var(--paper); font-size: 18px; }
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(130px, 1fr));
+      overflow-x: auto;
+      border-bottom: 1px solid var(--paper);
+      scrollbar-color: var(--signal) var(--ink);
+    }
+    .metric { min-width: 130px; padding: 22px 18px 20px; border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric-label { min-height: 34px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+    .metric-value { margin: 11px 0 16px; font-family: var(--display); font-size: 34px; line-height: 1; }
+    .bar { height: 2px; background: var(--line); }
+    .bar > i { display: block; width: 0; height: 100%; background: var(--signal); transition: width 900ms cubic-bezier(.2,.8,.2,1); }
+    .metric-target { margin-top: 8px; color: var(--muted); font-size: 9px; }
+    .section-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(360px, .7fr); border-bottom: 1px solid var(--paper); }
+    .section { padding: 34px 34px 42px 0; }
+    .section + .section { padding-left: 34px; padding-right: 0; border-left: 1px solid var(--line); }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+    .section-title { margin: 0; font-family: var(--display); font-weight: 400; font-size: 34px; letter-spacing: -.035em; }
+    .section-code { color: var(--muted); font-size: 10px; letter-spacing: .1em; }
+    .dispatch {
+      position: relative;
+      padding: 30px;
+      background: var(--signal);
+      color: var(--ink);
+      overflow: hidden;
+    }
+    .dispatch::after {
+      content: "PROPOSE";
+      position: absolute;
+      right: -16px;
+      bottom: -31px;
+      font-family: var(--display);
+      font-size: 92px;
+      color: rgba(11,13,12,.09);
+      letter-spacing: -.06em;
+    }
+    .dispatch-kicker { display: flex; justify-content: space-between; text-transform: uppercase; font-size: 10px; letter-spacing: .12em; }
+    .dispatch h3 { position: relative; z-index: 1; max-width: 720px; margin: 46px 0 16px; font-family: var(--display); font-size: clamp(38px, 5vw, 68px); font-weight: 400; letter-spacing: -.055em; line-height: .95; }
+    .dispatch p { position: relative; z-index: 1; max-width: 720px; margin: 0; font-size: 14px; }
+    .dispatch-foot { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 26px; margin-top: 46px; padding-top: 17px; border-top: 1px solid rgba(11,13,12,.4); font-size: 10px; text-transform: uppercase; }
+    .authority { display: grid; gap: 1px; background: var(--line); }
+    .authority-block { padding: 21px; background: var(--panel); }
+    .authority-block h3 { margin: 0 0 12px; color: var(--signal); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
+    .authority-block ul { margin: 0; padding: 0; list-style: none; }
+    .authority-block li { padding: 7px 0; border-top: 1px solid #232723; color: #c5c8c0; font-size: 12px; }
+    .authority-block li::before { content: "↳ "; color: var(--muted); }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th { padding: 10px 12px; color: var(--muted); text-align: left; text-transform: uppercase; letter-spacing: .09em; font-size: 9px; font-weight: 400; border-bottom: 1px solid var(--line); }
+    .table td { padding: 15px 12px; border-bottom: 1px solid #232723; vertical-align: top; }
+    .table td:first-child { padding-left: 0; }
+    .table th:first-child { padding-left: 0; }
+    .rate { font-family: var(--display); font-size: 24px; }
+    .tag { display: inline-block; padding: 4px 7px; border: 1px solid var(--line); color: var(--muted); font-size: 9px; text-transform: uppercase; }
+    .experiment-list, .evidence-list, .opportunity-list { display: grid; gap: 1px; background: var(--line); }
+    .experiment, .evidence-item, .opportunity { padding: 19px; background: var(--panel); }
+    .experiment-top, .evidence-top, .opportunity-top { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
+    .id { color: var(--signal); font-size: 10px; letter-spacing: .06em; }
+    .decision { color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .experiment p, .evidence-item p, .opportunity p { margin: 0; color: #c9ccc4; font-size: 12px; }
+    .experiment .bar { margin-top: 18px; }
+    .evidence-item p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+    .confidence { color: var(--muted); white-space: nowrap; }
+    .opportunity-missing { margin-top: 12px; color: var(--red); font-size: 10px; text-transform: uppercase; }
+    .channel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); }
+    .channel { min-height: 145px; padding: 20px; background: var(--panel); }
+    .channel h3 { margin: 24px 0 8px; font-family: var(--display); font-size: 25px; font-weight: 400; letter-spacing: -.03em; }
+    .channel p { margin: 0; color: var(--muted); font-size: 10px; text-transform: uppercase; }
+    .empty { padding: 25px; border: 1px dashed var(--line); color: var(--muted); }
+    .footer { display: flex; justify-content: space-between; gap: 30px; padding: 24px 0 0; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .loading { opacity: .35; animation: pulse 1s alternate infinite; }
+    @keyframes pulse { to { opacity: .75; } }
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-main, .hero-side, .metric-strip, .section-grid { animation: rise .55s both; }
+      .metric-strip { animation-delay: .08s; }
+      .section-grid { animation-delay: .14s; }
+      @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+    }
+    @media (max-width: 980px) {
+      .shell { padding-inline: 16px; }
+      .toprail { grid-template-columns: 1fr 1fr; }
+      .toprail > :nth-child(2) { display: none; }
+      .hero { grid-template-columns: 1fr; min-height: 0; }
+      .hero-main { padding: 48px 0 40px; border-right: 0; }
+      .hero-side { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 24px 0 34px; border-top: 1px solid var(--line); }
+      .mode-plate { writing-mode: initial; align-self: start; }
+      .hero-index { display: none; }
+      .section-grid { grid-template-columns: 1fr; }
+      .section, .section + .section { padding: 34px 0 42px; border-left: 0; }
+      .section + .section { border-top: 1px solid var(--line); }
+      .channel-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .shell { padding-inline: 12px; }
+      .toprail { font-size: 9px; }
+      .stamp { max-width: 150px; }
+      .status-word { font-size: clamp(48px, 17vw, 78px); line-height: .84; }
+      .hero-side { grid-template-columns: 1fr; }
+      .dispatch { padding: 22px; }
+      .dispatch h3 { margin-top: 38px; font-size: 42px; }
+      .section-title { font-size: 29px; }
+      .table th:nth-child(3), .table td:nth-child(3) { display: none; }
+      .channel-grid { grid-template-columns: 1fr; }
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="toprail">
+      <div class="brand"><span class="live-dot" aria-hidden="true"></span>ThePlus-Tech / GrowthOps</div>
+      <strong>Command Center</strong>
+      <div class="stamp" id="generated">Synchronising evidence…</div>
+    </header>
+
+    <section class="hero" aria-labelledby="constraint-title">
+      <div class="hero-main">
+        <p class="eyebrow">Current highest-priority constraint</p>
+        <h1 class="status-word loading" id="constraint-title" data-level="red">Reading state</h1>
+        <p class="status-reason" id="constraint-reason">Connecting to the evidence store.</p>
+      </div>
+      <aside class="hero-side" aria-label="System operating mode">
+        <div class="mode-plate" id="mode">INTERNAL / READ ONLY / PROPOSE ONLY</div>
+        <div class="hero-index" aria-hidden="true">01</div>
+        <div class="freshness">
+          <span class="eyebrow">Last external contact</span>
+          <strong id="freshness">Unknown</strong>
+        </div>
+      </aside>
+    </section>
+
+    <section class="metric-strip" id="scoreboard" aria-label="Commercial scoreboard"></section>
+
+    <div class="section-grid">
+      <section class="section" aria-labelledby="dispatch-title">
+        <div class="section-head">
+          <h2 class="section-title" id="dispatch-title">Agent dispatch</h2>
+          <span class="section-code">NEXT / ONE MOVE</span>
+        </div>
+        <article class="dispatch">
+          <div class="dispatch-kicker"><span>GrowthOps Operator</span><span>Not executable</span></div>
+          <h3 id="action-title">Waiting for evidence</h3>
+          <p id="action-copy">The operator proposes one action after reading the commercial state.</p>
+          <div class="dispatch-foot">
+            <span>Metric / <strong id="action-metric">—</strong></span>
+            <span>Authority / <strong id="action-approval">Human approval</strong></span>
+          </div>
+        </article>
+      </section>
+      <section class="section" aria-labelledby="authority-title">
+        <div class="section-head">
+          <h2 class="section-title" id="authority-title">Authority boundary</h2>
+          <span class="section-code">DENY BY DEFAULT</span>
+        </div>
+        <div class="authority">
+          <div class="authority-block"><h3>Operator may</h3><ul id="allowed"></ul></div>
+          <div class="authority-block"><h3>Human must approve</h3><ul id="approval"></ul></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="section-grid">
+      <section class="section" aria-labelledby="routes-title">
+        <div class="section-head"><h2 class="section-title" id="routes-title">Route integrity</h2><span class="section-code">NO BLENDED RATES</span></div>
+        <div class="table-wrap"><table class="table"><thead><tr><th>Channel / recipient</th><th>Delivered</th><th>Replies</th><th>Rate</th></tr></thead><tbody id="routes"></tbody></table></div>
+      </section>
+      <section class="section" aria-labelledby="experiments-title">
+        <div class="section-head"><h2 class="section-title" id="experiments-title">Experiments</h2><span class="section-code">CONTRACT / RESULT</span></div>
+        <div class="experiment-list" id="experiments"></div>
+      </section>
+    </div>
+
+    <div class="section-grid">
+      <section class="section" aria-labelledby="evidence-title">
+        <div class="section-head"><h2 class="section-title" id="evidence-title">Evidence feed</h2><span class="section-code">OBSERVED ≠ INFERRED</span></div>
+        <div class="evidence-list" id="evidence"></div>
+      </section>
+      <section class="section" aria-labelledby="portfolio-title">
+        <div class="section-head"><h2 class="section-title" id="portfolio-title">Product gate</h2><span class="section-code">ELIGIBILITY BEFORE SCORE</span></div>
+        <div class="opportunity-list" id="opportunities"></div>
+      </section>
+    </div>
+
+    <section class="section" aria-labelledby="channels-title">
+      <div class="section-head"><h2 class="section-title" id="channels-title">Channel field</h2><span class="section-code">ACCESS / CONDITION</span></div>
+      <div class="channel-grid" id="channels"></div>
+    </section>
+
+    <footer class="footer"><span>AI Growth Engineering / internal operating surface</span><span>No send · no spend · no publish</span></footer>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const node = (tag, className, text) => {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined) el.textContent = text;
+      return el;
+    };
+    const money = (pence) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(pence / 100);
+    const percent = (value) => value === null ? 'n/a' : new Intl.NumberFormat('en-GB', { style: 'percent', maximumFractionDigits: 1 }).format(value);
+    const empty = (message) => node('div', 'empty', message);
+
+    function renderScoreboard(rows) {
+      const root = $('scoreboard'); root.replaceChildren();
+      rows.forEach((row) => {
+        const card = node('article', 'metric');
+        card.append(node('div', 'metric-label', row.label));
+        card.append(node('div', 'metric-value', row.kind === 'money' ? money(row.value) : String(row.value)));
+        const bar = node('div', 'bar'); const fill = node('i'); bar.append(fill); card.append(bar);
+        requestAnimationFrame(() => { fill.style.width = `${Math.round(row.ratio * 100)}%`; });
+        card.append(node('div', 'metric-target', `TARGET / ${row.kind === 'money' ? money(row.target) : row.target}`));
+        root.append(card);
+      });
+    }
+    function renderRoutes(rows) {
+      const root = $('routes'); root.replaceChildren();
+      if (!rows.length) { const tr = node('tr'); const td = node('td', 'empty', 'No delivered routes recorded.'); td.colSpan = 4; tr.append(td); root.append(tr); return; }
+      rows.forEach((row) => {
+        const tr = node('tr');
+        tr.append(node('td', '', row.route), node('td', '', String(row.sent)), node('td', '', String(row.replies)), node('td', 'rate', percent(row.reply_rate)));
+        root.append(tr);
+      });
+    }
+    function renderExperiments(rows) {
+      const root = $('experiments'); root.replaceChildren();
+      if (!rows.length) { root.append(empty('No experiments preregistered.')); return; }
+      rows.forEach((row) => {
+        const card = node('article', 'experiment'); const top = node('div', 'experiment-top');
+        top.append(node('span', 'id', row.experiment_id), node('span', 'decision', row.decision)); card.append(top);
+        card.append(node('p', '', row.hypothesis));
+        const bar = node('div', 'bar'); const fill = node('i'); fill.style.width = `${Math.round(row.progress * 100)}%`; bar.append(fill); card.append(bar); root.append(card);
+      });
+    }
+    function renderEvidence(rows) {
+      const root = $('evidence'); root.replaceChildren();
+      if (!rows.length) { root.append(empty('No evidence recorded.')); return; }
+      rows.forEach((row) => {
+        const card = node('article', 'evidence-item'); const top = node('div', 'evidence-top');
+        top.append(node('span', 'id', row.evidence_id), node('span', 'confidence', `${row.kind} / ${Math.round(row.confidence * 100)}%`));
+        card.append(top, node('p', '', row.statement)); root.append(card);
+      });
+    }
+    function renderOpportunities(rows) {
+      const root = $('opportunities'); root.replaceChildren();
+      if (!rows.length) { root.append(empty('No product opportunities recorded.')); return; }
+      rows.forEach((row) => {
+        const card = node('article', 'opportunity'); const top = node('div', 'opportunity-top');
+        top.append(node('span', 'id', row.opportunity_id), node('span', 'decision', row.eligible ? 'eligible' : row.status));
+        card.append(top, node('p', '', row.problem));
+        if (row.missing.length) card.append(node('div', 'opportunity-missing', `Missing / ${row.missing.join(' · ')}`));
+        root.append(card);
+      });
+    }
+    function renderAuthority(authority) {
+      const fill = (id, values) => { const root = $(id); root.replaceChildren(); values.forEach((value) => root.append(node('li', '', value))); };
+      fill('allowed', authority.allowed); fill('approval', authority.human_approval_required);
+    }
+    function renderChannels(rows) {
+      const root = $('channels'); root.replaceChildren();
+      if (!rows.length) { root.append(empty('No channels recorded.')); return; }
+      rows.forEach((row) => {
+        const card = node('article', 'channel');
+        card.append(node('span', 'tag', row.status || 'unknown'), node('h3', '', row.name), node('p', '', row.kind || 'unclassified'));
+        root.append(card);
+      });
+    }
+    function render(state) {
+      $('generated').textContent = `STATE / ${new Date(state.generated_at).toLocaleString('en-GB')}`;
+      $('mode').textContent = state.mode;
+      $('constraint-title').textContent = state.status.label;
+      $('constraint-title').dataset.level = state.status.level;
+      $('constraint-title').classList.remove('loading');
+      $('constraint-reason').textContent = state.status.reason;
+      $('freshness').textContent = state.freshness.last_external_contact ? `${state.freshness.last_external_contact} / ${state.freshness.days_since_external_contact} DAYS` : 'NO CONTACT RECORDED';
+      $('action-title').textContent = state.recommendation.title;
+      $('action-copy').textContent = state.recommendation.action;
+      $('action-metric').textContent = state.recommendation.primary_metric;
+      $('action-approval').textContent = state.recommendation.approval;
+      renderScoreboard(state.scoreboard); renderRoutes(state.routes); renderExperiments(state.experiments);
+      renderEvidence(state.evidence); renderOpportunities(state.opportunities); renderAuthority(state.authority); renderChannels(state.channels);
+    }
+    function loadState() {
+      fetch('/api/state', { cache: 'no-store' }).then((response) => {
+        if (!response.ok) throw new Error(`state request failed: ${response.status}`);
+        return response.json();
+      }).then(render).catch((error) => {
+        $('constraint-title').textContent = 'STATE UNAVAILABLE'; $('constraint-title').classList.remove('loading');
+        $('constraint-reason').textContent = error.message;
+      });
+    }
+    loadState();
+    window.setInterval(loadState, 30000);
+  </script>
+</body>
+</html>

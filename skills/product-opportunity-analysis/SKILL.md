@@ -41,5 +41,5 @@ software commitments.
 - status: research, validate, build, or graveyard
 - graveyard reason and reopen condition when parked
 
-The Growth Command Center is outside this workflow. It remains backlog until repeated, trustworthy
-operating data makes a dashboard useful rather than decorative.
+The internal Growth Command Center is outside this workflow. It may display the result, but it cannot
+override a missing gate input or authorise a product build.

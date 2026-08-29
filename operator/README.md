@@ -2,7 +2,7 @@
 
 # operator
 
-**AI Growth Engineering — the method layer** — 10 of 22 capabilities implemented.
+**AI Growth Engineering — the method layer** — 12 of 22 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -24,6 +24,8 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `experiment_namespace_enforcement` | IMPLEMENTED |
 | `experiment_preregistration` | IMPLEMENTED |
 | `experiment_registry` | IMPLEMENTED |
+| `growth_command_center` | IMPLEMENTED |
+| `growth_ops_agent` | IMPLEMENTED |
 | `human_approval_for_material_actions` | IMPLEMENTED |
 | `keep_iterate_kill_decisions` | IMPLEMENTED |
 | `observed_inferred_unknown_separation` | IMPLEMENTED |
@@ -32,10 +34,8 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `decision_latency` | HYPOTHESIS |
 | `generated_internal_tools` | HYPOTHESIS |
 | `growth_authority_matrix` | HYPOTHESIS |
-| `growth_command_center` | HYPOTHESIS |
 | `growth_control_plane` | HYPOTHESIS |
 | `growth_event_bus` | HYPOTHESIS |
-| `growth_ops_agent` | HYPOTHESIS |
 | `growth_state` | HYPOTHESIS |
 | `time_to_action` | HYPOTHESIS |
 | `time_to_decision` | HYPOTHESIS |

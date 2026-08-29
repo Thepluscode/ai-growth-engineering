@@ -344,6 +344,14 @@
       "observed": true,
       "statement": "Offer congruence fixed and verified live 2026-08-29 (main@c030e5b). All five flagship deliverables now appear on BOTH theplus-tech.com and /workflow-audit - 5/5 shared where it was 0/10 - and the four old-offer labels (Opportunity register, ROI estimate, Risk and compliance flags, AI Workflow Opportunity Audit) return 0 occurrences on the live page. Page title is now 'Security Questionnaire Rescue Sprint'. CongruenceScore went 16/30 DO_NOT_SPEND to 29/30 ELIGIBLE_FOR_TEST; message_match is held at 4 rather than 5 because the URL is still /workflow-audit and a buyer sees it. Root cause was a duplicated offer definition, not positioning: site-data.ts already declared flagship as 'the one purchasable offer, price and framing binding' and the page imported it for the price while redefining the deliverables beside it. Fixed by making flagship the single source and guarding it with a binding-declaration test and a negative test, both observed failing first.",
       "source": "curl of both live pages + CongruenceScore, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-GROWTHOPS-COMMAND-CENTER-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "The internal GrowthOps Command Center rendered the real local operating store in the in-app browser at 1280x720 and 390x844. Both widths had scrollWidth equal to clientWidth (0px horizontal overflow), the state showed CONTACT FREEZE from a last external contact nine days earlier, the scoreboard showed 51 qualified prospects and 50 delivered sends, route integrity preserved email/named_buyer 2/0 separately from email/role_inbox 48/0, and all five product opportunities rendered. Browser console warnings and errors: zero. The HTTP contract independently returned 405 for POST and security headers are regression-tested.",
+      "source": "in-app browser render + command-center HTTP tests, 2026-08-29"
     }
   ],
   "channels": [

@@ -63,8 +63,9 @@ insight → content → free tool → paid asset → manual service
         → repeatable workflow → automation → software → platform
 ```
 
-The Growth Command Center remains a `HYPOTHESIS` in `capability_map.json`. There is not yet enough
-repeated, trustworthy operating data to make its dashboard anything other than a projection.
+The internal Growth Command Center is an operating view over the evidence already present. Its
+existence does not change product eligibility: it remains read-only and cannot turn missing demand
+or economics into a build decision.
 
 ## Opportunity Graveyard
 

@@ -5,6 +5,7 @@ import csv
 from pathlib import Path
 
 from . import capabilities
+from .growthops import TARGETS
 from .models import ExperimentSpec
 from .registry import (
     add_experiment,
@@ -17,18 +18,6 @@ from .registry import (
 )
 from .storage import connect, init_db
 from .teardown import TeardownPacket
-
-
-TARGETS = {
-    "qualified_prospects": 100,
-    "outreach_sent": 100,
-    "meaningful_responses": 20,
-    "discovery_calls": 10,
-    "diagnostics_proposed": 5,
-    "commercial_proposals": 3,
-    "paying_customers": 1,
-    "collected_revenue_pence": 500_000,
-}
 
 
 def _money(pence: int) -> str:
@@ -185,6 +174,14 @@ def cmd_capability_map(args: argparse.Namespace) -> None:
     print(capabilities.render(data))
 
 
+def cmd_command_center(args: argparse.Namespace) -> None:
+    from .command_center import serve_command_center
+
+    serve_command_center(
+        args.db, host=args.host, port=args.port, open_browser=args.open_browser
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="age",
@@ -208,6 +205,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("capability-map")
     p.add_argument("--map-path", default=None)
     p.set_defaults(func=cmd_capability_map)
+
+    p = sub.add_parser("command-center"); dbarg(p)
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8787)
+    p.add_argument("--open-browser", action="store_true")
+    p.set_defaults(func=cmd_command_center)
 
     p = sub.add_parser("teardown"); dbarg(p)
     p.add_argument("--company", required=True)

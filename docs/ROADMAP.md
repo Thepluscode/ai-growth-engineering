@@ -73,8 +73,10 @@ Only if repeated customer workflows justify productisation:
 - audit / observability
 - data-governance controls
 
-The Growth Command Center remains backlog within this phase. It requires repeated, trustworthy
-operating data and a paid workflow need; it is not authorised by dashboard mockups or tool demos.
+The internal Growth Command Center is now implemented as a read-only localhost surface over the
+existing operating data. This does not authorise a customer-facing control plane or autonomous
+outreach: it proposes one next action and keeps contact, publishing, spend and contract changes behind
+human approval.
 
 ## Digital marketing capability families
 

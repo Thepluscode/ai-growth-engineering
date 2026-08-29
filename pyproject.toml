@@ -16,3 +16,6 @@ age = "ai_growth_engineering.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+ai_growth_engineering = ["static/*.html"]
