@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # area -> (subdirectories, capability-map domains that feed it)
 AREAS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "intelligence": (
-        ("market", "customer-voc", "competitor", "demand", "discovery"),
+        ("market", "customer-voc", "competitor", "demand", "discovery",
+         "product-opportunities"),
         ("1_market_intelligence",),
     ),
     "strategy": (

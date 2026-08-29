@@ -31,6 +31,13 @@ class CapabilityMapTests(unittest.TestCase):
                 "problem_query_maps",
                 "social_voice_of_customer",
                 "content_to_offer_learning_loop",
+                "product_opportunity_portfolio",
+                "product_opportunity_registry",
+                "product_build_gate",
+                "product_opportunity_ranking",
+                "idea_evidence_lineage",
+                "opportunity_graveyard",
+                "product_opportunity_analysis_workflow",
             },
             "2_strategy": {
                 "segmentation",
@@ -41,6 +48,9 @@ class CapabilityMapTests(unittest.TestCase):
                 "pricing_model",
                 "messaging_strategy",
                 "value_ladder_registry",
+                "product_format_decision_model",
+                "product_format_decision_registry",
+                "productisation_ladder",
             },
             "3_creative": {
                 "copy_creation",
@@ -113,6 +123,7 @@ class CapabilityMapTests(unittest.TestCase):
                 "growth_control_plane",
                 "generated_internal_tools",
                 "audit_trail",
+                "growth_command_center",
             },
         }
         for domain, expected in required.items():

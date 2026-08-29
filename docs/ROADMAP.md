@@ -46,6 +46,20 @@ Automate repeated internal work, not client-facing autonomy:
 
 All writes remain behind explicit approval/policy.
 
+## V0.3 — Product Opportunity Portfolio
+
+Implemented as an evidence and decision layer, not a product factory:
+
+- hard product build gate
+- opportunity and product-format registries
+- scoring only after eligibility
+- smallest-justified-format decision
+- Opportunity Graveyard with reopen conditions
+- validate at most the top three eligible candidates
+
+Current result: five existing offers were analysed and all remain in research. No candidate passes
+the product build gate, so there is no ranked top three and no new product build.
+
 ## V3 — Growth Control Plane Candidate
 
 Only if repeated customer workflows justify productisation:
@@ -58,6 +72,9 @@ Only if repeated customer workflows justify productisation:
 - approval workflows
 - audit / observability
 - data-governance controls
+
+The Growth Command Center remains backlog within this phase. It requires repeated, trustworthy
+operating data and a paid workflow need; it is not authorised by dashboard mockups or tool demos.
 
 ## Digital marketing capability families
 

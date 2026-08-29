@@ -93,6 +93,16 @@ value ladders. Funnel metrics judge qualified conversations, captured contacts, 
 views, likes and followers are not success measures in isolation. The supported experiment families
 are `EXP-SOCIAL-*`, `EXP-PROFILE-*`, `EXP-CONVERSATION-*` and `EXP-LIFECYCLE-*`.
 
+## Product opportunity system
+
+The product portfolio is an evidence gate, not an idea generator. Buyer, problem, evidence, demand,
+distribution, a measurable purchase action, validation test and economics are all mandatory before a
+candidate can be ranked. Failed tests are preserved with reopen conditions. Product format follows
+recurrence, data, state, automation, integration and ongoing value; software is not the default.
+
+The current portfolio contains the five existing offers. None passes the build gate, so none has a
+priority score and no new product build is authorised.
+
 ## Quick start
 
 ```bash
@@ -135,7 +145,7 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-capability_map.json         full Digital Marketing scope, 139 capabilities with build status
+capability_map.json         full Digital Marketing scope, 164 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
                             universal registries, experiment contract and unit economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)

@@ -1,8 +1,7 @@
 """Registries — where accumulated research becomes software memory rather than chat history.
 
-Twelve structurally similar registries are declared as field lists rather than hand-written
-modules. Together with the specialised customer-evidence and experiment registries, they
-form the fourteen memories required by the Digital Marketing architecture. The schema is the
+Structurally similar registries are declared as field lists rather than hand-written modules.
+Customer evidence and experiments retain specialised validation interfaces. The schema is the
 interface, and the repeated tables are generated from it.
 
 Adding a registry means adding one entry here. Nothing else changes.
@@ -136,10 +135,34 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
             "premium_offer_id", "recurring_offer_id", "expansion_offer_id", "status", "notes",
         ),
     ),
+    "product_opportunities": (
+        "product_opportunity_id",
+        ("buyer", "problem"),
+        (
+            "evidence_ids", "evidence_count", "demand_signal", "distribution_path",
+            "purchase_action", "validation_test", "economics_hypothesis",
+            "pain_severity", "frequency", "urgency", "buying_intent", "economic_value",
+            "existing_spend_pence", "existing_alternatives", "distribution_access",
+            "evidence_strength", "product_format", "expected_price_pence",
+            "expected_margin_rate", "build_effort", "delivery_effort", "support_burden",
+            "recurring_value", "expansion_potential", "validation_cost_pence",
+            "validation_speed_days", "validation_difficulty", "status", "decision",
+            "graveyard_reason", "decided_at", "reopen_condition",
+        ),
+    ),
+    "product_format_decisions": (
+        "format_decision_id",
+        ("product_opportunity_id", "recommended_format"),
+        (
+            "recurring_problem", "new_data_changes_answer", "saved_state_required",
+            "automation_improves_value", "integration_increases_value", "ongoing_value",
+            "rationale", "evidence_id", "decided_at",
+        ),
+    ),
 }
 
 # Architecture names -> physical tables. Evidence and experiments retain specialised
-# validation interfaces; the other eight use the generic add/rows interface below.
+# validation interfaces; the others use the generic add/rows interface below.
 REGISTRY_TABLES = {
     "customer_evidence": "evidence",
     "voc": "voc",
@@ -161,6 +184,8 @@ REGISTRY_TABLES = {
     "conversation_funnels": "conversation_funnels",
     "audience_ownership": "audience_ownership",
     "value_ladders": "value_ladders",
+    "product_opportunity_portfolio": "product_opportunities",
+    "product_format_decisions": "product_format_decisions",
 }
 
 # Fields whose name ends in these suffixes are stored as integers, so money and counts
@@ -173,9 +198,18 @@ INT_SUFFIXES = (
     "capacity", "committed", "_conversions",
 )
 
+INT_FIELDS = {
+    "evidence_count", "pain_severity", "frequency", "urgency", "buying_intent",
+    "economic_value", "distribution_access", "evidence_strength", "build_effort",
+    "delivery_effort", "support_burden", "recurring_value", "expansion_potential",
+    "validation_speed_days", "validation_difficulty", "recurring_problem",
+    "new_data_changes_answer", "saved_state_required", "automation_improves_value",
+    "integration_increases_value", "ongoing_value",
+}
+
 
 def _column_type(field: str) -> str:
-    if field.endswith(INT_SUFFIXES):
+    if field in INT_FIELDS or field.endswith(INT_SUFFIXES):
         return "INTEGER"
     if field.endswith("_rate") or field == "confidence":
         return "REAL"

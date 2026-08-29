@@ -1,12 +1,17 @@
 # Digital Marketing Project — Feature and Market Tracker
 
-Last updated: 2026-08-27
+Last updated: 2026-08-29
 
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
-| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 139 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
-| Fourteen software-memory registries | DEPLOYED | The original ten plus social profiles, conversation funnels, audience ownership and value ladders have typed schemas, tested write/read interfaces and in-place migration support |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 164 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Twenty-two software-memory registries | DEPLOYED | Twenty generated and two specialised registries now include product opportunities and product-format decisions; typed schemas, write/read interfaces, durable seeds and in-place migration are tested |
+| Product build gate | DEPLOYED | Non-compensatory code requires buyer, problem, unique evidence threshold, demand signal, distribution path, measurable purchase action, validation test and economics before scoring; high margin cannot override missing evidence |
+| Product format decision model | DEPLOYED | Deterministic tests choose static asset, interactive tool, manual service, software or subscription from recurrence, data, state, automation, integration and ongoing value |
+| Product opportunity portfolio | VERIFIED | Five existing offers loaded from durable seeds; all five return RESEARCH and zero are ranked. `intelligence/product-opportunities/PORTFOLIO.md` separates observed, inferred and unknown rather than padding the portfolio to 20–30 ideas |
+| Opportunity Graveyard | DEPLOYED | Parking preserves the idea, reason, date and observable reopen condition; current graveyard is empty because no product-level purchase test has failed |
+| Growth Command Center | BACKLOG | `HYPOTHESIS` only. No UI or subsystem built; promotion requires repeated trustworthy operating data and paid workflow evidence |
 | Universal experiment contract | DEPLOYED | One persisted contract covers all 13 experiment namespaces, evidence lineage, controls, metrics, economics, samples, budgets, thresholds, dates, decisions and learning |
 | Social conversion and attribution contract | DEPLOYED | Content, profile, DM, contact capture, offer, customer and revenue IDs share one lineage; deterministic tests cover funnel rates, audience capture, legacy schema migration and unknown denominators |
 | Unit and lifecycle economics decision layer | DEPLOYED | Integer-pence models distinguish CAC from contribution profit and add realised 30/90/365-day value, gross profit per acquired customer and expansion rate; deterministic tests cover edge cases |

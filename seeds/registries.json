@@ -452,6 +452,84 @@
       "cta": "mailto from theplus-tech.com and /workflow-audit"
     }
   ],
+  "product_opportunities": [
+    {
+      "product_opportunity_id": "OPP-GROWTH-LEAK-TEARDOWN",
+      "buyer": "Founder/MD of UK cyber/MSP",
+      "problem": "acquisition not becoming qualified pipeline",
+      "evidence_ids": "EV-ACQ-VERDICT-01;EV-ACQ-RECIPIENT-01;EV-OFFER-CONFLICT-01",
+      "evidence_count": 3,
+      "purchase_action": "meaningful reply requesting the teardown",
+      "validation_test": "Completed: 50 counted sends; KEEP at >=10% meaningful replies",
+      "status": "research",
+      "decision": "No build eligibility: 0/48 on the reachable route and no positive demand, viable distribution path, or economics hypothesis"
+    },
+    {
+      "product_opportunity_id": "OPP-PIPELINE-SPRINT",
+      "buyer": "Founder/MD of UK cyber/MSP",
+      "problem": "acquisition not becoming qualified pipeline",
+      "evidence_ids": "EV-ACQ-VERDICT-01;EV-OFFER-CONFLICT-01",
+      "evidence_count": 2,
+      "purchase_action": "signed paid sprint agreement",
+      "status": "research",
+      "decision": "No build eligibility: no buyer demand, reachable distribution path, fixed validation test, or economics hypothesis"
+    },
+    {
+      "product_opportunity_id": "OPP-AI-COMPLIANCE-DIAGNOSTIC",
+      "buyer": "Head of Risk / compliance owner",
+      "problem": "unclear which AI systems fall in scope",
+      "evidence_count": 0,
+      "purchase_action": "paid one-day diagnostic booking",
+      "expected_price_pence": 120000,
+      "status": "research",
+      "decision": "Idea only: a written offer and price are not demand evidence"
+    },
+    {
+      "product_opportunity_id": "OPP-ARCHITECTURE-ASSESSMENT",
+      "buyer": "Technical decision maker",
+      "problem": "consequential AI, payment, or security actions are ungoverned",
+      "evidence_count": 0,
+      "purchase_action": "signed paid assessment agreement",
+      "status": "research",
+      "decision": "Idea only: no buyer, demand, distribution, validation, or economics evidence"
+    },
+    {
+      "product_opportunity_id": "OPP-QUESTIONNAIRE-RESCUE-SPRINT",
+      "buyer": "Team whose enterprise deals are stalled on security questionnaires",
+      "problem": "trust answers and their evidence are rebuilt from scratch on every deal",
+      "evidence_ids": "EV-OFFER-REGISTRY-GAP-01;EV-OFFER-CONFLICT-01;EV-SITE-CONGRUENCE-02;EV-BASELINE-03",
+      "evidence_count": 4,
+      "distribution_path": "Owned site at approximately 47 visitors per month with no observed referrers",
+      "purchase_action": "signed GBP1,500 sprint agreement",
+      "validation_test": "Present the fixed-scope offer to 10 qualified buyers and require at least one paid agreement",
+      "expected_price_pence": 150000,
+      "distribution_access": 1,
+      "evidence_strength": 2,
+      "product_format": "manual_service",
+      "status": "research",
+      "decision": "No build eligibility: the offer exists, but demand and delivery economics are unobserved"
+    }
+  ],
+  "product_format_decisions": [
+    {
+      "format_decision_id": "FMT-GROWTH-LEAK-TEARDOWN-01",
+      "product_opportunity_id": "OPP-GROWTH-LEAK-TEARDOWN",
+      "recommended_format": "static_asset",
+      "rationale": "Keep the free teardown as a manually prepared asset; no repeated paid workflow supports software",
+      "evidence_id": "EV-ACQ-VERDICT-01",
+      "decided_at": "2026-08-29"
+    },
+    {
+      "format_decision_id": "FMT-QUESTIONNAIRE-RESCUE-01",
+      "product_opportunity_id": "OPP-QUESTIONNAIRE-RESCUE-SPRINT",
+      "recommended_format": "manual_service",
+      "recurring_problem": 1,
+      "ongoing_value": 1,
+      "rationale": "Deliver manually until paid work proves recurrence, changing data, saved state, automation, and integration value",
+      "evidence_id": "EV-OFFER-REGISTRY-GAP-01",
+      "decided_at": "2026-08-29"
+    }
+  ],
   "claims": [
     {
       "claim_id": "CLM-CR-001",

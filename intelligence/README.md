@@ -2,7 +2,7 @@
 
 # intelligence
 
-**Market intelligence** — 5 of 16 capabilities implemented.
+**Market intelligence** — 11 of 23 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -13,6 +13,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 - `competitor/`
 - `demand/`
 - `discovery/`
+- `product-opportunities/`
 
 ## Capabilities and honest status
 
@@ -20,7 +21,13 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | --- | --- |
 | `demand_evidence_score` | IMPLEMENTED |
 | `evidence_registry` | IMPLEMENTED |
+| `idea_evidence_lineage` | IMPLEMENTED |
+| `opportunity_graveyard` | IMPLEMENTED |
 | `pattern_extraction_registry` | IMPLEMENTED |
+| `product_build_gate` | IMPLEMENTED |
+| `product_opportunity_portfolio` | IMPLEMENTED |
+| `product_opportunity_ranking` | IMPLEMENTED |
+| `product_opportunity_registry` | IMPLEMENTED |
 | `prospect_registry` | IMPLEMENTED |
 | `social_voice_of_customer` | IMPLEMENTED |
 | `buyer_awareness_model` | HYPOTHESIS |
@@ -32,6 +39,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `market_research_workflow` | SPECIFIED |
 | `miracles_and_miseries` | HYPOTHESIS |
 | `problem_query_maps` | HYPOTHESIS |
+| `product_opportunity_analysis_workflow` | SPECIFIED |
 | `product_research` | HYPOTHESIS |
 | `voice_of_customer` | HYPOTHESIS |
 

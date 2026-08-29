@@ -31,7 +31,8 @@ class RegistryTests(unittest.TestCase):
         required = {
             "customer_evidence", "voc", "offers", "proof_inventory", "creatives",
             "channels", "competitor_patterns", "partners", "experiments",
-            "revenue_attribution", "economics", "claims",
+            "revenue_attribution", "economics", "claims", "product_opportunity_portfolio",
+            "product_format_decisions",
         }
         self.assertTrue(required <= set(registries.REGISTRY_TABLES),
                         f"missing: {sorted(required - set(registries.REGISTRY_TABLES))}")
@@ -71,6 +72,53 @@ class RegistryTests(unittest.TestCase):
                 for row in con.execute("PRAGMA table_info(attribution)")
             }
         self.assertEqual(attribution_types["revenue_pence"], "INTEGER")
+
+    def test_product_opportunity_contract_is_typed_and_persisted(self):
+        expected = {
+            "product_opportunity_id", "buyer", "problem", "evidence_ids", "evidence_count",
+            "demand_signal", "distribution_path", "purchase_action", "validation_test",
+            "economics_hypothesis", "pain_severity", "frequency", "urgency",
+            "buying_intent", "economic_value", "existing_spend_pence",
+            "existing_alternatives", "distribution_access", "evidence_strength",
+            "product_format", "expected_price_pence", "expected_margin_rate",
+            "build_effort", "delivery_effort", "support_burden", "recurring_value",
+            "expansion_potential", "validation_cost_pence", "validation_speed_days",
+            "validation_difficulty", "status", "decision", "graveyard_reason",
+            "decided_at", "reopen_condition",
+        }
+        self.assertTrue(expected <= set(registries.fields("product_opportunities")))
+        registries.add(self.db, "product_opportunities", {
+            "product_opportunity_id": "OPP-001", "buyer": "Operations lead",
+            "problem": "Repeated reconciliation", "evidence_count": 2,
+            "pain_severity": 4, "expected_price_pence": 200_000,
+            "expected_margin_rate": 0.7, "status": "validate",
+        })
+        row = registries.rows(self.db, "product_opportunities")[0]
+        self.assertEqual(row["evidence_count"], 2)
+        self.assertEqual(row["expected_price_pence"], 200_000)
+        self.assertEqual(row["expected_margin_rate"], 0.7)
+        with connect(self.db) as con:
+            types = {
+                item[1]: item[2]
+                for item in con.execute("PRAGMA table_info(product_opportunities)")
+            }
+        self.assertEqual(types["pain_severity"], "INTEGER")
+        self.assertEqual(types["expected_margin_rate"], "REAL")
+
+    def test_product_format_decision_contract_is_typed_and_persisted(self):
+        registries.add(self.db, "product_format_decisions", {
+            "format_decision_id": "FMT-001", "product_opportunity_id": "OPP-001",
+            "recommended_format": "manual_service", "recurring_problem": 1,
+            "ongoing_value": 1, "rationale": "Learn manually before automating",
+        })
+        row = registries.rows(self.db, "product_format_decisions")[0]
+        self.assertEqual(row["recurring_problem"], 1)
+        with connect(self.db) as con:
+            types = {
+                item[1]: item[2]
+                for item in con.execute("PRAGMA table_info(product_format_decisions)")
+            }
+        self.assertEqual(types["recurring_problem"], "INTEGER")
 
     def test_social_conversion_contracts_preserve_funnel_and_ownership_fields(self):
         self.assertTrue({
@@ -446,6 +494,8 @@ class SeedDurabilityTests(unittest.TestCase):
         self.assertGreaterEqual(loaded.get("evidence", 0), 5)
         self.assertGreaterEqual(loaded.get("channels", 0), 5)
         self.assertGreaterEqual(loaded.get("claims", 0), 5)
+        self.assertEqual(loaded.get("product_opportunities"), 5)
+        self.assertEqual(loaded.get("product_format_decisions"), 2)
 
     def test_seeding_is_idempotent(self):
         from ai_growth_engineering.registry import seed_registries
@@ -455,12 +505,16 @@ class SeedDurabilityTests(unittest.TestCase):
     def test_a_rebuild_restores_what_was_recorded(self):
         from ai_growth_engineering.registry import seed_registries
         seed_registries(self.db, self.seeds)
-        before = {k: len(registries.rows(self.db, k)) for k in ("channels", "offers", "claims")}
+        durable = (
+            "channels", "offers", "claims", "product_opportunities",
+            "product_format_decisions",
+        )
+        before = {k: len(registries.rows(self.db, k)) for k in durable}
 
         rebuilt = str(Path(self.tmp.name) / "rebuilt.db")   # simulates rm -rf .age
         init_db(rebuilt)
         seed_registries(rebuilt, self.seeds)
-        after = {k: len(registries.rows(rebuilt, k)) for k in ("channels", "offers", "claims")}
+        after = {k: len(registries.rows(rebuilt, k)) for k in durable}
 
         self.assertEqual(before, after)
         self.assertTrue(all(v > 0 for v in after.values()))

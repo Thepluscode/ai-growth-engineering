@@ -25,7 +25,14 @@
         "buying_committee_psychology": "HYPOTHESIS",
         "miracles_and_miseries": "HYPOTHESIS",
         "demand_evidence_score": "IMPLEMENTED",
-        "pattern_extraction_registry": "IMPLEMENTED"
+        "pattern_extraction_registry": "IMPLEMENTED",
+        "product_opportunity_portfolio": "IMPLEMENTED",
+        "product_opportunity_registry": "IMPLEMENTED",
+        "product_build_gate": "IMPLEMENTED",
+        "product_opportunity_ranking": "IMPLEMENTED",
+        "idea_evidence_lineage": "IMPLEMENTED",
+        "opportunity_graveyard": "IMPLEMENTED",
+        "product_opportunity_analysis_workflow": "SPECIFIED"
       }
     },
     "2_strategy": {
@@ -57,7 +64,10 @@
         "story_structure": "SPECIFIED",
         "earned_authority_model": "SPECIFIED",
         "trust_guardrail_metrics": "IMPLEMENTED",
-        "angle_performance_intelligence": "HYPOTHESIS"
+        "angle_performance_intelligence": "HYPOTHESIS",
+        "product_format_decision_model": "IMPLEMENTED",
+        "product_format_decision_registry": "IMPLEMENTED",
+        "productisation_ladder": "SPECIFIED"
       }
     },
     "3_creative": {
@@ -197,7 +207,8 @@
         "time_to_decision": "HYPOTHESIS",
         "time_to_action": "HYPOTHESIS",
         "audit_trail": "HYPOTHESIS",
-        "claim_publication_gate": "IMPLEMENTED"
+        "claim_publication_gate": "IMPLEMENTED",
+        "growth_command_center": "HYPOTHESIS"
       }
     }
   }

@@ -2,7 +2,7 @@
 
 # strategy
 
-**Strategy — positioning, offers, pricing, messaging** — 13 of 27 capabilities implemented.
+**Strategy — positioning, offers, pricing, messaging** — 15 of 30 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -26,6 +26,8 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `offer_registry` | IMPLEMENTED |
 | `offer_strength_score` | IMPLEMENTED |
 | `persuasion_integrity_gate` | IMPLEMENTED |
+| `product_format_decision_model` | IMPLEMENTED |
+| `product_format_decision_registry` | IMPLEMENTED |
 | `proof_inventory` | IMPLEMENTED |
 | `psychological_driver_map` | IMPLEMENTED |
 | `rule_of_one_gate` | IMPLEMENTED |
@@ -43,6 +45,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `persuasion_engineering_workflow` | SPECIFIED |
 | `positioning_model` | HYPOTHESIS |
 | `pricing_model` | HYPOTHESIS |
+| `productisation_ladder` | SPECIFIED |
 | `proof_hierarchy` | HYPOTHESIS |
 | `segmentation` | HYPOTHESIS |
 | `story_structure` | SPECIFIED |

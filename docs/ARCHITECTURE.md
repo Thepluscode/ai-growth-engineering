@@ -42,13 +42,13 @@ DIGITAL MARKETING PROJECT
 
 ## The capability map is the architecture of record
 
-`capability_map.json` holds all 139 capabilities of the Digital Marketing Project across the eight
+`capability_map.json` holds all 164 capabilities of the Digital Marketing Project across the eight
 domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
 covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
 (named and understood, nothing built).
 
 ```bash
-make capability-map     # current: IMPLEMENTED 43 · SPECIFIED 11 · HYPOTHESIS 85
+make capability-map     # current: IMPLEMENTED 61 · SPECIFIED 19 · HYPOTHESIS 84
 ```
 
 Scope is declared in that file, **not** in empty directories. A directory appears when a capability
@@ -133,7 +133,7 @@ channel automation.
 ### Software-memory registries
 
 `registries.py` defines the repeated schemas; customer evidence and experiments retain specialised
-validation interfaces. Together they provide fourteen registries:
+validation interfaces. Together they provide twenty-two registries:
 
 1. Customer evidence
 2. Offers
@@ -149,11 +149,40 @@ validation interfaces. Together they provide fourteen registries:
 12. Conversation funnels
 13. Audience ownership
 14. Value ladders
+15. Voice of customer
+16. Angles
+17. Belief shifts
+18. Psychological drivers
+19. Scarcity claims
+20. Economics
+21. Product opportunities
+22. Product format decisions
 
 Evidence keeps the observed statement, inference, confidence, observation date and commercial
 implication separate. Structured metadata preserves voice-of-customer context such as audience,
 problem, trigger, fear, desired outcome, objection, exact language and commercial intent.
 Experiment-to-evidence links are relational and foreign-key constrained.
+
+### Product opportunity contract
+
+Ideas do not become build commitments through an average score. `ProductBuildGate` requires every
+candidate to name a buyer, problem, minimum evidence set, positive demand signal, viable distribution
+path, measurable purchase action, fixed validation test, and economics hypothesis. A missing input
+returns the candidate to research; margin and excitement cannot compensate.
+
+Only gate-passing candidates can be ranked. The rank compares pain, frequency, urgency, buying
+intent, economic value, distribution access, and evidence strength against build, delivery, support,
+and validation costs. The lineage is preserved end to end:
+
+```text
+IDEA → EVIDENCE → OPPORTUNITY → OFFER → MINIMUM COMMERCIAL UNIT
+     → PURCHASE → USAGE → OUTCOME → EXPANSION
+```
+
+`ProductFormatSignals` chooses the smallest justified format from recurrence, changing data, saved
+state, automation, integration, and ongoing value. Productisation proceeds from insight through
+manual delivery before software. Failed tests enter the Opportunity Graveyard with a reason, date,
+and observable reopen condition; ideas are preserved, not deleted.
 
 ### Universal experiment contract
 
@@ -223,6 +252,7 @@ agentic. These contracts do not authorise channel integrations or autonomous act
 - AI-generated bulk outreach
 - autonomous social messaging or comment-to-DM automation
 - customer-facing dashboard
+- Growth Command Center
 - proprietary SaaS
 
 Those require repeated paid workflow evidence first.
