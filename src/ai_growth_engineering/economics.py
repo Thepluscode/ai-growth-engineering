@@ -163,3 +163,46 @@ def expansion_rate(e: LifecycleEconomics) -> float | None:
     if e.acquired_customers == 0:
         return None
     return e.expanded_customers / e.acquired_customers
+
+
+FUNNEL_STEPS = (
+    ("reply_rate", "Meaningful reply rate", "meaningful_responses", "outreach_sent"),
+    ("discovery_rate", "Discovery rate", "discovery_calls", "meaningful_responses"),
+    ("diagnostic_rate", "Diagnostic rate", "diagnostics_proposed", "discovery_calls"),
+    ("proposal_rate", "Proposal rate", "commercial_proposals", "diagnostics_proposed"),
+    ("win_rate", "Win rate", "paying_customers", "commercial_proposals"),
+    ("delivered_to_customer", "Delivered outreach to customer", "paying_customers", "outreach_sent"),
+)
+
+
+def funnel_rates(metrics: dict[str, int]) -> list[dict]:
+    """Conversion at each commercial step, with rate None when nothing was asked.
+
+    A zero denominator is not a rate of zero: 0 replies from 0 sends means the market
+    was never asked, while 0 replies from 50 sends is a measured zero. Collapsing the
+    two reads a delivery failure as a market rejection, which is how a live offer gets
+    killed by its own dashboard.
+    """
+    steps = []
+    for key, label, numerator_key, denominator_key in FUNNEL_STEPS:
+        numerator = int(metrics.get(numerator_key, 0))
+        denominator = int(metrics.get(denominator_key, 0))
+        steps.append({
+            "key": key,
+            "label": label,
+            "numerator": numerator,
+            "denominator": denominator,
+            "numerator_label": numerator_key,
+            "denominator_label": denominator_key,
+            "rate": None if denominator == 0 else numerator / denominator,
+            "observed": denominator > 0,
+        })
+    return steps
+
+
+def revenue_per_customer(metrics: dict[str, int]) -> int | None:
+    """None when no customer has paid — dividing revenue by zero customers is not £0."""
+    customers = int(metrics.get("paying_customers", 0))
+    if customers <= 0:
+        return None
+    return round(int(metrics.get("collected_revenue_pence", 0)) / customers)

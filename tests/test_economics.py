@@ -9,9 +9,11 @@ from ai_growth_engineering.economics import (
     cac,
     contribution_profit,
     expansion_rate,
+    funnel_rates,
     gross_profit_per_acquired_customer,
     ltv,
     payback_months,
+    revenue_per_customer,
     realised_ltv,
     scale_verdict,
 )
@@ -117,6 +119,70 @@ class LifecycleEconomicsTests(unittest.TestCase):
                 revenue_30d_pence=100,
                 revenue_90d_pence=90,
             ).validate()
+
+
+class FunnelRateTests(unittest.TestCase):
+    """The distinction that decides whether a live offer survives its own dashboard."""
+
+    BASE = {
+        "outreach_sent": 0, "meaningful_responses": 0, "discovery_calls": 0,
+        "diagnostics_proposed": 0, "commercial_proposals": 0, "paying_customers": 0,
+        "collected_revenue_pence": 0,
+    }
+
+    def rates(self, **overrides):
+        return {step["key"]: step for step in funnel_rates({**self.BASE, **overrides})}
+
+    def test_a_measured_zero_and_an_unasked_question_are_different(self):
+        asked = self.rates(outreach_sent=50, meaningful_responses=0)
+        self.assertEqual(asked["reply_rate"]["rate"], 0.0)
+        self.assertTrue(asked["reply_rate"]["observed"])
+
+        unasked = self.rates(outreach_sent=0, meaningful_responses=0)
+        self.assertIsNone(unasked["reply_rate"]["rate"])
+        self.assertFalse(unasked["reply_rate"]["observed"])
+
+    def test_normal_funnel_reports_each_step_against_the_step_above_it(self):
+        r = self.rates(
+            outreach_sent=100, meaningful_responses=20, discovery_calls=10,
+            diagnostics_proposed=5, commercial_proposals=4, paying_customers=1,
+        )
+        self.assertAlmostEqual(r["reply_rate"]["rate"], 0.20)
+        self.assertAlmostEqual(r["discovery_rate"]["rate"], 0.50)
+        self.assertAlmostEqual(r["diagnostic_rate"]["rate"], 0.50)
+        self.assertAlmostEqual(r["proposal_rate"]["rate"], 0.80)
+        self.assertAlmostEqual(r["win_rate"]["rate"], 0.25)
+        self.assertAlmostEqual(r["delivered_to_customer"]["rate"], 0.01)
+
+    def test_a_stalled_middle_does_not_hide_a_working_top(self):
+        r = self.rates(outreach_sent=40, meaningful_responses=6, discovery_calls=0)
+        self.assertAlmostEqual(r["reply_rate"]["rate"], 0.15)
+        self.assertEqual(r["discovery_rate"]["rate"], 0.0)
+        self.assertIsNone(r["proposal_rate"]["rate"])
+
+    def test_every_step_is_reported_even_when_nothing_has_happened(self):
+        steps = funnel_rates(dict(self.BASE))
+        self.assertEqual(len(steps), 6)
+        self.assertEqual(
+            [s["key"] for s in steps],
+            ["reply_rate", "discovery_rate", "diagnostic_rate",
+             "proposal_rate", "win_rate", "delivered_to_customer"],
+        )
+        self.assertTrue(all(s["rate"] is None for s in steps))
+
+    def test_missing_metrics_are_treated_as_zero_not_as_a_crash(self):
+        steps = funnel_rates({})
+        self.assertEqual(len(steps), 6)
+        self.assertTrue(all(s["rate"] is None for s in steps))
+
+    def test_revenue_per_customer_is_unknown_until_someone_pays(self):
+        self.assertIsNone(revenue_per_customer(dict(self.BASE)))
+        self.assertIsNone(revenue_per_customer({**self.BASE, "collected_revenue_pence": 500_000}))
+        self.assertEqual(
+            revenue_per_customer({**self.BASE, "paying_customers": 2,
+                                  "collected_revenue_pence": 500_000}),
+            250_000,
+        )
 
 
 if __name__ == "__main__":

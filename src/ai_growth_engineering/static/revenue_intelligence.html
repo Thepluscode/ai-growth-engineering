@@ -113,6 +113,20 @@
     .src .out.ok{color:var(--observed)}
     .src .out.no{color:var(--held)}
 
+    /* funnel: a rate that was measured reads as ink; one nobody asked for reads olive */
+    .step{display:grid;grid-template-columns:minmax(150px,1fr) minmax(160px,1.1fr) 92px 132px;gap:18px;align-items:center;padding:13px 22px;border-top:1px solid var(--rule-2)}
+    .ledger .step:first-child{border-top:0}
+    .step b{font:600 12px/1.35 var(--sans)}
+    .step .of{font:500 11px/1.4 var(--mono);color:var(--ink-2)}
+    .step .val{font:500 17px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right}
+    .step .val.none{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--pending)}
+    .step .track{position:relative;height:1px;background:var(--rule)}
+    .step .track s{position:absolute;top:-1px;left:0;height:3px;background:var(--ink);text-decoration:none}
+    .step[data-unasked] .track{background:none;border-top:1px dashed var(--rule)}
+    .gap{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);gap:18px;padding:13px 22px;border-top:1px solid var(--rule-2)}
+    .gap b{font:600 12px/1.35 var(--sans)}
+    .gap p{margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+    .gap .lbl{color:var(--pending)}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--rule)}
     .cell{padding:15px 22px;border-left:1px solid var(--rule-2);border-top:1px solid var(--rule-2)}
     .cell:nth-child(-n+4){border-top:0}
@@ -185,6 +199,8 @@
       .rec .gates{display:flex}
       .src{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
       .src .out{grid-column:1/-1;text-align:left}
+      .step{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 92px}
+      .step .track{grid-column:1/-1}
       .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .cell:nth-child(-n+4){border-top:1px solid var(--rule-2)}
       .cell:nth-child(-n+2){border-top:0}
@@ -209,7 +225,9 @@
       .alert{margin-left:14px;margin-right:14px}
       .rec{grid-template-columns:40px minmax(0,1fr);gap:12px;padding:13px 14px 13px 11px}
       .rec .col-mid{grid-column:2}
-      .src{grid-template-columns:minmax(0,1fr)}
+      .src,.step,.gap{grid-template-columns:minmax(0,1fr)}
+      .step{gap:7px}
+      .step .val{text-align:left}
       .duo{grid-template-columns:1fr}
       .duo > div{border-left:0;border-top:1px solid var(--rule)}
       .duo > div:first-child{border-top:0}
@@ -227,6 +245,7 @@
       <a href="#queue" aria-current="page">Queue</a>
       <a href="#held">Held by a gate</a>
       <a href="#sources">Sources</a>
+      <a href="#performance">Performance</a>
       <a href="#board">Scoreboard</a>
       <a href="/">Command center</a>
     </nav>
@@ -284,6 +303,16 @@
           <button type="button" class="btn" id="scan">Scan all sources</button>
         </div>
         <div class="ledger" id="source-ledger"><div class="void">Reading state.</div></div>
+      </section>
+
+      <section class="sec" id="performance">
+        <div class="sec-head">
+          <div>
+            <span class="lbl">Commercial performance</span>
+            <p>Conversion at each step, against the step above it. A rate needs a denominator: 0 replies from 50 sends is a measured zero, 0 from 0 is a question nobody asked, and the two are never shown the same way.</p>
+          </div>
+        </div>
+        <div class="ledger" id="funnel-ledger"></div>
       </section>
 
       <section class="sec" id="board">
@@ -425,6 +454,35 @@ function drawSources(rows){
       out.textContent=`${s.last_candidate_count} FOUND · ${stamp(s.last_scanned_at)}`}
     line.append(left,mid,out);return line;
   }));
+}
+
+function drawFunnel(steps,perCustomer){
+  const root=$('funnel-ledger');
+  root.replaceChildren(...steps.map(st=>{
+    const row=el('div','step');
+    if(!st.observed)row.dataset.unasked='';
+    row.append(el('b','',st.label));
+    row.append(el('span','of',`${st.numerator} of ${st.denominator} ${words(st.denominator_label)}`));
+    row.append(st.rate===null
+      ? el('span','val none','Not asked')
+      : el('span','val',`${(st.rate*100).toFixed(1)}%`));
+    const track=el('div','track');
+    if(st.rate!==null){const fill=el('s');fill.style.width=`${Math.min(100,st.rate*100)}%`;track.append(fill)}
+    row.append(track);
+    return row;
+  }));
+  const rev=el('div','gap');
+  rev.append(el('b','','Revenue per paying customer'),
+    el('p','',perCustomer===null||perCustomer===undefined
+      ? 'Unknown. No customer has paid, and dividing revenue by zero customers is not £0.'
+      : money(perCustomer)));
+  const missing=el('div','gap');
+  missing.append(el('b','','CAC, LTV and payback'));
+  const why=el('div');
+  why.append(el('span','lbl','Not derivable'));
+  why.append(el('p','','The engine computes these, but nothing here records acquisition spend, monthly revenue or churn. Until those are captured, the numbers would be invented rather than measured.'));
+  missing.append(why);
+  root.append(rev,missing);
 }
 
 function drawBoard(rows){
@@ -580,6 +638,7 @@ function paint(state,intel,sources){
   drawQueue(VIEW.buyers);
   drawHeld(intel.ineligible||[]);
   drawSources(sources);
+  drawFunnel(state.funnel||[],state.revenue_per_customer_pence);
   drawBoard(state.scoreboard||[]);
   drawLines('experiments',state.experiments||[],'experiment');
   drawLines('opportunities',state.opportunities||[],'opportunity');

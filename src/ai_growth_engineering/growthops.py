@@ -9,6 +9,7 @@ from datetime import date, datetime
 from typing import Any
 
 from . import registries
+from .economics import funnel_rates, revenue_per_customer
 from .product_opportunities import ProductBuildGate, opportunity_from_registry
 from .registry import reply_rate_by_route, scoreboard
 from .signal_store import ranked_prospects
@@ -72,6 +73,8 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
             }
             for key, value in metrics.items()
         ],
+        "funnel": funnel_rates(metrics),
+        "revenue_per_customer_pence": revenue_per_customer(metrics),
         "routes": _routes(db_path),
         "experiments": _experiments(db_path),
         "evidence": _evidence(db_path),

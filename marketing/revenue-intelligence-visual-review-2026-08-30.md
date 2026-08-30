@@ -83,6 +83,31 @@ than only in a stub.
 | Error | `/api/intelligence` forced to 503 at the fetch boundary | banner `State unavailable`; ledgers read "This is a failure to read state, not an absence of opportunity." |
 | Source failure | real DNS failure on a dead domain | per-source `FAILED`, sweep continued |
 
+## Commercial performance
+
+The funnel surface was verified against a fixture carrying all three states at once — 12
+delivered sends, 2 meaningful replies, 1 discovery call and nothing below it:
+
+```
+Meaningful reply rate            2 of 12 outreach sent          16.7%   ▬▬▬────────────
+Discovery rate                   1 of 2 meaningful responses    50.0%   ▬▬▬▬▬▬▬▬───────
+Diagnostic rate                  0 of 1 discovery calls          0.0%   ───────────────
+Proposal rate                    0 of 0 diagnostics proposed  NOT ASKED ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+Win rate                         0 of 0 commercial proposals  NOT ASKED ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+Delivered outreach to customer   0 of 12 outreach sent           0.0%   ───────────────
+```
+
+A measured zero sits on a solid track in ink; a question nobody asked sits on a dashed track
+in olive. They are the same shape and never the same reading. On an empty store all six steps
+render `NOT ASKED` rather than six zero percentages.
+
+`CAC, LTV and payback` render as **not derivable**, with the reason: the engine computes them,
+but nothing records acquisition spend, monthly revenue or churn. An absence with a cause is
+information; a zero would be a claim.
+
+Mutation check: making a zero denominator report `0.0` turns four funnel tests red. Restored
+clean.
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.

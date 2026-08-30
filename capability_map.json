@@ -185,6 +185,7 @@
       "title": "Measurement and unit economics",
       "capabilities": {
         "revenue_scoreboard": "IMPLEMENTED",
+        "commercial_funnel_rates": "IMPLEMENTED",
         "contribution_profit_over_vanity": "SPECIFIED",
         "allowable_cac": "IMPLEMENTED",
         "qualified_opportunity_cac": "HYPOTHESIS",
