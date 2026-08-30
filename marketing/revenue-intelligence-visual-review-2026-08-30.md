@@ -108,6 +108,29 @@ information; a zero would be a claim.
 Mutation check: making a zero denominator report `0.0` turns four funnel tests red. Restored
 clean.
 
+## Density pass
+
+The screen was crowded with prose. Every section carried a two-to-three-line paragraph
+explaining doctrine before the reader reached any data — including one that explained the
+funnel's zero-denominator rule on screen, which is a design decision belonging in this document
+rather than in the interface. An operator who opens this daily does not need to be told what a
+gate is each morning.
+
+All of it was cut: seven section paragraphs, four readout captions, and the title/body pairs in
+every empty state. Measured at 1440 px against the same fixture:
+
+| | Before | After |
+| --- | ---: | ---: |
+| Prose characters on the sheet | 1210 | 114 |
+| Prose blocks | 15 | 4 |
+| Page height | 1721 px | 1405 px |
+| Data rows | 21 | 21 |
+
+The four remaining fragments are all data, not explanation: two unknowns stating their cause
+("Unknown — nobody has paid", "Not derivable — no spend, revenue or churn recorded") and two
+empty states. Nothing informational was lost — the data-row count is unchanged, and the held
+rows still carry every gate reason as a chip, at both viewports.
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.

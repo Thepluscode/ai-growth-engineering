@@ -50,11 +50,10 @@
 
     /* readout: one dense instrument line, not a row of cards */
     .readout{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--rule);background:var(--surface)}
-    .readout div{flex:1 1 130px;min-width:0;padding:12px 22px;border-left:1px solid var(--rule-2)}
+    .readout div{flex:1 1 130px;min-width:0;padding:11px 22px 12px;border-left:1px solid var(--rule-2)}
     .readout div:first-child{border-left:0}
     .readout span{display:block;margin-bottom:5px}
     .readout strong{display:block;font:500 19px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-    .readout em{display:block;margin-top:4px;font:400 10px/1.4 var(--sans);font-style:normal;color:var(--ink-3)}
     .readout strong.held{color:var(--held)}
 
     .sheet{padding:0 0 60px}
@@ -64,8 +63,7 @@
     .alert span{display:block;margin-top:6px;font-size:12px;color:var(--ink-2)}
 
     .sec{border-bottom:1px solid var(--rule)}
-    .sec-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px 9px}
-    .sec-head p{max-width:64ch;margin:5px 0 0;font-size:11px;color:var(--ink-2)}
+    .sec-head{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:42px;padding:13px 22px 11px}
     .btn{display:inline-flex;align-items:center;gap:7px;height:27px;padding:0 11px;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:#fff;font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;cursor:pointer}
     .btn:hover{background:#000}
     .btn[disabled]{border-color:var(--rule);background:var(--wash);color:var(--ink-3);cursor:default}
@@ -95,7 +93,7 @@
     .flag.pend{border-color:#e6dcc0;background:var(--pending-wash);color:var(--pending)}
     .flag.no{border-color:#e8cfc6;background:var(--held-wash);color:var(--held)}
     .auth{font:600 9px/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--pending);text-align:right}
-    .void{padding:26px 22px;font-size:12px;color:var(--ink-2);background:var(--surface);border-top:1px solid var(--rule)}
+    .void{padding:20px 22px;font-size:12px;color:var(--ink-2);background:var(--surface);border-top:1px solid var(--rule)}
     .void b{display:block;margin-bottom:4px;font:600 10px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
 
     /* measured tick: confidence as an instrument reading, not a progress bar */
@@ -126,7 +124,7 @@
     .gap{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);gap:18px;padding:13px 22px;border-top:1px solid var(--rule-2)}
     .gap b{font:600 12px/1.35 var(--sans)}
     .gap p{margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
-    .gap .lbl{color:var(--pending)}
+    .gap .none{color:var(--pending)}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface);border-top:1px solid var(--rule)}
     .cell{padding:15px 22px;border-left:1px solid var(--rule-2);border-top:1px solid var(--rule-2)}
     .cell:nth-child(-n+4){border-top:0}
@@ -265,10 +263,10 @@
     </header>
 
     <div class="readout">
-      <div><span class="lbl">Queued</span><strong id="n-queued">—</strong><em>passed every gate</em></div>
-      <div><span class="lbl">Held</span><strong class="held" id="n-held">—</strong><em>excluded, not discarded</em></div>
-      <div><span class="lbl">Signals</span><strong id="n-signals">—</strong><em>observed and stored</em></div>
-      <div><span class="lbl">Sources</span><strong id="n-sources">—</strong><em>saved careers pages</em></div>
+      <div><span class="lbl">Queued</span><strong id="n-queued">—</strong></div>
+      <div><span class="lbl">Held</span><strong class="held" id="n-held">—</strong></div>
+      <div><span class="lbl">Signals</span><strong id="n-signals">—</strong></div>
+      <div><span class="lbl">Sources</span><strong id="n-sources">—</strong></div>
     </div>
 
     <div class="sheet">
@@ -278,7 +276,6 @@
         <div class="sec-head">
           <div>
             <span class="lbl">Queue</span>
-            <p>Ranked after identity, reachability, ICP fit, evidence and suppression all pass. Open a record to read the evidence behind it.</p>
           </div>
         </div>
         <div class="ledger" id="queue-ledger"><div class="void">Reading state.</div></div>
@@ -288,7 +285,6 @@
         <div class="sec-head">
           <div>
             <span class="lbl">Held by a gate</span>
-            <p>Each gate is absolute. A strong signal cannot compensate for a failed one, so these stay visible instead of disappearing.</p>
           </div>
         </div>
         <div class="ledger" id="held-ledger"><div class="void">Reading state.</div></div>
@@ -298,7 +294,6 @@
         <div class="sec-head">
           <div>
             <span class="lbl">Sources</span>
-            <p>Saved public careers pages. Scanning reads them and proposes candidates; nothing is recorded until you review it in the command center.</p>
           </div>
           <button type="button" class="btn" id="scan">Scan all sources</button>
         </div>
@@ -309,24 +304,23 @@
         <div class="sec-head">
           <div>
             <span class="lbl">Commercial performance</span>
-            <p>Conversion at each step, against the step above it. A rate needs a denominator: 0 replies from 50 sends is a measured zero, 0 from 0 is a question nobody asked, and the two are never shown the same way.</p>
           </div>
         </div>
         <div class="ledger" id="funnel-ledger"></div>
       </section>
 
       <section class="sec" id="board">
-        <div class="sec-head"><div><span class="lbl">Scoreboard</span><p>Progression toward revenue, held next to the intelligence that is meant to move it.</p></div></div>
+        <div class="sec-head"><div><span class="lbl">Scoreboard</span></div></div>
         <div class="grid" id="board-grid"></div>
       </section>
 
       <section class="sec duo">
         <div>
-          <div class="sec-head"><div><span class="lbl">Experiments</span><p>Contract before result.</p></div></div>
+          <div class="sec-head"><div><span class="lbl">Experiments</span></div></div>
           <div id="experiments"></div>
         </div>
         <div>
-          <div class="sec-head"><div><span class="lbl">Product opportunities</span><p>Gate before score.</p></div></div>
+          <div class="sec-head"><div><span class="lbl">Product opportunities</span></div></div>
           <div id="opportunities"></div>
         </div>
       </section>
@@ -422,26 +416,25 @@ function heldRecord(row){
   return rec;
 }
 
-function empty(root,title,body){
-  const v=el('div','void');v.append(el('b','',title),el('span','',body));
-  root.replaceChildren(v);
+function empty(root,text){
+  root.replaceChildren(el('div','void',text));
 }
 
 function drawQueue(rows){
   const root=$('queue-ledger');
-  if(!rows.length)return empty(root,'Queue empty','No buyer has passed every gate. The queue stays empty rather than inventing an opportunity.');
+  if(!rows.length)return empty(root,'Nothing has passed every gate.');
   root.replaceChildren(...rows.map(record));
 }
 
 function drawHeld(rows){
   const root=$('held-ledger');
-  if(!rows.length)return empty(root,'Nothing held','No prospect is currently excluded by a gate.');
+  if(!rows.length)return empty(root,'Nothing excluded.');
   root.replaceChildren(...rows.map(heldRecord));
 }
 
 function drawSources(rows){
   const root=$('source-ledger');
-  if(!rows.length)return empty(root,'No sources saved','Save a public careers page and the next scan has something to read.');
+  if(!rows.length)return empty(root,'No sources saved.');
   root.replaceChildren(...rows.map(s=>{
     const line=el('div','src'),left=el('div');
     left.append(el('b','',s.company));
@@ -473,15 +466,10 @@ function drawFunnel(steps,perCustomer){
   }));
   const rev=el('div','gap');
   rev.append(el('b','','Revenue per paying customer'),
-    el('p','',perCustomer===null||perCustomer===undefined
-      ? 'Unknown. No customer has paid, and dividing revenue by zero customers is not £0.'
-      : money(perCustomer)));
+    el('p','',perCustomer===null||perCustomer===undefined?'Unknown — nobody has paid.':money(perCustomer)));
   const missing=el('div','gap');
-  missing.append(el('b','','CAC, LTV and payback'));
-  const why=el('div');
-  why.append(el('span','lbl','Not derivable'));
-  why.append(el('p','','The engine computes these, but nothing here records acquisition spend, monthly revenue or churn. Until those are captured, the numbers would be invented rather than measured.'));
-  missing.append(why);
+  missing.append(el('b','','CAC, LTV and payback'),
+    el('p','none','Not derivable — no spend, revenue or churn recorded.'));
   root.append(rev,missing);
 }
 
@@ -499,8 +487,7 @@ function drawBoard(rows){
 
 function drawLines(id,rows,kind){
   const root=$(id);
-  if(!rows.length)return empty(root,kind==='experiment'?'None preregistered':'None recorded',
-    kind==='experiment'?'An experiment needs its contract before it can have a result.':'A product opportunity needs its gate before it can have a score.');
+  if(!rows.length)return empty(root,kind==='experiment'?'None preregistered.':'None recorded.');
   root.replaceChildren(...rows.slice(0,6).map(r=>{
     const line=el('div','line'),left=el('div');
     if(kind==='experiment'){left.append(el('b','',r.experiment_id),el('span','',r.hypothesis));
@@ -526,7 +513,7 @@ function dossOverview(b){
    ['Identity',b.identity?`${words(b.identity.verification_status)} — ${b.identity.identity_type}`:'Unresolved'],
    ['Route',words(b.recommended_channel)],
   ].forEach(([k,v])=>dl.append(el('dt','',k),el('dd','',v)));
-  return blk('Overview',dl,el('p','note','Priority ranks urgency and evidence quality. It does not estimate whether this buyer will purchase.'));
+  return blk('Overview',dl,el('p','note','Priority ranks urgency and evidence, not likelihood of purchase.'));
 }
 
 function dossWhy(b){
@@ -542,7 +529,7 @@ function dossWhy(b){
 function dossTimeline(b){
   const rows=VIEW.signals.filter(s=>s.prospect_id===b.prospect_id)
     .slice().sort((a,c)=>String(c.observed_at).localeCompare(String(a.observed_at)));
-  if(!rows.length)return blk('Signal history',el('p','note','No signal has been observed for this prospect.'));
+  if(!rows.length)return blk('Signal history',el('p','note','None observed.'));
   const ol=el('ol','tl');
   rows.forEach(s=>{
     const li=el('li');
@@ -561,7 +548,7 @@ function dossUnknowns(b){
   else if(b.identity.verification_status!=='verified')rows.push(['Deliverability of this identity','UNVERIFIED']);
   rows.push(['Current GTM stack','UNKNOWN'],['Budget','UNKNOWN'],['Incumbent vendor','UNKNOWN'],['Buying authority','UNKNOWN']);
   rows.forEach(([k,v])=>dl.append(el('dt','',k),el('dd','',v)));
-  return blk('Unknowns',dl,el('p','note','Listed because deciding without them is a different decision from deciding with them.'));
+  return blk('Unknowns',dl);
 }
 
 function dossChain(b){
@@ -593,7 +580,7 @@ function dossAction(b){
    ['Angle',b.suggested_angle||'Not derived'],['Authority','R3 — approval required']]
     .forEach(([k,v])=>dl.append(el('dt','',k),el('dd','',v)));
   return blk('Recommended action',dl,
-    el('div','stop','This screen cannot contact anyone. Preparing and sending happen in the command center, after you approve them.'));
+    el('div','stop','Sending happens in the command center, after approval.'));
 }
 
 function openDossier(index,from){
@@ -623,7 +610,7 @@ function stall(message){
   a.replaceChildren(el('b','','State unavailable'),el('span','',message));
   a.dataset.shown='';
   ['queue-ledger','held-ledger','source-ledger'].forEach(id=>
-    empty($(id),'Not readable','This is a failure to read state, not an absence of opportunity. Retry once the server responds.'));
+    empty($(id),'Not readable — this is a failed read, not an empty result.'));
 }
 
 function paint(state,intel,sources){
