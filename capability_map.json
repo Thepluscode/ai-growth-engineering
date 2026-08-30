@@ -32,7 +32,16 @@
         "product_opportunity_ranking": "IMPLEMENTED",
         "idea_evidence_lineage": "IMPLEMENTED",
         "opportunity_graveyard": "IMPLEMENTED",
-        "product_opportunity_analysis_workflow": "SPECIFIED"
+        "product_opportunity_analysis_workflow": "SPECIFIED",
+        "intent_signal_store": "IMPLEMENTED",
+        "signal_freshness_decay": "IMPLEMENTED",
+        "prospect_eligibility_gate": "IMPLEMENTED",
+        "intent_icp_priority_engine": "IMPLEMENTED",
+        "identity_resolution_store": "IMPLEMENTED",
+        "signal_to_revenue_lineage": "IMPLEMENTED",
+        "external_signal_connectors": "HYPOTHESIS",
+        "enrichment_provider_adapters": "HYPOTHESIS",
+        "tenant_safe_pattern_learning": "HYPOTHESIS"
       }
     },
     "2_strategy": {
@@ -127,7 +136,8 @@
         "partner_registry": "IMPLEMENTED",
         "partner_attribution": "HYPOTHESIS",
         "revenue_per_partner": "HYPOTHESIS",
-        "performance_partnerships": "HYPOTHESIS"
+        "performance_partnerships": "HYPOTHESIS",
+        "external_execution_adapters": "HYPOTHESIS"
       }
     },
     "5_conversion": {
@@ -209,7 +219,8 @@
         "time_to_action": "HYPOTHESIS",
         "audit_trail": "HYPOTHESIS",
         "claim_publication_gate": "IMPLEMENTED",
-        "growth_command_center": "IMPLEMENTED"
+        "growth_command_center": "IMPLEMENTED",
+        "evidence_governed_revenue_intelligence": "IMPLEMENTED"
       }
     }
   }
