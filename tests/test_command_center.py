@@ -54,6 +54,9 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertIn("/api/state", html)
         self.assertIn("/api/intelligence", html)
         self.assertIn("/api/signals/sources", html)
+        # unobserved prospects are summarised, not rendered as sixty identical rows
+        self.assertIn("No observed intent event", html)
+        self.assertIn("not yet looked at", html)
         for surface in ('id="dossier"', 'role="dialog"', "Signal history", 'id="held-ledger"', 'id="source-ledger"'):
             self.assertIn(surface, html)
         # scanning a public page is a read; contacting a person is not, and none of

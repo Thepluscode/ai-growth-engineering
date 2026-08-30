@@ -433,10 +433,19 @@ function drawQueue(rows){
   root.replaceChildren(...rows.map(record));
 }
 
+const UNOBSERVED='No observed intent event';
+
 function drawHeld(rows){
   const root=$('held-ledger');
   if(!rows.length)return empty(root,'Nothing excluded.');
-  root.replaceChildren(...rows.map(heldRecord));
+  // A prospect nobody has observed yet is not the same fact as one a gate rejected.
+  // Rendering 60 identical "no signal" rows buries the handful that were actually held.
+  const gated=rows.filter(r=>(r.reasons||[]).some(x=>x!==UNOBSERVED));
+  const unobserved=rows.length-gated.length;
+  const nodes=gated.slice(0,25).map(heldRecord);
+  if(gated.length>25)nodes.push(el('div','void',`${gated.length-25} more held by a gate.`));
+  if(unobserved)nodes.push(el('div','void',`${unobserved} prospects carry no observed signal yet. Not held by a gate — not yet looked at.`));
+  root.replaceChildren(...nodes);
 }
 
 function drawSources(rows){

@@ -170,6 +170,68 @@ nothing to rank, and that is the honest state: the schedule is the mechanism, so
 input, and three is not enough. Widening the source list is the next move, not another
 mechanism.
 
+## Careers-page discovery across the prospect list
+
+`age discover-sources` reads each prospect's home page, finds careers links by path **and** by
+link text (plenty of sites route careers through a CMS slug no path pattern would catch, while
+the link still says "Join us"), scans the best one, and keeps a source only where a commercial
+vacancy is published.
+
+Run across all 51 non-disqualified prospects on 2026-08-30 — the 12 disqualified were skipped
+because a disqualified prospect cannot enter the queue anyway, and sweeping them would spend
+somebody else's bandwidth for nothing:
+
+| Outcome | Count |
+| --- | ---: |
+| Published a commercial role → **kept** | 3 |
+| Careers page read, no commercial vacancy | 29 |
+| No careers link on the home page | 16 |
+| Site unreachable | 3 |
+
+Kept: Atlas Cloud (`Customer Success Manager (CSM)`), Blue Frontier (`Digital Marketing`),
+The HBP Group (`Sales Careers at The HBP Group`). All three are seeded in
+`seeds/registries.json` and swept into three candidates awaiting review.
+
+Those four outcomes stay distinct on purpose. An unreachable host reported as "not hiring" is a
+market answer that was never given — the same false-negative shape that nearly killed a live
+offer at n=6. Mutating `site_unreachable` to report `no_commercial_role` turns that test red.
+
+### A defect the first run surfaced
+
+The first pass reported Atlas Cloud's vacancy title as roughly three thousand characters of body
+copy. Its careers page wraps an entire job card in one anchor, and the careers-link branch took
+the whole anchor text as the title — which would have written a paragraph into the observed fact
+and from there into the evidence chain.
+
+The fix has two bounds: cut at the first job-card field label (`Department:`, `Full Time`, `£`,
+`About`, and similar conventional labels, not one site's markup), then at a hard 90-character cap.
+Titles went from ~3000 characters to 30. It also removed two false positives that only passed
+because the blob contained commercial words in its body copy — a `Virtual Chief Information
+Officer` and an `IT Solutions Presales Engineer` are not commercial roles, and both are now
+correctly rejected. The first run's data was discarded and discovery re-run clean.
+
+**Both bounds initially survived mutation.** The first version of these tests asserted nothing
+that pinned them: one duplicated a check `_candidate_from_record` already made, and the other
+used a fixture containing a field label, so the character cap never engaged. The redundant check
+was removed — one enforcement point beats two, because a duplicated guard is a guard nobody can
+mutation-test — and a label-free fixture was added. Both mutations now kill precisely.
+
+### Held versus never observed
+
+Against the real store the held ledger rendered all 63 prospects, 51 of them saying only
+"No observed intent event". That is not a gate rejecting a prospect; it is a prospect nobody has
+looked at, and rendering the two identically buried the twelve that were genuinely disqualified.
+The ledger now lists the gated rows with their real reasons and summarises the rest:
+`51 prospects carry no observed signal yet. Not held by a gate — not yet looked at.`
+
+### What this does not achieve
+
+**The queue is still zero.** Three candidates awaiting review are not three ranked buyers: a
+candidate is not a signal, and a signal without a resolved identity is not a reachable buyer.
+Sixteen prospects exposing no careers link is also a real ceiling — a third of the list — most
+likely JavaScript-rendered navigation or careers hosted on a subdomain, neither of which this
+connector reads.
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.

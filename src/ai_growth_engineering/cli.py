@@ -9,6 +9,7 @@ from .growthops import TARGETS
 from .hiring_signal_connector import (
     DEFAULT_MIN_INTERVAL_HOURS,
     add_hiring_source,
+    discover_hiring_sources,
     list_hiring_sources,
     pending_hiring_candidates,
     scan_saved_hiring_sources,
@@ -168,6 +169,30 @@ def cmd_source_add(args: argparse.Namespace) -> None:
     print(f"saved source {saved['source_id']} for {saved['company']}: {saved['source_url']}")
 
 
+def cmd_discover_sources(args: argparse.Namespace) -> None:
+    """Find each prospect's careers page and report which publish a commercial role."""
+    result = discover_hiring_sources(
+        args.db,
+        pause_seconds=args.pause_seconds,
+        include_disqualified=args.include_disqualified,
+        save=args.save,
+        limit=args.limit,
+    )
+    order = ["commercial_role_published", "no_commercial_role", "no_careers_link",
+             "careers_page_unreachable", "site_unreachable"]
+    for row in result["results"]:
+        if row["outcome"] == "commercial_role_published":
+            titles = "; ".join(row["titles"])
+            print(f"  HIRING  {row['company']}: {row['careers_url']} -> {titles} [{row['detail']}]")
+    print(f"\n{result['prospect_count']} prospects checked at {result['checked_at']}")
+    for name in order:
+        count = result["outcomes"].get(name, 0)
+        if count:
+            print(f"  {name:26} {count}")
+    if not args.save:
+        print("\nnothing saved; re-run with --save to keep the sources that published a role")
+
+
 def cmd_sweep_sources(args: argparse.Namespace) -> None:
     """Unattended entry point. Exit non-zero only when nothing could be scanned."""
     sources = list_hiring_sources(args.db)
@@ -313,6 +338,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--source-url", required=True)
     p.add_argument("--label", default="")
     p.set_defaults(func=cmd_source_add)
+
+    p = sub.add_parser("discover-sources"); dbarg(p)
+    p.add_argument("--save", action="store_true",
+                   help="keep a source for each prospect that published a commercial role")
+    p.add_argument("--pause-seconds", type=float, default=1.5)
+    p.add_argument("--include-disqualified", action="store_true")
+    p.add_argument("--limit", type=int, default=None)
+    p.set_defaults(func=cmd_discover_sources)
 
     p = sub.add_parser("sweep-sources"); dbarg(p)
     p.add_argument("--min-interval-hours", type=float, default=DEFAULT_MIN_INTERVAL_HOURS,

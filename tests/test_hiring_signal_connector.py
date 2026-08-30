@@ -9,6 +9,8 @@ from pathlib import Path
 from ai_growth_engineering.hiring_signal_connector import (
     PublicHiringSignalConnector,
     add_hiring_source,
+    discover_careers_urls,
+    discover_hiring_sources,
     extract_hiring_signal_candidates,
     list_hiring_sources,
     pending_hiring_candidates,
@@ -16,7 +18,11 @@ from ai_growth_engineering.hiring_signal_connector import (
     scan_saved_hiring_sources,
     set_candidate_status,
 )
-from ai_growth_engineering.signal_intelligence import IntelligenceError, add_intent_signal
+from ai_growth_engineering.signal_intelligence import (
+    IntelligenceError,
+    PublicHTMLDocument,
+    add_intent_signal,
+)
 from ai_growth_engineering.storage import connect, init_db
 
 
@@ -382,6 +388,169 @@ class ScheduledSweepTests(unittest.TestCase):
             set_candidate_status(self.db, "HIRE-NOPE", "dismissed")
         with self.assertRaisesRegex(IntelligenceError, "must be pending"):
             set_candidate_status(self.db, "HIRE-NOPE", "banished")
+
+
+class TitleBoundaryTests(unittest.TestCase):
+    """A careers page that wraps a whole job card in one anchor must not put a
+    paragraph into the title, and must not qualify on a word buried in prose."""
+
+    def candidates(self, html):
+        return extract_hiring_signal_candidates(
+            html, "https://acme.example/careers", "Acme", observed_at=NOW
+        )
+
+    def test_a_job_card_in_one_anchor_yields_a_bounded_title(self):
+        body = "Atlas is a managed IT provider founded in 2010 and we do many things. " * 40
+        html = f'<a href="/careers/csm">Customer Success Manager Department: Sales {body}</a>'
+        found = self.candidates(html)
+        self.assertEqual(len(found), 1)
+        self.assertLessEqual(len(found[0].title), 90)
+        self.assertTrue(found[0].title.startswith("Customer Success Manager"))
+        self.assertNotIn("founded in 2010", found[0].observed_fact)
+
+    def test_a_commercial_word_buried_in_prose_is_not_a_vacancy(self):
+        prose = "We care deeply about our people and our culture. " * 8
+        html = f'<a href="/careers/culture">{prose} Our sales team is great.</a>'
+        self.assertEqual(self.candidates(html), [])
+
+    def test_the_character_cap_bounds_a_card_with_no_field_labels(self):
+        # No "Department:" or "Full Time" here, so only the hard cap can stop it.
+        run_on = "Head of Sales and also many other words that keep going and going " * 20
+        found = self.candidates(f'<a href="/careers/x">{run_on}</a>')
+        self.assertEqual(len(found), 1)
+        self.assertLessEqual(len(found[0].title), 90)
+        self.assertLess(len(found[0].observed_fact), 200)
+
+    def test_a_normal_short_title_is_untouched(self):
+        found = self.candidates('<a href="/careers/vp-sales">VP of Sales, UK</a>')
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].title, "VP of Sales, UK")
+
+    def test_an_empty_anchor_is_not_a_vacancy(self):
+        self.assertEqual(self.candidates('<a href="/careers/x"></a>'), [])
+
+
+class CareersDiscoveryTests(unittest.TestCase):
+    def test_a_careers_page_is_found_by_path_or_by_link_text(self):
+        html = (
+            '<a href="/about">About us</a>'
+            '<a href="/careers/">Careers</a>'
+            '<a href="/company/work-with-us">Work with us</a>'
+            '<a href="/who-we-are">Join us</a>'
+        )
+        found = discover_careers_urls(html, "https://example.com/")
+        self.assertIn("https://example.com/careers", found)
+        self.assertIn("https://example.com/who-we-are", found)
+        self.assertNotIn("https://example.com/about", found)
+
+    def test_the_index_outranks_a_single_vacancy(self):
+        html = (
+            '<a href="/careers/senior-account-executive-london">A role</a>'
+            '<a href="/careers/">Careers</a>'
+        )
+        self.assertEqual(discover_careers_urls(html, "https://example.com/")[0],
+                         "https://example.com/careers")
+
+    def test_offsite_boards_and_unsafe_targets_are_not_followed(self):
+        html = (
+            '<a href="https://boards.greenhouse.io/acme">Jobs</a>'
+            '<a href="http://127.0.0.1/careers">Careers</a>'
+            '<a href="mailto:jobs@example.com">Jobs</a>'
+            '<a href="/careers">Careers</a>'
+        )
+        self.assertEqual(discover_careers_urls(html, "https://example.com/"),
+                         ["https://example.com/careers"])
+
+    def test_a_page_with_no_careers_link_yields_nothing(self):
+        self.assertEqual(discover_careers_urls('<a href="/pricing">Pricing</a>', "https://x.com/"), [])
+
+
+class DiscoveryOutcomeTests(unittest.TestCase):
+    """Four different facts must not collapse into one."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "growth.db")
+        init_db(self.db)
+        rows = [
+            (1, "Hiring Ltd", "https://hiring.example/", "qualified"),
+            (2, "Quiet Ltd", "https://quiet.example/", "qualified"),
+            (3, "Opaque Ltd", "https://opaque.example/", "qualified"),
+            (4, "Down Ltd", "https://down.example/", "qualified"),
+            (5, "Dropped Ltd", "https://dropped.example/", "disqualified_market_fit"),
+        ]
+        with connect(self.db) as con:
+            for pid, company, site, status in rows:
+                con.execute(
+                    """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                             evidence, source_url, status)
+                       VALUES (?, ?, ?, 'A', 'Revenue leader', 'Public B2B offer', ?, ?)""",
+                    (pid, company, site, site + "about", status),
+                )
+
+    def fetcher(self, url):
+        pages = {
+            "https://hiring.example/": '<a href="/careers">Careers</a>',
+            "https://quiet.example/": '<a href="/careers">Careers</a>',
+            "https://opaque.example/": '<a href="/pricing">Pricing</a>',
+        }
+        if url not in pages:
+            raise IntelligenceError("source_fetch_failed", "Public page inspection failed")
+        return PublicHTMLDocument(url, pages[url])
+
+    def connector(self):
+        candidate = extract_hiring_signal_candidates(
+            structured_page({"@type": "JobPosting", "title": "VP Sales",
+                             "url": "/jobs/vp-sales", "datePosted": "2026-08-29"}),
+            SOURCE, "Hiring Ltd", observed_at=NOW,
+        )[0]
+
+        class Stub:
+            def scan(self, source_url, company, *, observed_at=None, max_age_days=45):
+                return [candidate] if "hiring.example" in source_url else []
+
+        return Stub()
+
+    def test_each_prospect_lands_in_exactly_one_distinct_outcome(self):
+        result = discover_hiring_sources(
+            self.db, connector=self.connector(), fetcher=self.fetcher, observed_at=NOW,
+        )
+        self.assertEqual(result["prospect_count"], 4, "disqualified prospects are not swept")
+        self.assertEqual(result["outcomes"], {
+            "commercial_role_published": 1,
+            "no_commercial_role": 1,
+            "no_careers_link": 1,
+            "site_unreachable": 1,
+        })
+        by_company = {row["company"]: row for row in result["results"]}
+        self.assertEqual(by_company["Hiring Ltd"]["titles"], ["VP Sales"])
+        self.assertEqual(by_company["Quiet Ltd"]["careers_url"], "https://quiet.example/careers")
+        self.assertEqual(by_company["Opaque Ltd"]["careers_url"], "")
+        self.assertIn("source_fetch_failed", by_company["Down Ltd"]["detail"])
+        self.assertNotIn("Dropped Ltd", by_company)
+
+    def test_discovery_saves_nothing_unless_asked(self):
+        discover_hiring_sources(
+            self.db, connector=self.connector(), fetcher=self.fetcher, observed_at=NOW,
+        )
+        self.assertEqual(list_hiring_sources(self.db), [])
+
+    def test_only_the_prospects_publishing_a_commercial_role_are_kept(self):
+        result = discover_hiring_sources(
+            self.db, connector=self.connector(), fetcher=self.fetcher, observed_at=NOW, save=True,
+        )
+        saved = list_hiring_sources(self.db)
+        self.assertEqual([r["company"] for r in saved], ["Hiring Ltd"])
+        self.assertEqual(saved[0]["source_url"], "https://hiring.example/careers")
+        by_company = {row["company"]: row for row in result["results"]}
+        self.assertEqual(by_company["Hiring Ltd"]["detail"], "saved")
+
+        # re-running must not duplicate the source
+        discover_hiring_sources(
+            self.db, connector=self.connector(), fetcher=self.fetcher, observed_at=NOW, save=True,
+        )
+        self.assertEqual(len(list_hiring_sources(self.db)), 1)
 
 
 if __name__ == "__main__":

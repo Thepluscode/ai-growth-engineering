@@ -205,8 +205,16 @@ def extract_hiring_signal_candidates(
         for item in _objects(value):
             if _is_job_posting(item):
                 records.append((item, "structured_job_posting"))
-    for url, title in parser.links:
-        if _is_public_http_url(url) and _JOB_LINK.search(urlparse(url).path) and _COMMERCIAL_ROLE.search(title):
+    for url, text in parser.links:
+        if not (_is_public_http_url(url) and _JOB_LINK.search(urlparse(url).path)):
+            continue
+        # The role must be named where a title is named. Plenty of careers pages wrap a
+        # whole job card in one anchor, so the link text runs to thousands of characters
+        # of body copy; passing that through put a paragraph in the title field and would
+        # have written it into the evidence chain. Truncating first means the commercial
+        # check downstream sees the title, not the prose after it.
+        title = _title_prefix(text)
+        if title:
             records.append(({"title": title, "url": url}, "careers_link"))
 
     clock = _utc(observed_at)
@@ -293,6 +301,37 @@ def _candidate_from_record(
         evidence_kind=evidence_kind,
         uncertainty="A vacancy is not evidence of budget, vendor demand, or purchase intent.",
     )
+
+
+MAX_TITLE_CHARS = 90
+
+# Where a job card stops naming the role and starts describing it. These are the
+# conventional field labels of a job card, not one site's markup.
+_TITLE_END = re.compile(
+    r"\s(?:Department\s*:|Location\s*:|Salary\s*:|Posted\s*:|Closing\s*:|About\s|"
+    r"Full[- ]Time|Part[- ]Time|Permanent\b|Fixed[- ]Term|Apply\b|View Job|We(?:'|’)?re\s|£|\$)",
+    re.I,
+)
+
+
+def _title_prefix(text: str) -> str:
+    """The leading phrase of a link, which is where a job card puts its title.
+
+    Cut at the first job-card field label, then at a hard character cap. Both bounds
+    exist because a careers page may wrap an entire card in one anchor, and a
+    paragraph of body copy must never reach the title or the observed fact.
+    """
+    cleaned = _SPACE.sub(" ", str(text or "")).strip()
+    if not cleaned:
+        return ""
+    match = _TITLE_END.search(cleaned, 12)
+    if match:
+        cleaned = cleaned[: match.start()].strip()
+    if len(cleaned) <= MAX_TITLE_CHARS:
+        return cleaned.strip(" -–—|·,:;")
+    head = cleaned[:MAX_TITLE_CHARS]
+    cut = head.rfind(" ")
+    return (head[:cut] if cut > 20 else head).strip(" -–—|·,:;")
 
 
 def _interpretation(title: str) -> str:
@@ -648,3 +687,210 @@ def set_candidate_status(db_path: str, candidate_id: str, status: str, signal_id
             (status, signal_id, candidate_id),
         )
     return {"candidate_id": candidate_id, "status": status, "recorded_signal_id": signal_id}
+
+
+_CAREERS_HREF = re.compile(
+    r"/(?:jobs?|careers?|vacanc(?:y|ies)|positions?|openings?|join[-_]?us|"
+    r"work[-_](?:with[-_]us|for[-_]us|here)|life[-_]at)(?:/|$|[?#])",
+    re.I,
+)
+_CAREERS_TEXT = re.compile(
+    r"\b(?:careers?|jobs?|vacanc(?:y|ies)|join us|work with us|work for us|"
+    r"we'?re hiring|open positions?|current openings?|life at)\b",
+    re.I,
+)
+
+
+class _LinkHarvester(HTMLParser):
+    """Collects (href, link text) pairs. A careers link is named as often as it is pathed."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href = ""
+        self._text: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "a":
+            return
+        href = str(dict(attrs).get("href") or "").strip()
+        if href and not href.lower().startswith(("javascript:", "mailto:", "tel:", "#")):
+            self._href, self._text = href, []
+
+    def handle_data(self, data: str) -> None:
+        if self._text is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self._text is not None:
+            self.links.append((self._href, _SPACE.sub(" ", "".join(self._text)).strip()))
+            self._href, self._text = "", None
+
+
+def discover_careers_urls(html: str, base_url: str, *, limit: int = 3) -> list[str]:
+    """Careers pages linked from a page, best first.
+
+    Matched on the href AND on the link text, because plenty of sites route careers
+    through /about/team or a CMS slug that no path pattern would catch, while the
+    link still says "Join us".
+    """
+    parser = _LinkHarvester()
+    parser.feed(html)
+    scored: list[tuple[int, str]] = []
+    seen: set[str] = set()
+    origin = urlparse(base_url).hostname or ""
+    for href, text in parser.links:
+        resolved = urljoin(base_url, href)
+        if not _is_public_http_url(resolved):
+            continue
+        parsed = urlparse(resolved)
+        # Off-site boards are somebody else's domain and a different consent question.
+        if (parsed.hostname or "").removeprefix("www.") != origin.removeprefix("www."):
+            continue
+        normalised = resolved.split("#")[0].rstrip("/") or resolved
+        if normalised in seen:
+            continue
+        by_href = bool(_CAREERS_HREF.search(parsed.path or "/"))
+        by_text = bool(_CAREERS_TEXT.search(text))
+        if not (by_href or by_text):
+            continue
+        seen.add(normalised)
+        # A path match is stronger evidence than a word in an anchor, and a short
+        # path is more likely the index than a single vacancy.
+        score = (2 if by_href else 0) + (1 if by_text else 0) - len(parsed.path.strip("/").split("/"))
+        scored.append((score, normalised))
+    scored.sort(key=lambda item: (-item[0], len(item[1])))
+    return [url for _, url in scored[:max(1, limit)]]
+
+
+def discover_hiring_sources(
+    db_path: str,
+    *,
+    connector: PublicHiringSignalConnector | None = None,
+    fetcher=None,
+    observed_at: datetime | None = None,
+    max_age_days: int = 45,
+    pause_seconds: float = 0.0,
+    include_disqualified: bool = False,
+    save: bool = False,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Find each prospect's careers page and report which publish a commercial role.
+
+    Every prospect lands in exactly one outcome, and the four failure outcomes stay
+    distinct: a site that could not be fetched, a site with no careers link, a careers
+    page that yielded nothing, and a page publishing a commercial vacancy are four
+    different facts. Collapsing them into "not hiring" is how an unreachable host gets
+    recorded as a market answer.
+
+    `save` stores a source only for the prospects that published a commercial role.
+    """
+    init_source_store(db_path)
+    connector = connector or PublicHiringSignalConnector()
+    fetch = fetcher or fetch_public_html
+    now = _utc(observed_at or datetime.now(timezone.utc))
+    with connect(db_path) as con:
+        rows = con.execute(
+            "SELECT id, company, website, status FROM prospects ORDER BY company"
+        ).fetchall()
+        existing = {
+            row["source_url"].rstrip("/")
+            for row in con.execute("SELECT source_url FROM hiring_signal_sources").fetchall()
+        }
+
+    prospects = [
+        dict(row) for row in rows
+        if str(row["website"]).strip()
+        and (include_disqualified or not str(row["status"]).lower().startswith("disqualified"))
+    ]
+    if limit:
+        prospects = prospects[:limit]
+
+    results: list[dict[str, Any]] = []
+    for index, prospect in enumerate(prospects):
+        if pause_seconds > 0 and index:
+            time.sleep(pause_seconds)
+        outcome = _discover_one(
+            db_path, prospect, connector, fetch, now, max_age_days, existing, save
+        )
+        results.append(outcome)
+
+    counts: dict[str, int] = {}
+    for row in results:
+        counts[row["outcome"]] = counts.get(row["outcome"], 0) + 1
+    return {
+        "checked_at": now.isoformat(timespec="seconds"),
+        "prospect_count": len(prospects),
+        "saved": save,
+        "outcomes": counts,
+        "results": results,
+    }
+
+
+def _discover_one(
+    db_path: str,
+    prospect: Mapping[str, Any],
+    connector: PublicHiringSignalConnector,
+    fetch,
+    now: datetime,
+    max_age_days: int,
+    existing: set[str],
+    save: bool,
+) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "prospect_id": prospect["id"],
+        "company": prospect["company"],
+        "website": prospect["website"],
+        "careers_url": "",
+        "candidate_count": 0,
+        "titles": [],
+        "outcome": "",
+        "detail": "",
+    }
+    try:
+        document = fetch(prospect["website"])
+    except IntelligenceError as exc:
+        row.update(outcome="site_unreachable", detail=f"{exc.code}: {exc}")
+        return row
+    except Exception as exc:
+        row.update(outcome="site_unreachable", detail=f"fetch_failed: {exc}")
+        return row
+
+    urls = discover_careers_urls(document.html, document.source_url)
+    if not urls:
+        row.update(outcome="no_careers_link", detail="no careers link on the home page")
+        return row
+
+    for url in urls:
+        row["careers_url"] = url
+        try:
+            candidates = connector.scan(
+                url, prospect["company"], observed_at=now, max_age_days=max_age_days
+            )
+        except IntelligenceError as exc:
+            row.update(outcome="careers_page_unreachable", detail=f"{exc.code}: {exc}")
+            continue
+        except Exception as exc:
+            row.update(outcome="careers_page_unreachable", detail=f"scan_failed: {exc}")
+            continue
+        if candidates:
+            row["candidate_count"] = len(candidates)
+            row["titles"] = [c.title for c in candidates][:5]
+            row["outcome"] = "commercial_role_published"
+            row["detail"] = ""
+            if save and url.rstrip("/") not in existing:
+                try:
+                    add_hiring_source(db_path, {
+                        "prospect_id": prospect["id"],
+                        "source_url": url,
+                        "label": "Discovered careers page",
+                    })
+                    existing.add(url.rstrip("/"))
+                    row["detail"] = "saved"
+                except IntelligenceError as exc:
+                    row["detail"] = f"not saved: {exc.code}"
+            elif save:
+                row["detail"] = "already saved"
+            return row
+        row.update(outcome="no_commercial_role", detail="careers page read, no commercial vacancy")
+    return row

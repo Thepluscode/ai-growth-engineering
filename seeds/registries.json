@@ -628,19 +628,19 @@
   ],
   "hiring_sources": [
     {
-      "company": "CloudTech24",
-      "source_url": "https://cloudtech24.com/careers",
-      "label": "Careers page"
+      "company": "Atlas Cloud",
+      "source_url": "https://atlascloud.co.uk/about-us/careers",
+      "label": "Discovered careers page"
     },
     {
-      "company": "Transputec",
-      "source_url": "https://www.transputec.com/careers/",
-      "label": "Careers page"
+      "company": "Blue Frontier",
+      "source_url": "https://www.bluefrontier.co.uk/careers",
+      "label": "Discovered careers page"
     },
     {
-      "company": "Texaport",
-      "source_url": "https://texaport.co.uk/careers/",
-      "label": "Careers page"
+      "company": "The HBP Group",
+      "source_url": "https://thehbpgroup.co.uk/jobs",
+      "label": "Discovered careers page"
     }
   ]
 }
