@@ -18,20 +18,32 @@ class GrowthOpsTests(unittest.TestCase):
 
     def test_empty_state_proposes_contact_without_external_authority(self):
         state = command_center_state(self.db, today=date(2026, 8, 29))
-        self.assertEqual(state["status"]["label"], "CONTACT FREEZE")
+        self.assertEqual(state["status"]["label"], "NO MARKET CONTACT")
         self.assertFalse(state["recommendation"]["executable"])
         self.assertEqual(state["authority"]["mode"], "HUMAN_GATED")
         self.assertIn("contact a customer or prospect", state["authority"]["human_approval_required"])
 
-    def test_stale_external_contact_activates_freeze(self):
+    def test_time_since_contact_is_reported_but_no_longer_a_verdict(self):
+        """The freeze was the first branch, so it masked every other diagnosis and,
+        with no sends going out, stayed permanently red. When it was lit you could not
+        see that the funnel's real problem was 50 sends and no replies."""
         with connect(self.db) as con:
-            con.execute(
-                "INSERT INTO outreach(company, sent_at, stage) VALUES ('Acme', '2026-08-20', 'sent_awaiting_reply')"
-            )
+            for day in range(1, 51):
+                con.execute(
+                    """INSERT INTO outreach(company, sent_at, stage, channel, recipient_class)
+                       VALUES (?, '2026-08-20', 'sent_awaiting_reply', 'email', 'named_buyer')""",
+                    (f"Co {day}",),
+                )
         state = command_center_state(self.db, today=date(2026, 8, 29))
-        self.assertTrue(state["freshness"]["contact_freeze"])
+        # the elapsed time is still reported ...
         self.assertEqual(state["freshness"]["days_since_external_contact"], 9)
-        self.assertEqual(state["recommendation"]["primary_metric"], "external_contact_date")
+        self.assertEqual(state["freshness"]["last_external_contact"], "2026-08-20")
+        # ... and is no longer a verdict of its own
+        self.assertNotIn("contact_freeze", state["freshness"])
+        self.assertNotIn("freeze_after_days", state["freshness"])
+        # what surfaces instead is the constraint the freeze was covering
+        self.assertEqual(state["status"]["label"], "ACCESS CONSTRAINT")
+        self.assertEqual(state["recommendation"]["primary_metric"], "meaningful_reply_rate_by_route")
 
     def test_current_contact_with_no_reply_identifies_access_constraint(self):
         with connect(self.db) as con:

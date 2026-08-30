@@ -44,7 +44,7 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
     metrics = scoreboard(db_path)
     last_contact = _last_contact_date(db_path)
     days_since_contact = (today - last_contact).days if last_contact else None
-    constraint, recommendation = _next_move(metrics, days_since_contact)
+    constraint, recommendation = _next_move(metrics)
 
     return {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -58,8 +58,6 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
         "freshness": {
             "last_external_contact": last_contact.isoformat() if last_contact else None,
             "days_since_external_contact": days_since_contact,
-            "freeze_after_days": 3,
-            "contact_freeze": days_since_contact is None or days_since_contact > 3,
         },
         "scoreboard": [
             {
@@ -99,24 +97,14 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
     }
 
 
-def _next_move(
-    metrics: dict[str, int], days_since_contact: int | None
-) -> tuple[tuple[str, str, str], dict[str, Any]]:
-    if days_since_contact is None or days_since_contact > 3:
-        reason = (
-            "No external contact is recorded."
-            if days_since_contact is None
-            else f"Last external contact was {days_since_contact} days ago; the limit is 3."
-        )
-        return (
-            ("red", "CONTACT FREEZE", reason),
-            _recommendation(
-                "Restore contact with reality",
-                "Prepare one qualified, suppression-checked message for human approval and send it manually.",
-                "external_contact_date",
-                "Human approval is required before sending.",
-            ),
-        )
+def _next_move(metrics: dict[str, int]) -> tuple[tuple[str, str, str], dict[str, Any]]:
+    """The highest-priority constraint, read from what the funnel has actually done.
+
+    There used to be a time-since-last-contact freeze ahead of everything here. It was
+    the first branch, so it shadowed every other diagnosis, and with no sends going out
+    it was permanently red — which makes it wallpaper rather than a rule, and hid the
+    real constraint underneath it for as long as it stayed lit.
+    """
     if metrics["outreach_sent"] == 0:
         return (
             ("red", "NO MARKET CONTACT", "The system has no delivered outreach."),
