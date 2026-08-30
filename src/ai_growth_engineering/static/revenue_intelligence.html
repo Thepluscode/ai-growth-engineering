@@ -456,11 +456,14 @@ function drawNext(buyers,held,pending){
   const needsIdentity=buyers.find(b=>b.recommended_action==='enrich_identity');
   let message='',href='#queue',label='Go';
   if(ready){
-    message=`${ready.company} passed every gate and is ready for an approval draft. Drafting and sending happen in the command center.`;
-    href='/';label='Open command center';
+    // Deep-link to the buyer desk, not to the top of the command center: its workbench
+    // queue is empty until a draft exists, and landing on an empty queue reads as
+    // "nothing to do" when the thing to do is one button further down.
+    message=`${ready.company} passed every gate. Press "Prepare approval draft" on its card in the buyer desk — the workbench queue stays empty until you do.`;
+    href='/#intelligence';label='Open buyer desk';
   }else if(needsIdentity){
-    message=`${needsIdentity.company} passed every gate but has no reachable identity yet. Resolve one before anything can be drafted.`;
-    href='/';label='Open command center';
+    message=`${needsIdentity.company} passed every gate but has no reachable identity yet. Record one from the buyer desk before anything can be drafted.`;
+    href='/#intelligence';label='Open buyer desk';
   }else if(pending.length){
     message=`${pending.length} swept candidate${pending.length===1?'':'s'} awaiting review. A candidate only becomes a signal once a person confirms it.`;
     href='#review';label='Review them';

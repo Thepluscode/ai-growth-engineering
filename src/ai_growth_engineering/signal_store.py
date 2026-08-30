@@ -1,7 +1,17 @@
-"""Durable signal-intelligence store.
+"""Durable signal-intelligence store — NOT WIRED TO ANY SURFACE.
 
 Kept specialised rather than forcing buyer-intelligence semantics into the generic
 marketing registries. Existing databases migrate in place through idempotent CREATE TABLE.
+
+Its tables are the ones `storage._separate_legacy_revenue_signal_table` renamed out of
+the operational path, so nothing in the application writes to them and `ranked_prospects`
+returns [] against any real store. The operational path is `signal_intelligence`, whose
+`intelligence_state` reads `intent_signals` and `prospect_identities`.
+
+`command_center_state` used to publish `ranked_prospects` as `intent_prospects`, which meant
+the API carried a buyer list that was structurally always empty, with a test asserting the
+emptiness as correct. That field is gone. Do not re-expose this module without first moving
+the writers over — an always-empty surface reads as "no buyers", not as "wrong table".
 """
 from __future__ import annotations
 

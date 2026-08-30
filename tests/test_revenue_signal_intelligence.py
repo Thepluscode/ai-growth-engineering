@@ -157,17 +157,14 @@ class RevenueSignalIntelligenceTests(unittest.TestCase):
             )
         self.assertEqual(ranked_prospects(self.db), [])
 
-    def test_growthops_exposes_intent_prospects_without_execution_authority(self):
-        init_signal_store(self.db)
-        state = command_center_state(self.db, today=date(2026, 8, 30))
-        self.assertIn("intent_prospects", state)
-        self.assertEqual(state["intent_prospects"], [])
-        self.assertIn(
-            "rank eligible intent prospects with source provenance", state["authority"]["allowed"]
-        )
-        self.assertIn(
-            "contact a customer or prospect", state["authority"]["human_approval_required"]
-        )
+    def test_growthops_does_not_publish_a_structurally_empty_buyer_list(self):
+        """`intent_prospects` read the table this schema was renamed OUT of, so it was
+        always [] against a real store — and the old test asserted that emptiness as
+        correct. An always-empty buyer list reads as "no buyers", not as "wrong table"."""
+        from ai_growth_engineering.growthops import command_center_state
+        state = command_center_state(self.db)
+        self.assertNotIn("intent_prospects", state)
+        self.assertEqual(state["authority"]["mode"], "HUMAN_GATED")
 
     def test_legacy_revenue_signal_schema_moves_without_blocking_operational_signals(self):
         legacy_db = str(Path(self.tmp.name) / "legacy.db")
