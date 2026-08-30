@@ -11,6 +11,7 @@ from typing import Any
 from . import registries
 from .product_opportunities import ProductBuildGate, opportunity_from_registry
 from .registry import reply_rate_by_route, scoreboard
+from .signal_store import ranked_prospects
 from .storage import connect
 
 
@@ -75,6 +76,7 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
         "experiments": _experiments(db_path),
         "evidence": _evidence(db_path),
         "opportunities": _opportunities(db_path),
+        "intent_prospects": ranked_prospects(db_path, limit=10),
         "channels": _channels(db_path),
         "authority": {
             "mode": "HUMAN_GATED",
@@ -82,6 +84,7 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
                 "read operational data",
                 "identify the highest-priority constraint",
                 "rank evidence-backed options",
+                "rank eligible intent prospects with source provenance",
                 "create sourced teardown and outbound drafts",
                 "record an operator-confirmed send or reply",
             ],
