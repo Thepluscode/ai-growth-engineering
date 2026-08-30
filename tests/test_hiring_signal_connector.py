@@ -351,7 +351,7 @@ class ScheduledSweepTests(unittest.TestCase):
             persist_candidates=True,
         )
         candidate_id = pending_hiring_candidates(self.db)[0]["candidate_id"]
-        set_candidate_status(self.db, candidate_id, "dismissed")
+        set_candidate_status(self.db, candidate_id, "dismissed", note="not a real vacancy")
         self.assertEqual(pending_hiring_candidates(self.db), [])
 
         again = scan_saved_hiring_sources(
@@ -383,9 +383,21 @@ class ScheduledSweepTests(unittest.TestCase):
         self.assertFalse(result["persisted"])
         self.assertEqual(pending_hiring_candidates(self.db), [])
 
+    def test_a_dismissal_must_record_why(self):
+        scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW, persist_candidates=True,
+        )
+        candidate_id = pending_hiring_candidates(self.db)[0]["candidate_id"]
+        with self.assertRaisesRegex(IntelligenceError, "must record why"):
+            set_candidate_status(self.db, candidate_id, "dismissed")
+        self.assertEqual(len(pending_hiring_candidates(self.db)), 1, "a refused dismissal changes nothing")
+        done = set_candidate_status(self.db, candidate_id, "dismissed", note="nav link, not a vacancy")
+        self.assertEqual(done["review_note"], "nav link, not a vacancy")
+        self.assertEqual(pending_hiring_candidates(self.db), [])
+
     def test_an_unknown_candidate_cannot_be_reviewed(self):
         with self.assertRaisesRegex(IntelligenceError, "does not exist"):
-            set_candidate_status(self.db, "HIRE-NOPE", "dismissed")
+            set_candidate_status(self.db, "HIRE-NOPE", "dismissed", note="x")
         with self.assertRaisesRegex(IntelligenceError, "must be pending"):
             set_candidate_status(self.db, "HIRE-NOPE", "banished")
 
@@ -428,6 +440,48 @@ class TitleBoundaryTests(unittest.TestCase):
 
     def test_an_empty_anchor_is_not_a_vacancy(self):
         self.assertEqual(self.candidates('<a href="/careers/x"></a>'), [])
+
+
+class FalseVacancyTests(unittest.TestCase):
+    """Two things that look like vacancies to a link scraper and are not."""
+
+    def candidates(self, html, source="https://acme.example/careers"):
+        return extract_hiring_signal_candidates(html, source, "Acme", observed_at=NOW)
+
+    def test_a_link_back_to_the_careers_page_is_not_a_vacancy(self):
+        # Site nav labelled with one of the company's own service lines.
+        for href in ("/careers#", "/careers", "/careers/", "https://acme.example/careers#nav"):
+            with self.subTest(href=href):
+                self.assertEqual(self.candidates(f'<a href="{href}">Digital Marketing</a>'), [])
+
+    def test_a_talent_pool_page_is_not_a_published_role(self):
+        for href in ("/jobs/sales-careers", "/jobs/future-opportunities",
+                     "/careers/speculative", "/jobs/general-application"):
+            with self.subTest(href=href):
+                self.assertEqual(self.candidates(f'<a href="{href}">Sales Careers at Acme</a>'), [])
+
+    def test_a_self_link_is_rejected_even_where_the_slug_is_not_a_talent_pool(self):
+        # The index lives at /jobs/openings, which no talent-pool slug matches, so only
+        # the same-page rule can reject its own nav link.
+        source = "https://acme.example/jobs/openings"
+        for href in ("/jobs/openings#top", "/jobs/openings/", source):
+            with self.subTest(href=href):
+                self.assertEqual(
+                    self.candidates(f'<a href="{href}">Sales</a>', source=source), []
+                )
+        # ...and a real vacancy under the same index still passes.
+        found = self.candidates(
+            '<a href="/jobs/openings/head-of-sales">Head of Sales</a>', source=source
+        )
+        self.assertEqual(len(found), 1)
+
+    def test_a_real_vacancy_at_its_own_url_still_qualifies(self):
+        found = self.candidates(
+            '<a href="/jobs/customer-success-manager-csm/">Customer Success Manager (CSM)</a>'
+        )
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0].title, "Customer Success Manager (CSM)")
+        self.assertTrue(found[0].source_url.endswith("/jobs/customer-success-manager-csm/"))
 
 
 class CareersDiscoveryTests(unittest.TestCase):

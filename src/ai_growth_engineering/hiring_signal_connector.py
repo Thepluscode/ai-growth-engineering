@@ -26,6 +26,14 @@ _COMMERCIAL_ROLE = re.compile(
 _SENIOR_ROLE = re.compile(r"\b(?:chief|vp|vice president|head|director)\b", re.I)
 _REVOPS_ROLE = re.compile(r"\b(?:revenue operations|revops|sales operations)\b", re.I)
 _JOB_LINK = re.compile(r"/(?:jobs?|careers?|vacanc(?:y|ies)|positions?|openings?)(?:/|$)", re.I)
+# A standing invitation to send a CV is not a vacancy. These slugs are the conventional
+# names for a talent pool, and treating one as a published role states that a company is
+# hiring for something it never advertised.
+_TALENT_POOL = re.compile(
+    r"(?:^|[/-])(?:careers?|future[-_]opportunities|speculative|general[-_]application|"
+    r"talent[-_]pool|open[-_]application|join[-_]our[-_]team)$",
+    re.I,
+)
 
 
 @dataclass(frozen=True)
@@ -205,8 +213,16 @@ def extract_hiring_signal_candidates(
         for item in _objects(value):
             if _is_job_posting(item):
                 records.append((item, "structured_job_posting"))
+    page = _page_key(source_url)
     for url, text in parser.links:
         if not (_is_public_http_url(url) and _JOB_LINK.search(urlparse(url).path)):
+            continue
+        # A link back to the careers index is the page itself, not a role on it. Site
+        # navigation labelled with one of the company's own service lines was otherwise
+        # read as a vacancy: `/careers#` titled "Digital Marketing" is a menu item.
+        if _page_key(url) == page:
+            continue
+        if _TALENT_POOL.search(urlparse(url).path.rstrip("/")):
             continue
         # The role must be named where a title is named. Plenty of careers pages wrap a
         # whole job card in one anchor, so the link text runs to thousands of characters
@@ -301,6 +317,12 @@ def _candidate_from_record(
         evidence_kind=evidence_kind,
         uncertainty="A vacancy is not evidence of budget, vendor demand, or purchase intent.",
     )
+
+
+def _page_key(url: str) -> str:
+    """A URL's identity for "is this the same page": no fragment, no trailing slash."""
+    parsed = urlparse(url)
+    return f"{parsed.netloc.casefold()}{(parsed.path or '/').rstrip('/').casefold()}"
 
 
 MAX_TITLE_CHARS = 90
@@ -442,6 +464,7 @@ CREATE TABLE IF NOT EXISTS hiring_signal_candidates (
     evidence_kind TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',
     recorded_signal_id TEXT NOT NULL DEFAULT '',
+    review_note TEXT NOT NULL DEFAULT '',
     first_seen_at TEXT NOT NULL,
     last_seen_at TEXT NOT NULL
 );
@@ -455,6 +478,12 @@ def init_source_store(db_path: str) -> None:
     init_db(db_path)
     with connect(db_path) as con:
         con.executescript(SOURCE_SCHEMA)
+        # In-place migration for stores created before review notes existed.
+        columns = {row[1] for row in con.execute("PRAGMA table_info(hiring_signal_candidates)")}
+        if "review_note" not in columns:
+            con.execute(
+                "ALTER TABLE hiring_signal_candidates ADD COLUMN review_note TEXT NOT NULL DEFAULT ''"
+            )
 
 
 def add_hiring_source(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
@@ -671,9 +700,15 @@ def pending_hiring_candidates(db_path: str, *, limit: int = 50) -> list[dict[str
     return [dict(row) for row in rows]
 
 
-def set_candidate_status(db_path: str, candidate_id: str, status: str, signal_id: str = "") -> dict[str, Any]:
+def set_candidate_status(
+    db_path: str, candidate_id: str, status: str, signal_id: str = "", note: str = ""
+) -> dict[str, Any]:
+    """Record a review decision. A dismissal needs its reason, or it is a deletion."""
     if status not in {"pending", "recorded", "dismissed"}:
         raise IntelligenceError("invalid_field", "status must be pending, recorded or dismissed")
+    note = str(note or "").strip()[:300]
+    if status == "dismissed" and not note:
+        raise IntelligenceError("reason_required", "A dismissal must record why")
     init_source_store(db_path)
     with connect(db_path) as con:
         row = con.execute(
@@ -683,10 +718,15 @@ def set_candidate_status(db_path: str, candidate_id: str, status: str, signal_id
         if row is None:
             raise IntelligenceError("candidate_not_found", "Candidate does not exist")
         con.execute(
-            "UPDATE hiring_signal_candidates SET status = ?, recorded_signal_id = ? WHERE candidate_id = ?",
-            (status, signal_id, candidate_id),
+            """UPDATE hiring_signal_candidates
+               SET status = ?, recorded_signal_id = ?, review_note = ?
+               WHERE candidate_id = ?""",
+            (status, signal_id, note, candidate_id),
         )
-    return {"candidate_id": candidate_id, "status": status, "recorded_signal_id": signal_id}
+    return {
+        "candidate_id": candidate_id, "status": status,
+        "recorded_signal_id": signal_id, "review_note": note,
+    }
 
 
 _CAREERS_HREF = re.compile(

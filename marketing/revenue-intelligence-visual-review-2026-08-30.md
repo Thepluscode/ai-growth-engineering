@@ -232,6 +232,62 @@ Sixteen prospects exposing no careers link is also a real ceiling — a third of
 likely JavaScript-rendered navigation or careers hosted on a subdomain, neither of which this
 connector reads.
 
+## The first ranked buyer, and the two that were rejected
+
+Three swept candidates were reviewed against their live sources. Two did not survive, and each
+exposed a defect the review existed to catch.
+
+**Blue Frontier — rejected.** The candidate's URL was `https://www.bluefrontier.co.uk/careers#`:
+the careers page itself. The text "Digital Marketing" is Blue Frontier's own *service line* in
+site navigation, not a vacancy. A link back to the index is the page, not a role on it — the
+connector now rejects same-page links.
+
+**The HBP Group — rejected.** `/jobs/sales-careers` is an evergreen talent pool — *"Are you a
+sales professional looking to advance your career?"* — one of a family with `/jobs/it-careers`,
+`/jobs/erp-careers`, `/jobs/epos-careers` and `/jobs/future-opportunities`. Every vacancy HBP
+actually publishes is technical: presales engineers, infrastructure consultants, Sage
+consultants. Recording it would have stated the company was hiring for something it never
+advertised. The connector now rejects talent-pool slugs.
+
+Both dismissals carry their reason. `set_candidate_status` refuses a dismissal without one,
+because a dismissal with no reason is a deletion — the same silent discard the held ledger
+exists to prevent.
+
+**Atlas Cloud — recorded as `SIG-349ABEAEF68B`.** Verified against the live page: a distinct
+vacancy at its own URL, `https://atlascloud.co.uk/jobs/customer-success-manager-csm/`, listed
+under *Department: Sales*, whose stated success metrics are gross and net revenue retention and
+cross-sell revenue. The commercial reading is recorded as inference and states plainly that a
+vacancy does not establish budget, vendor demand or buying intent.
+
+### The identity, and the two that were refused
+
+The bounded public-page provider returned 11 candidates from Atlas Cloud's own about page: nine
+named LinkedIn profiles and two role inboxes, `hello@` and `servicedesk@`. **The role inboxes
+were deliberately not recorded.** Eight of seventeen sends in the SL2 tracker went to role
+inboxes and were read as market rejection when they were delivery defects; recording one here
+would rebuild that failure.
+
+The prospect's declared ICP roles are *CEO; Head of Cyber Security; Account Director*. Two are
+published — Pete Watson (Chief Executive Officer) and Joe McLeod (Account Director). The CEO was
+recorded, because the signal is a change of operating model rather than an account-level
+question. It is labelled `observed_published`, not verified, and the dossier lists
+`Deliverability of this identity — UNVERIFIED` as a first-class unknown.
+
+No person was named in the vacancy itself, so no person was retrofitted onto the signal. The
+queue row reads `Looking for CEO; Head of Cyber Security; Account Director`.
+
+### Where it stands
+
+```
+Queued 1 · Held 62 · Signals 1 · Sources 3 · Awaiting review 0
+
+Atlas Cloud   priority 53.2   fit 0.75 · strength 0.8 · confidence 0.9 · freshness 0.986
+              route linkedin · identity observed_published
+              action prepare_approval_draft · authority R3
+```
+
+**No contact has been made, and none can be made from this screen.**
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.
