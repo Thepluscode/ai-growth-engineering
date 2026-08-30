@@ -248,11 +248,33 @@ def cmd_capability_map(args: argparse.Namespace) -> None:
 
 
 def cmd_command_center(args: argparse.Namespace) -> None:
+    import errno
+    import urllib.request
+
     from .command_center import serve_command_center
 
-    serve_command_center(
-        args.db, host=args.host, port=args.port, open_browser=args.open_browser
-    )
+    try:
+        serve_command_center(
+            args.db, host=args.host, port=args.port, open_browser=args.open_browser
+        )
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+        # The traceback for this is forty lines of socketserver internals ending in
+        # "Address already in use", which does not tell you the most likely cause:
+        # the interface you are trying to start is already open.
+        url = f"http://{args.host}:{args.port}"
+        try:
+            with urllib.request.urlopen(f"{url}/healthz", timeout=2) as response:
+                ours = b'"mode":"human_gated"' in response.read()
+        except Exception:
+            ours = False
+        if ours:
+            raise SystemExit(f"already running - open {url}")
+        raise SystemExit(
+            f"{args.host}:{args.port} is taken by something else. "
+            f"Start this on another port: --port {args.port + 1}"
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:

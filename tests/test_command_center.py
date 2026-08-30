@@ -142,6 +142,74 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertIn('id="next"', html)
         self.assertIn("Do next", html)
 
+    def test_a_taken_port_explains_itself_instead_of_a_traceback(self):
+        """The bare failure is forty lines of socketserver internals ending in
+        'Address already in use', which hides the likeliest cause: it is already open."""
+        import argparse
+
+        from ai_growth_engineering.cli import cmd_command_center
+
+        args = argparse.Namespace(
+            db=self.db, host="127.0.0.1", port=self.server.server_port, open_browser=False
+        )
+        with self.assertRaises(SystemExit) as raised:
+            cmd_command_center(args)
+        self.assertIn("already running", str(raised.exception))
+        self.assertIn(f"127.0.0.1:{self.server.server_port}", str(raised.exception))
+
+    def test_a_port_taken_by_something_else_says_so_and_offers_another(self):
+        import argparse
+        import socket
+
+        from ai_growth_engineering.cli import cmd_command_center
+
+        stranger = socket.socket()
+        stranger.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        stranger.bind(("127.0.0.1", 0))
+        stranger.listen(1)
+        self.addCleanup(stranger.close)
+        port = stranger.getsockname()[1]
+
+        args = argparse.Namespace(db=self.db, host="127.0.0.1", port=port, open_browser=False)
+        with self.assertRaises(SystemExit) as raised:
+            cmd_command_center(args)
+        message = str(raised.exception)
+        self.assertIn("taken by something else", message)
+        self.assertIn(f"--port {port + 1}", message)
+        self.assertNotIn("already running", message)
+
+    def test_another_http_server_on_the_port_is_not_mistaken_for_this_one(self):
+        """A bare socket never answers /healthz, so it exercises the timeout path only.
+        Distinguishing 'already running' from 'something else' needs a server that
+        replies — with a body that is not ours."""
+        import argparse
+        import http.server
+        import threading
+
+        from ai_growth_engineering.cli import cmd_command_center
+
+        class Impostor(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'{"status":"ok","mode":"something_else"}')
+
+            def log_message(self, *args):
+                pass
+
+        impostor = http.server.HTTPServer(("127.0.0.1", 0), Impostor)
+        threading.Thread(target=impostor.serve_forever, daemon=True).start()
+        self.addCleanup(impostor.shutdown)
+        self.addCleanup(impostor.server_close)
+        port = impostor.server_address[1]
+
+        args = argparse.Namespace(db=self.db, host="127.0.0.1", port=port, open_browser=False)
+        with self.assertRaises(SystemExit) as raised:
+            cmd_command_center(args)
+        message = str(raised.exception)
+        self.assertIn("taken by something else", message)
+        self.assertNotIn("already running", message)
+
     def test_write_routes_are_refused(self):
         request = urllib.request.Request(self.base + "/api/state", method="POST", data=b"{}")
         with self.assertRaises(urllib.error.HTTPError) as error:
