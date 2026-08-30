@@ -45,7 +45,11 @@
     .nav-label { padding: 0 10px 8px; color: #6f7e94; font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
     .nav { display: grid; gap: 4px; }
     .nav a { display: flex; align-items: center; gap: 11px; min-height: 40px; padding: 0 11px; border-radius: 7px; color: #9ba8ba; font-size: 12px; font-weight: 550; transition: color .16s ease, background .16s ease; }
-    .nav a:hover, .nav a:first-child { color: #fff; background: var(--navy-soft); }
+    .nav a:hover, .nav a[aria-current] { color: #fff; background: var(--navy-soft); }
+      .nav-app { margin-bottom: 18px; }
+      .nav-app a { flex-direction: column; align-items: flex-start; gap: 2px; min-height: 44px; padding: 8px 11px; }
+      .nav-app a em { font-style: normal; font-size: 9px; font-weight: 500; color: #6f7e94; }
+      .nav-app a[aria-current] em { color: #9ba8ba; }
     .nav-icon { width: 16px; color: #738199; font-family: var(--mono); font-size: 10px; text-align: center; }
     .sidebar-foot { margin-top: auto; padding: 17px 10px 4px; border-top: 1px solid rgba(255,255,255,.08); }
     .system-line { display: flex; align-items: center; gap: 8px; color: #98a5b7; font-size: 10px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
@@ -292,17 +296,21 @@
   <div class="app">
     <aside class="sidebar">
       <a class="brand" href="#overview" aria-label="GrowthOps overview"><span class="brand-mark">T+</span><span><span class="brand-name">ThePlus-Tech</span><span class="brand-product">GrowthOps</span></span></a>
-      <div class="nav-label">Workspace</div>
-      <nav class="nav" aria-label="Command Center sections">
-        <a href="#overview"><span class="nav-icon">01</span>Overview</a>
-        <a href="#intelligence"><span class="nav-icon">02</span>Buyer desk</a>
-        <a href="#workbench"><span class="nav-icon">03</span>Workbench</a>
-        <a href="#performance"><span class="nav-icon">04</span>Performance</a>
-        <a href="#experiments"><span class="nav-icon">05</span>Experiments</a>
-        <a href="#evidence"><span class="nav-icon">06</span>Evidence</a>
-        <a href="#portfolio"><span class="nav-icon">07</span>Portfolio</a>
-        <a href="#channels"><span class="nav-icon">08</span>Channels</a>
-        <a href="/revenue-intelligence"><span class="nav-icon">09</span>Revenue ledger</a>
+      <p class="nav-label">Workspace</p>
+      <nav class="nav nav-app" aria-label="Workspaces">
+        <a href="/" aria-current="page">Command center<em>act on what is decided</em></a>
+        <a href="/revenue-intelligence">Revenue intelligence<em>decide who is worth acting on</em></a>
+      </nav>
+      <p class="nav-label">On this page</p>
+      <nav class="nav" aria-label="Sections of the command center">
+        <a href="#overview">Overview</a>
+        <a href="#intelligence">Buyer desk</a>
+        <a href="#workbench">Workbench</a>
+        <a href="#performance">Performance</a>
+        <a href="#experiments">Experiments</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#channels">Channels</a>
       </nav>
       <div class="sidebar-foot"><div class="system-line"><span class="system-dot" aria-hidden="true"></span>Workflow engine online</div><p class="system-mode" id="mode">Internal · human gated · no autosend</p></div>
     </aside>

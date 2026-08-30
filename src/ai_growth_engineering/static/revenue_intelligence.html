@@ -21,6 +21,7 @@
     html{background:var(--paper)}
     body{margin:0;background:var(--paper);color:var(--ink);font:13px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
     a{color:inherit}
+    .btn{text-decoration:none}
     :focus-visible{outline:2px solid var(--ink);outline-offset:1px}
     button{font:inherit;color:inherit}
 
@@ -37,6 +38,11 @@
     .rail nav a{display:flex;align-items:center;gap:9px;min-height:30px;padding:0 6px;border-radius:3px;color:#8a909b;font:500 11px/1 var(--sans);text-decoration:none}
     .rail nav a:hover{color:#e7e9ec;background:rgba(255,255,255,.055)}
     .rail nav a[aria-current]{color:#fff;background:rgba(255,255,255,.075)}
+    .nav-label{padding:0 6px 7px;color:#5d636e;font:600 9px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+    .rail .nav-app{margin-bottom:18px}
+    .rail .nav-app a{flex-direction:column;align-items:flex-start;gap:2px;min-height:42px;padding:7px 6px}
+    .rail .nav-app a em{font:500 9px/1.3 var(--sans);font-style:normal;color:#5d636e}
+    .rail .nav-app a[aria-current] em{color:#8a909b}
     .rail-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.09)}
     .rail-foot p{margin:0;font:500 9px/1.6 var(--mono);letter-spacing:.06em;color:#6a707a;text-transform:uppercase}
     .rail-foot p b{color:#9aa1ab;font-weight:500}
@@ -62,6 +68,10 @@
     .alert b{display:block;font:600 10px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--held)}
     .alert span{display:block;margin-top:6px;font-size:12px;color:var(--ink-2)}
 
+    .next{display:flex;align-items:center;gap:16px;padding:13px 22px;background:var(--surface);border-bottom:1px solid var(--rule)}
+    .next .lbl{flex:none}
+    .next p{flex:1;margin:0;font-size:12.5px}
+    .next .btn{flex:none}
     .sec{border-bottom:1px solid var(--rule)}
     .sec-head{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:42px;padding:13px 22px 11px}
     .btn{display:inline-flex;align-items:center;gap:7px;height:27px;padding:0 11px;border:1px solid var(--ink);border-radius:3px;background:var(--ink);color:#fff;font:600 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;cursor:pointer}
@@ -217,6 +227,8 @@
       .readout div{flex-basis:50%;padding:11px 14px;border-top:1px solid var(--rule-2)}
       .readout div:nth-child(-n+2){border-top:0}
       .readout div:nth-child(odd){border-left:0}
+      .next{flex-direction:column;align-items:stretch;gap:8px;padding:13px 14px}
+      .next .btn{width:100%;justify-content:center;height:32px}
       .sec-head{flex-wrap:wrap}
       .sec-head .btn{width:100%;justify-content:center;height:32px}
       .sec-head,.void,.foot,.src,.line,.cell,.blk,.doss-head{padding-left:14px;padding-right:14px}
@@ -239,14 +251,19 @@
 <div class="app">
   <aside class="rail">
     <div class="mark"><b>GrowthOps</b><i>RI</i></div>
-    <nav aria-label="Sections">
-      <a href="#queue" aria-current="page">Queue</a>
+    <div class="nav-label">Workspace</div>
+    <nav class="nav-app" aria-label="Workspaces">
+      <a href="/revenue-intelligence" aria-current="page">Revenue intelligence<em>decide who is worth acting on</em></a>
+      <a href="/">Command center<em>act on what is decided</em></a>
+    </nav>
+    <div class="nav-label">On this page</div>
+    <nav aria-label="Sections of this page">
+      <a href="#queue">Queue</a>
       <a href="#held">Held by a gate</a>
       <a href="#sources">Sources</a>
       <a href="#review">Awaiting review</a>
       <a href="#performance">Performance</a>
       <a href="#board">Scoreboard</a>
-      <a href="/">Command center</a>
     </nav>
     <div class="rail-foot">
       <p>Authority <b id="rail-auth">R3</b></p>
@@ -273,6 +290,11 @@
 
     <div class="sheet">
       <div class="alert" id="alert" role="alert"></div>
+      <div class="next" id="next" hidden>
+        <span class="lbl">Do next</span>
+        <p id="next-text"></p>
+        <a class="btn ghost" id="next-link" href="#queue">Go</a>
+      </div>
 
       <section class="sec" id="queue">
         <div class="sec-head">
@@ -425,6 +447,30 @@ function heldRecord(row){
 
 function empty(root,text){
   root.replaceChildren(el('div','void',text));
+}
+
+/* One line naming the single next move, so the screen answers "what do I do now". */
+function drawNext(buyers,held,pending){
+  const box=$('next'),text=$('next-text'),link=$('next-link');
+  const ready=buyers.find(b=>b.recommended_action==='prepare_approval_draft');
+  const needsIdentity=buyers.find(b=>b.recommended_action==='enrich_identity');
+  let message='',href='#queue',label='Go';
+  if(ready){
+    message=`${ready.company} passed every gate and is ready for an approval draft. Drafting and sending happen in the command center.`;
+    href='/';label='Open command center';
+  }else if(needsIdentity){
+    message=`${needsIdentity.company} passed every gate but has no reachable identity yet. Resolve one before anything can be drafted.`;
+    href='/';label='Open command center';
+  }else if(pending.length){
+    message=`${pending.length} swept candidate${pending.length===1?'':'s'} awaiting review. A candidate only becomes a signal once a person confirms it.`;
+    href='#review';label='Review them';
+  }else if(!buyers.length){
+    message='No buyer has passed every gate. Scan the saved sources, or add one, to look for a reason to act.';
+    href='#sources';label='Open sources';
+  }else{
+    message='Nothing is waiting.';
+  }
+  text.textContent=message;link.href=href;link.textContent=label;box.hidden=false;
 }
 
 function drawQueue(rows){
@@ -658,6 +704,7 @@ function paint(state,intel,sources,pending){
   $('n-signals').textContent=String(VIEW.signals.length);
   $('n-sources').textContent=String(sources.length);
   $('n-pending').textContent=String(pending.length);
+  drawNext(VIEW.buyers,intel.ineligible||[],pending);
   drawQueue(VIEW.buyers);
   drawHeld(intel.ineligible||[]);
   drawSources(sources);

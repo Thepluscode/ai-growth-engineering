@@ -113,6 +113,35 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertEqual(blocked["signal_count"], 1)
         self.assertIn("Prospect status is disqualified", blocked["reasons"])
 
+    def test_each_workspace_links_to_the_other_and_says_which_one_you_are_in(self):
+        """Getting lost was the reported failure: a link that leaves the app looked
+        exactly like one that scrolls the page, and the two used different names."""
+        pages = {}
+        for route in ("/", "/revenue-intelligence"):
+            with urllib.request.urlopen(self.base + route) as response:
+                pages[route] = response.read().decode()
+
+        for route, html in pages.items():
+            with self.subTest(route=route):
+                # a labelled workspace group, separate from the in-page anchors
+                self.assertIn("nav-app", html)
+                self.assertIn(">Workspace<", html)
+                self.assertIn(">On this page<", html)
+                # both destinations reachable from either page, under one shared name
+                self.assertIn('href="/revenue-intelligence"', html)
+                self.assertIn('href="/"', html)
+                self.assertIn("Revenue intelligence", html)
+                self.assertIn("Command center", html)
+                self.assertNotIn("Revenue ledger", html)
+                # exactly one workspace marked as the one you are in
+                self.assertEqual(html.count('aria-current="page"'), 1, html.count('aria-current'))
+
+    def test_the_revenue_workspace_names_the_next_move(self):
+        with urllib.request.urlopen(self.base + "/revenue-intelligence") as response:
+            html = response.read().decode()
+        self.assertIn('id="next"', html)
+        self.assertIn("Do next", html)
+
     def test_write_routes_are_refused(self):
         request = urllib.request.Request(self.base + "/api/state", method="POST", data=b"{}")
         with self.assertRaises(urllib.error.HTTPError) as error:

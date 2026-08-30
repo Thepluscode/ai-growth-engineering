@@ -288,6 +288,54 @@ Atlas Cloud   priority 53.2   fit 0.75 · strength 0.8 · confidence 0.9 · fres
 
 **No contact has been made, and none can be made from this screen.**
 
+## Navigation
+
+Reported: *"I don't even know where to navigate to."* Three faults, all in the rails:
+
+1. **A link that left the app was dressed exactly like one that scrolled the page.** The command
+   center listed eight `#anchor` sections numbered 01-08, then `/revenue-intelligence` as
+   "09 Revenue ledger" — same shape, same numbering, completely different behaviour.
+2. **The two workspaces used different names for the same place.** You clicked "Revenue ledger"
+   and arrived somewhere titled "Revenue Intelligence".
+3. **`.nav a:first-child` was styled as selected permanently**, so "Overview" looked like the
+   current section wherever you actually were.
+
+Both rails are now split into two labelled groups:
+
+```
+WORKSPACE
+  Revenue intelligence      ← highlighted when you are in it
+  decide who is worth acting on
+  Command center
+  act on what is decided
+
+ON THIS PAGE
+  Queue · Held by a gate · Sources · Awaiting review · Performance · Scoreboard
+```
+
+Each workspace carries a one-line description of what it is for, one shared name across both
+pages, and `aria-current="page"` on exactly the one you are in. The 01-08 numbering is gone:
+those are sections, not a sequence.
+
+**And the screen now names the next move.** A `Do next` line sits above the queue and reads the
+live state:
+
+```
+DO NEXT   Atlas Cloud passed every gate and is ready for an approval draft.
+          Drafting and sending happen in the command center.   [OPEN COMMAND CENTER]
+```
+
+It falls through the real states — a buyer ready to draft, a buyer needing an identity,
+candidates awaiting review, an empty queue — so the answer to "what do I do now" is on the
+screen rather than inside a drawer.
+
+The contract is tested rather than eyeballed: both pages must link to both routes under one
+name, and exactly one workspace may be marked current. Removing the cross-link turns it red, and
+so does marking both workspaces current.
+
+Verified at 1440×1000 and 390×844, 0 px overflow at both; the `Do next` row stacks on mobile with
+a full-width action.
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.
