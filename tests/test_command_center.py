@@ -7,6 +7,7 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest.mock import patch
 
 from ai_growth_engineering.command_center import build_server
 from ai_growth_engineering.storage import connect
@@ -30,6 +31,7 @@ class CommandCenterServerTests(unittest.TestCase):
             self.assertIn("GrowthOps", html)
             self.assertIn("Command Center", html)
             self.assertIn("Today’s 10 best buyers", html)
+            self.assertIn("Scan public hiring source", html)
             self.assertIn("Record researched identity", html)
             self.assertIn("no-store", response.headers["Cache-Control"])
             self.assertEqual(response.headers["X-Frame-Options"], "DENY")
@@ -161,6 +163,31 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertEqual(error.exception.code, 422)
         self.assertEqual(json.load(error.exception)["error"], "unsafe_source")
         error.exception.close()
+
+    def test_hiring_scan_previews_without_persisting(self):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(
+                     company, website, priority, target_roles, evidence, source_url, status
+                   ) VALUES ('Acme', 'https://example.com', 'A', 'Revenue leader',
+                             'Public B2B offer', 'https://example.com/about', 'qualified')"""
+            )
+        with patch(
+            "ai_growth_engineering.hiring_signal_connector.PublicHiringSignalConnector.scan",
+            return_value=[],
+        ):
+            result = self.post(
+                "/api/signals/hiring/scan",
+                {
+                    "prospect_id": 1,
+                    "source_url": "https://example.com/careers",
+                    "max_age_days": 45,
+                },
+            )
+        self.assertFalse(result["persisted"])
+        self.assertEqual(result["candidates"], [])
+        with connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM intent_signals").fetchone()[0], 0)
 
     def post(self, path: str, payload: dict, *, expected: int = 200) -> dict:
         request = urllib.request.Request(

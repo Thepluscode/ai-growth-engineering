@@ -38,6 +38,7 @@ class CapabilityMapTests(unittest.TestCase):
                 "idea_evidence_lineage",
                 "opportunity_graveyard",
                 "product_opportunity_analysis_workflow",
+                "public_hiring_signal_connector",
             },
             "2_strategy": {
                 "segmentation",

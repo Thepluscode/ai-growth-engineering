@@ -9,6 +9,7 @@ from importlib.resources import files
 from urllib.parse import urlparse
 
 from .growthops import command_center_state
+from .hiring_signal_connector import preview_hiring_signals
 from .outbound_workbench import (
     WorkbenchError,
     approve_draft,
@@ -80,6 +81,7 @@ def build_server(
             mutation_routes = {
                 "/api/outbound/drafts",
                 "/api/signals",
+                "/api/signals/hiring/scan",
                 "/api/identities",
                 "/api/enrichment/inspect",
             }
@@ -96,6 +98,9 @@ def build_server(
                     return
                 if path == "/api/signals":
                     self._send_json(201, {"signal": add_intent_signal(db_path, payload)})
+                    return
+                if path == "/api/signals/hiring/scan":
+                    self._send_json(200, preview_hiring_signals(db_path, payload))
                     return
                 if path == "/api/identities":
                     self._send_json(201, {"identity": add_identity(db_path, payload)})

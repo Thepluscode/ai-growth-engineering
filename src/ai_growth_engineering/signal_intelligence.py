@@ -60,6 +60,12 @@ class IdentityCandidate:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class PublicHTMLDocument:
+    source_url: str
+    html: str
+
+
 class EnrichmentProvider(Protocol):
     name: str
 
@@ -96,6 +102,16 @@ def add_intent_signal(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]
         prospect = con.execute("SELECT id FROM prospects WHERE id = ?", (prospect_id,)).fetchone()
         if prospect is None:
             raise IntelligenceError("prospect_not_found", "Prospect does not exist")
+        duplicate = con.execute(
+            """SELECT signal_id FROM intent_signals
+               WHERE prospect_id = ? AND source_url = ? AND observed_fact = ?""",
+            (prospect_id, source_url, observed_fact),
+        ).fetchone()
+        if duplicate is not None:
+            raise IntelligenceError(
+                "duplicate_signal",
+                f"This observed signal is already recorded as {duplicate['signal_id']}",
+            )
         con.execute(
             """INSERT INTO intent_signals(
                  signal_id, prospect_id, person_name, person_role, signal_type,
@@ -431,25 +447,36 @@ class PublicPageEnrichmentProvider:
     name = "public_page"
 
     def inspect(self, source_url: str) -> list[IdentityCandidate]:
-        safe_url = _validate_public_url(source_url)
-        request = Request(
-            safe_url,
-            headers={"User-Agent": "AI-Growth-Engineering/0.1 identity-inspection"},
+        document = fetch_public_html(
+            source_url,
+            user_agent="AI-Growth-Engineering/0.1 identity-inspection",
+            failure_code="enrichment_failed",
         )
-        try:
-            with build_opener(_SafeRedirectHandler()).open(request, timeout=8) as response:
-                final_url = _validate_public_url(response.geturl())
-                content_type = response.headers.get_content_type()
-                if content_type not in {"text/html", "application/xhtml+xml"}:
-                    raise IntelligenceError("unsupported_content", "Source must be an HTML page")
-                body = response.read(MAX_ENRICHMENT_BYTES + 1)
-        except IntelligenceError:
-            raise
-        except Exception as exc:
-            raise IntelligenceError("enrichment_failed", f"Public page inspection failed: {exc}") from exc
-        if len(body) > MAX_ENRICHMENT_BYTES:
-            raise IntelligenceError("source_too_large", "Source exceeds the 1 MiB inspection limit")
-        return extract_public_identities(body.decode("utf-8", errors="replace"), final_url)
+        return extract_public_identities(document.html, document.source_url)
+
+
+def fetch_public_html(
+    source_url: str,
+    *,
+    user_agent: str = "AI-Growth-Engineering/0.1 public-source-inspection",
+    failure_code: str = "source_fetch_failed",
+) -> PublicHTMLDocument:
+    safe_url = _validate_public_url(source_url)
+    request = Request(safe_url, headers={"User-Agent": user_agent})
+    try:
+        with build_opener(_SafeRedirectHandler()).open(request, timeout=8) as response:
+            final_url = _validate_public_url(response.geturl())
+            content_type = response.headers.get_content_type()
+            if content_type not in {"text/html", "application/xhtml+xml"}:
+                raise IntelligenceError("unsupported_content", "Source must be an HTML page")
+            body = response.read(MAX_ENRICHMENT_BYTES + 1)
+    except IntelligenceError:
+        raise
+    except Exception as exc:
+        raise IntelligenceError(failure_code, f"Public page inspection failed: {exc}") from exc
+    if len(body) > MAX_ENRICHMENT_BYTES:
+        raise IntelligenceError("source_too_large", "Source exceeds the 1 MiB inspection limit")
+    return PublicHTMLDocument(final_url, body.decode("utf-8", errors="replace"))
 
 
 def _validate_public_url(value: str) -> str:

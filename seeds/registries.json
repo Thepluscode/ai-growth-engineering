@@ -360,6 +360,14 @@
       "observed": true,
       "statement": "An isolated real-browser lifecycle recorded a cited intent event with observed fact separate from commercial interpretation, moved one eligible account into Today's 10 best buyers, routed the missing recipient identity to research, then changed the action to Prepare approval draft after an observed_published identity fixture was added. The prepared draft inherited the signal, source, fact, hypothesis, identity and channel; after creation both the draft and buyer card showed one linked outcome. Zero sends occurred. Deterministic tests cover hard disqualification, freshness, confidence, alternate eligible signals, identity provenance, private-network rejection and Signal to Draft to Reply lineage. The real operational store received schema only and contains no fabricated signal or identity rows.",
       "source": "isolated browser buyer-desk lifecycle + signal intelligence, HTTP and workbench tests, 2026-08-30"
+    },
+    {
+      "evidence_id": "EV-GROWTHOPS-HIRING-CONNECTOR-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "The public hiring connector read Airwallex's live structured posting for 'Manager, Revenue Strategy & Operations, UK & Europe', dated 2026-08-10, and returned one preview candidate with 95% source confidence. A real-browser lifecycle kept the vacancy observation separate from the weaker commercial hypothesis, required a human record action, then surfaced the account in the eligible buyer desk. A second scan identified the existing signal instead of offering another import. The isolated store contained one intent signal, zero outbound drafts and zero outreach rows. Desktop 1440x1000 and mobile 390x844 both had zero horizontal overflow and the browser console had zero errors.",
+      "source": "https://jobs.ashbyhq.com/airwallex/d0ee1c45-2b64-4abe-ad5c-75e0efd8d91e + isolated browser lifecycle + deterministic connector and HTTP tests, 2026-08-30"
     }
   ],
   "channels": [

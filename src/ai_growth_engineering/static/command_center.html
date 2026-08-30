@@ -140,6 +140,14 @@
     .candidate-copy strong, .candidate-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .candidate-copy strong { color: var(--ink); font-size: 9px; }
     .candidate-copy span { margin-top: 2px; color: var(--faint); font-family: var(--mono); font-size: 7px; }
+    .signal-candidate { display: grid; gap: 9px; padding: 11px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .signal-candidate-head, .signal-candidate-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .signal-candidate-head strong { font-size: 10px; }
+    .signal-candidate-meta { color: var(--faint); font: 7px/1.5 var(--mono); text-transform: uppercase; }
+    .signal-proof { padding: 8px 9px; border-left: 2px solid var(--green); color: #455164; background: var(--green-soft); font-size: 8px; }
+    .signal-proof.inference { border-left-color: var(--amber); background: var(--amber-soft); }
+    .signal-proof b { display: block; margin-bottom: 3px; font-size: 7px; letter-spacing: .08em; text-transform: uppercase; }
+    .signal-source { color: var(--blue); font-size: 8px; font-weight: 700; }
     .lineage-chip { color: var(--blue); font-family: var(--mono); font-size: 8px; }
     .workbench-grid { display: grid; grid-template-columns: minmax(360px, .82fr) minmax(0, 1.18fr); }
     .composer { padding: 22px; border-right: 1px solid var(--line); }
@@ -314,6 +322,19 @@
             </div>
             <aside class="intake" aria-label="Buyer intelligence intake">
               <details open>
+                <summary>Scan public hiring source</summary>
+                <form class="intake-form" id="hiring-scan-form">
+                  <div class="compact-grid">
+                    <div class="field full"><label for="hiring-prospect-id">Prospect</label><select id="hiring-prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                    <div class="field full"><label for="hiring-source">Careers or jobs page</label><input id="hiring-source" name="source_url" type="url" placeholder="https://company.com/careers" required></div>
+                    <div class="field full"><label for="hiring-max-age">Maximum posting age · days</label><input id="hiring-max-age" name="max_age_days" type="number" min="1" max="365" value="45" required></div>
+                  </div>
+                  <div class="form-foot"><p class="form-note">Preview only. Expired and stale roles are rejected; a vacancy is not treated as purchase intent.</p><button class="button primary" type="submit">Scan source</button></div>
+                  <div class="feedback" id="hiring-feedback" role="status" aria-live="polite"></div>
+                  <div class="candidate-list" id="hiring-candidate-list"></div>
+                </form>
+              </details>
+              <details>
                 <summary>Record observed intent event</summary>
                 <form class="intake-form" id="signal-form">
                   <div class="compact-grid">
@@ -471,7 +492,7 @@
     }
     function renderWorkbench(data) {
       window.workbenchData = data;
-      const select = $('prospect-id'); populateProspects(select, data.prospects); populateProspects($('signal-prospect-id'), data.prospects); populateProspects($('enrichment-prospect-id'), data.prospects); populateProspects($('identity-prospect-id'), data.prospects); updateDraftSignals(select.value);
+      const select = $('prospect-id'); populateProspects(select, data.prospects); populateProspects($('hiring-prospect-id'), data.prospects); populateProspects($('signal-prospect-id'), data.prospects); populateProspects($('enrichment-prospect-id'), data.prospects); populateProspects($('identity-prospect-id'), data.prospects); updateDraftSignals(select.value);
       const counts = data.counts;
       $('queue-counts').textContent = `${counts.pending_approval} pending · ${counts.approved} approved · ${counts.sent + counts.replied} recorded`;
       const root = $('draft-list'); root.replaceChildren();
@@ -526,6 +547,23 @@
       event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('signal-feedback'); feedback.textContent = 'Validating observed fact, inference and freshness…'; feedback.dataset.level = '';
       try { const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id); payload.confidence = Number(payload.confidence); payload.strength = Number(payload.strength); payload.freshness_half_life_days = Number(payload.freshness_half_life_days); const result = await mutate('/api/signals', payload); feedback.textContent = `${result.signal.signal_id} recorded. Ranking recalculated; nothing was sent.`; feedback.dataset.level = 'success'; $('signal-fact').value = ''; $('signal-interpretation').value = ''; await loadIntelligence(); }
       catch (error) { feedback.textContent = error.message; feedback.dataset.level = 'error'; } finally { control.disabled = false; }
+    });
+    $('hiring-scan-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('hiring-feedback'); feedback.textContent = 'Reading public hiring evidence…'; feedback.dataset.level = ''; $('hiring-candidate-list').replaceChildren();
+      try {
+        const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id); payload.max_age_days = Number(payload.max_age_days); const result = await mutate('/api/signals/hiring/scan', payload); window.hiringCandidates = result.candidates;
+        feedback.textContent = result.candidates.length ? `${result.candidates.length} relevant role${result.candidates.length === 1 ? '' : 's'} found. Review each observation and hypothesis before recording.` : 'No current commercial hiring evidence found in structured postings or explicit vacancy links.'; feedback.dataset.level = result.candidates.length ? 'success' : '';
+        result.candidates.forEach((candidate, index) => {
+          const card = node('article', 'signal-candidate'); const head = node('div', 'signal-candidate-head'); head.append(node('strong', '', candidate.title), badge(candidate.evidence_kind)); card.append(head, node('div', 'signal-candidate-meta', `${candidate.date_posted || 'date unknown'} · ${candidate.location || 'location unknown'} · ${Math.round(candidate.confidence * 100)}% source confidence`));
+          const observed = node('div', 'signal-proof'); observed.append(node('b', '', 'Observed'), node('span', '', candidate.observed_fact)); const inferred = node('div', 'signal-proof inference'); inferred.append(node('b', '', 'Hypothesis'), node('span', '', candidate.commercial_interpretation)); card.append(observed, inferred);
+          const foot = node('div', 'signal-candidate-foot'); const source = node('a', 'signal-source', 'Open evidence →'); source.href = candidate.source_url; source.target = '_blank'; source.rel = 'noreferrer'; const save = node('button', 'button', candidate.already_recorded_as ? `Recorded · ${candidate.already_recorded_as}` : 'Record reviewed signal'); save.type = 'button'; save.dataset.hiringCandidateIndex = String(index); save.disabled = Boolean(candidate.already_recorded_as); foot.append(source, save); card.append(foot); $('hiring-candidate-list').append(card);
+        });
+      } catch (error) { feedback.textContent = error.message; feedback.dataset.level = 'error'; } finally { control.disabled = false; }
+    });
+    $('hiring-candidate-list').addEventListener('click', async (event) => {
+      const control = event.target.closest('button[data-hiring-candidate-index]'); if (!control) return; const candidate = window.hiringCandidates?.[Number(control.dataset.hiringCandidateIndex)]; if (!candidate || candidate.already_recorded_as) return; control.disabled = true;
+      try { const result = await mutate('/api/signals', candidate.signal_payload); candidate.already_recorded_as = result.signal.signal_id; control.textContent = `Recorded · ${result.signal.signal_id}`; $('hiring-feedback').textContent = `${result.signal.signal_id} recorded from reviewed evidence. Nothing was sent.`; $('hiring-feedback').dataset.level = 'success'; await loadIntelligence(); }
+      catch (error) { $('hiring-feedback').textContent = error.message; $('hiring-feedback').dataset.level = 'error'; control.disabled = false; }
     });
     $('enrichment-form').addEventListener('submit', async (event) => {
       event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('enrichment-feedback'); feedback.textContent = 'Inspecting bounded public HTML…'; feedback.dataset.level = ''; $('candidate-list').replaceChildren();
