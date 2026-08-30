@@ -12,6 +12,7 @@ from .growthops import command_center_state
 from .hiring_signal_connector import (
     add_hiring_source,
     list_hiring_sources,
+    pending_hiring_candidates,
     preview_hiring_signals,
     scan_saved_hiring_sources,
 )
@@ -73,7 +74,10 @@ def build_server(
                 self._send_json(200, intelligence_state(db_path))
                 return
             if path == "/api/signals/sources":
-                self._send_json(200, {"sources": list_hiring_sources(db_path)})
+                self._send_json(200, {
+                    "sources": list_hiring_sources(db_path),
+                    "pending": pending_hiring_candidates(db_path),
+                })
                 return
             if path == "/healthz":
                 self._send(200, b'{"status":"ok","mode":"human_gated"}', "application/json")

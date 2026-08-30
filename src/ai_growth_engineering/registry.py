@@ -339,6 +339,43 @@ def seed_registries(db_path: str, seeds_path: str) -> dict[str, int]:
             _registries.add(db_path, name, record)
             loaded[name] = loaded.get(name, 0) + 1
 
+    # Signal sources belong here for the same reason every other row does: a source
+    # added ad hoc lives only in .age/ and is destroyed by the next rebuild, which
+    # would leave the scheduled sweep quietly reading nothing.
+    sources = data.get("hiring_sources", [])
+    if sources:
+        from .hiring_signal_connector import IntelligenceError as _Error, add_hiring_source
+        with connect(db_path) as con:
+            prospect_count = con.execute("SELECT COUNT(*) FROM prospects").fetchone()[0]
+        # No prospects yet means this store has not been given any — `make demo` seeds
+        # prospects first. That is a deferral, and it is reported rather than hidden.
+        if not prospect_count:
+            loaded["hiring_sources_awaiting_prospects"] = len(sources)
+            sources = []
+    for record in sources:
+        with connect(db_path) as con:
+            prospect = con.execute(
+                "SELECT id FROM prospects WHERE company = ?", (record["company"],)
+            ).fetchone()
+        if prospect is None:
+            # Prospects exist and this company is not among them: a defect in the seed
+            # file, not a row to drop quietly — skipping it silently leaves a scheduled
+            # sweep reading nothing, with no error to explain why.
+            raise ValueError(
+                f"hiring source names a company that is not a prospect: {record['company']!r}"
+            )
+        try:
+            add_hiring_source(db_path, {
+                "prospect_id": prospect["id"],
+                "source_url": record["source_url"],
+                "label": record.get("label", ""),
+            })
+        except _Error as exc:
+            if exc.code != "duplicate_source":
+                raise
+            continue
+        loaded["hiring_sources"] = loaded.get("hiring_sources", 0) + 1
+
     return loaded
 
 

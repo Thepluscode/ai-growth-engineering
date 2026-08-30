@@ -6,6 +6,13 @@ from pathlib import Path
 
 from . import capabilities
 from .growthops import TARGETS
+from .hiring_signal_connector import (
+    DEFAULT_MIN_INTERVAL_HOURS,
+    add_hiring_source,
+    list_hiring_sources,
+    pending_hiring_candidates,
+    scan_saved_hiring_sources,
+)
 from .models import ExperimentSpec
 from .registry import (
     add_experiment,
@@ -153,6 +160,44 @@ def cmd_suppress(args: argparse.Namespace) -> None:
     print(f"suppressed {args.identity}")
 
 
+def cmd_source_add(args: argparse.Namespace) -> None:
+    saved = add_hiring_source(
+        args.db,
+        {"prospect_id": args.prospect_id, "source_url": args.source_url, "label": args.label},
+    )
+    print(f"saved source {saved['source_id']} for {saved['company']}: {saved['source_url']}")
+
+
+def cmd_sweep_sources(args: argparse.Namespace) -> None:
+    """Unattended entry point. Exit non-zero only when nothing could be scanned."""
+    sources = list_hiring_sources(args.db)
+    if not sources:
+        print("no saved sources; nothing to sweep")
+        return
+    result = scan_saved_hiring_sources(
+        args.db,
+        min_interval_hours=args.min_interval_hours,
+        persist_candidates=True,
+        pause_seconds=args.pause_seconds,
+        max_age_days=args.max_age_days,
+    )
+    print(
+        f"{result['scanned_at']} "
+        f"scanned {result['scanned_source_count']}/{result['source_count']} sources "
+        f"(skipped {result['skipped_source_count']}, failed {result['failed_source_count']}) "
+        f"-> {result['candidate_count']} candidates, {result['stored_candidate_count']} new"
+    )
+    for row in result["sources"]:
+        if row["error"]:
+            print(f"  FAILED  {row['company']}: {row['error']}")
+        elif row["skipped"]:
+            print(f"  skipped {row['company']}: {row['skipped']}")
+        else:
+            print(f"  ok      {row['company']}: {row['candidate_count']} candidates")
+    pending = pending_hiring_candidates(args.db)
+    print(f"{len(pending)} candidates awaiting human review; nothing was recorded as a signal")
+
+
 def cmd_import_outreach(args: argparse.Namespace) -> None:
     imported, skipped = import_outreach(args.db, args.csv_path)
     print(f"imported {imported} sends, skipped {skipped} (already present or incomplete)")
@@ -161,11 +206,14 @@ def cmd_import_outreach(args: argparse.Namespace) -> None:
 def cmd_seed_registries(args: argparse.Namespace) -> None:
     init_db(args.db)
     loaded = seed_registries(args.db, args.seeds_path)
+    waiting = loaded.pop("hiring_sources_awaiting_prospects", 0)
     if not loaded:
         print("registries already current, nothing loaded")
     else:
         for name, count in sorted(loaded.items()):
             print(f"loaded {count} into {name}")
+    if waiting:
+        print(f"{waiting} hiring sources not loaded: this store has no prospects yet")
 
 
 def cmd_capability_map(args: argparse.Namespace) -> None:
@@ -259,6 +307,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--collected-revenue", type=float, default=0.0)
     p.add_argument("--notes", default="")
     p.set_defaults(func=cmd_outreach_record)
+
+    p = sub.add_parser("source-add"); dbarg(p)
+    p.add_argument("--prospect-id", type=int, required=True)
+    p.add_argument("--source-url", required=True)
+    p.add_argument("--label", default="")
+    p.set_defaults(func=cmd_source_add)
+
+    p = sub.add_parser("sweep-sources"); dbarg(p)
+    p.add_argument("--min-interval-hours", type=float, default=DEFAULT_MIN_INTERVAL_HOURS,
+                   help="skip a source fetched more recently than this (default: %(default)s)")
+    p.add_argument("--pause-seconds", type=float, default=2.0,
+                   help="wait between requests that go out (default: %(default)s)")
+    p.add_argument("--max-age-days", type=int, default=45)
+    p.set_defaults(func=cmd_sweep_sources)
 
     p = sub.add_parser("suppress"); dbarg(p)
     p.add_argument("--identity", required=True)

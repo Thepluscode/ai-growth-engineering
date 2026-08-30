@@ -5,6 +5,7 @@ import hashlib
 import ipaddress
 import json
 import re
+import time
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 from html.parser import HTMLParser
@@ -385,6 +386,29 @@ CREATE TABLE IF NOT EXISTS hiring_signal_sources (
     last_error TEXT NOT NULL DEFAULT '',
     UNIQUE(prospect_id, source_url)
 );
+
+CREATE TABLE IF NOT EXISTS hiring_signal_candidates (
+    candidate_id TEXT PRIMARY KEY,
+    source_id INTEGER NOT NULL REFERENCES hiring_signal_sources(id),
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    company TEXT NOT NULL,
+    title TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    observed_fact TEXT NOT NULL,
+    commercial_interpretation TEXT NOT NULL,
+    date_posted TEXT NOT NULL DEFAULT '',
+    confidence REAL NOT NULL,
+    strength INTEGER NOT NULL,
+    freshness_half_life_days INTEGER NOT NULL,
+    evidence_kind TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    recorded_signal_id TEXT NOT NULL DEFAULT '',
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_hiring_candidates_status
+ON hiring_signal_candidates(status, last_seen_at DESC);
 """
 
 
@@ -443,24 +467,65 @@ def list_hiring_sources(db_path: str) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+DEFAULT_MIN_INTERVAL_HOURS = 20
+
+
+def _hours_since(stamp: str, now: datetime) -> float | None:
+    """None when never scanned — an unknown age is not a small one."""
+    if not stamp:
+        return None
+    try:
+        seen = _utc(datetime.fromisoformat(stamp))
+    except ValueError:
+        return None
+    return (now - seen).total_seconds() / 3600
+
+
 def scan_saved_hiring_sources(
     db_path: str,
     *,
     connector: PublicHiringSignalConnector | None = None,
     observed_at: datetime | None = None,
     max_age_days: int = 45,
+    min_interval_hours: float = 0.0,
+    persist_candidates: bool = False,
+    pause_seconds: float = 0.0,
 ) -> dict[str, Any]:
-    """Scan every saved source. Persists nothing but the scan outcome per source.
+    """Scan every saved source. Persists the per-source outcome, and the candidates
+    themselves when `persist_candidates` is set.
 
     One source failing must not lose the candidates found by the others, so each
     failure is recorded against its own row and the sweep continues.
+
+    `min_interval_hours` is what makes an unattended run safe for somebody else's
+    server: a source fetched recently is skipped rather than fetched again, so a
+    crash-looping schedule cannot turn into a crawl. `pause_seconds` spaces the
+    requests that do go out.
     """
     sources = list_hiring_sources(db_path)
     connector = connector or PublicHiringSignalConnector()
-    scanned_at = _utc(observed_at or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+    now = _utc(observed_at or datetime.now(timezone.utc))
+    scanned_at = now.isoformat(timespec="seconds")
     results: list[dict[str, Any]] = []
     candidates: list[dict[str, Any]] = []
-    for source in sources:
+    skipped = 0
+    for index, source in enumerate(sources):
+        age_hours = _hours_since(source["last_scanned_at"], now)
+        if min_interval_hours > 0 and age_hours is not None and age_hours < min_interval_hours:
+            skipped += 1
+            results.append({
+                "source_id": source["id"],
+                "prospect_id": source["prospect_id"],
+                "company": source["company"],
+                "source_url": source["source_url"],
+                "label": source["label"],
+                "candidate_count": None,
+                "error": "",
+                "skipped": f"scanned {age_hours:.1f}h ago, inside the {min_interval_hours:g}h interval",
+            })
+            continue
+        if pause_seconds > 0 and index:
+            time.sleep(pause_seconds)
         error = ""
         found: list[dict[str, Any]] = []
         try:
@@ -499,15 +564,87 @@ def scan_saved_hiring_sources(
             "label": source["label"],
             "candidate_count": None if error else len(found),
             "error": error,
+            "skipped": "",
         })
     new_candidates = [row for row in candidates if not row.get("already_recorded_as")]
+    stored = _store_candidates(db_path, candidates, scanned_at) if persist_candidates else 0
     return {
         "scanned_at": scanned_at,
-        "persisted": False,
+        "persisted": bool(persist_candidates),
         "source_count": len(sources),
+        "scanned_source_count": len(sources) - skipped,
+        "skipped_source_count": skipped,
         "failed_source_count": sum(1 for row in results if row["error"]),
         "candidate_count": len(candidates),
         "new_candidate_count": len(new_candidates),
+        "stored_candidate_count": stored,
         "sources": results,
         "candidates": candidates,
     }
+
+
+def _store_candidates(db_path: str, candidates: list[dict[str, Any]], scanned_at: str) -> int:
+    """Upsert candidates as pending proposals. Returns how many were new.
+
+    A candidate the operator already recorded or dismissed must never come back as
+    pending on the next sweep, so a conflict only refreshes when it was last seen —
+    the status a person set is never overwritten by a machine.
+    """
+    if not candidates:
+        return 0
+    with connect(db_path) as con:
+        for row in candidates:
+            status = "recorded" if row.get("already_recorded_as") else "pending"
+            con.execute(
+                """INSERT INTO hiring_signal_candidates(
+                       candidate_id, source_id, prospect_id, company, title, source_url,
+                       observed_fact, commercial_interpretation, date_posted, confidence,
+                       strength, freshness_half_life_days, evidence_kind, status,
+                       recorded_signal_id, first_seen_at, last_seen_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(candidate_id) DO UPDATE SET last_seen_at = excluded.last_seen_at""",
+                (
+                    row["candidate_id"], row["source_id"], row["prospect_id"], row["company"],
+                    row["title"], row["source_url"], row["observed_fact"],
+                    row["commercial_interpretation"], row["date_posted"], row["confidence"],
+                    row["strength"], row["freshness_half_life_days"], row["evidence_kind"],
+                    status, row.get("already_recorded_as") or "", scanned_at, scanned_at,
+                ),
+            )
+        stored = con.execute(
+            "SELECT COUNT(*) FROM hiring_signal_candidates WHERE first_seen_at = ?",
+            (scanned_at,),
+        ).fetchone()[0]
+    return stored
+
+
+def pending_hiring_candidates(db_path: str, *, limit: int = 50) -> list[dict[str, Any]]:
+    """Candidates a sweep found and nobody has reviewed yet."""
+    init_source_store(db_path)
+    with connect(db_path) as con:
+        rows = con.execute(
+            """SELECT * FROM hiring_signal_candidates
+               WHERE status = 'pending'
+               ORDER BY strength DESC, confidence DESC, last_seen_at DESC
+               LIMIT ?""",
+            (max(1, min(limit, 200)),),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def set_candidate_status(db_path: str, candidate_id: str, status: str, signal_id: str = "") -> dict[str, Any]:
+    if status not in {"pending", "recorded", "dismissed"}:
+        raise IntelligenceError("invalid_field", "status must be pending, recorded or dismissed")
+    init_source_store(db_path)
+    with connect(db_path) as con:
+        row = con.execute(
+            "SELECT candidate_id FROM hiring_signal_candidates WHERE candidate_id = ?",
+            (candidate_id,),
+        ).fetchone()
+        if row is None:
+            raise IntelligenceError("candidate_not_found", "Candidate does not exist")
+        con.execute(
+            "UPDATE hiring_signal_candidates SET status = ?, recorded_signal_id = ? WHERE candidate_id = ?",
+            (status, signal_id, candidate_id),
+        )
+    return {"candidate_id": candidate_id, "status": status, "recorded_signal_id": signal_id}

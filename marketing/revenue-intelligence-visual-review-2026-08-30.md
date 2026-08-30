@@ -131,6 +131,45 @@ The four remaining fragments are all data, not explanation: two unknowns stating
 empty states. Nothing informational was lost — the data-row count is unchanged, and the held
 rows still carry every gate reason as a chip, at both viewports.
 
+## Scheduled sweep
+
+`age sweep-sources` runs the sweep unattended; `scripts/sweep-cron.sh install` puts it in cron
+at 07:00 daily. A sweep records nothing as a signal — candidates persist as **pending
+proposals**, and the workspace gained an `Awaiting review` counter and ledger showing each one
+with its strength, confidence, candidate id, source link and a `not a signal yet` mark.
+
+Two guards make unattended running safe. Both were mutation-verified against a green baseline:
+
+| Guard | Mutation | Result |
+| --- | --- | --- |
+| `--min-interval-hours 20` skips a recently fetched source | replaced the interval test with `if False` | one test red, precisely |
+| a conflict refreshes only `last_seen_at` | added `status = excluded.status` | one test red, precisely |
+
+The second is the one that matters over time: without it, every sweep would resurrect a
+candidate the operator had already dismissed.
+
+### Verified live, not only in stubs
+
+- The exact cron command runs under `env -i HOME=... PATH=/usr/bin:/bin` and exits 0.
+- Three real UK MSP careers pages swept clean; the immediate re-run correctly reported
+  `scanned 0/3 (skipped 3)` with `scanned 0.0h ago, inside the 20h interval` against each.
+- Install → remove → install → install left 6 active cron entries and 9 other-project entries
+  untouched, with the marker count going 5 → 0 → 5.
+
+### The zero was checked before it was believed
+
+All three sources returned 0 candidates. That is a result a broken connector also produces, so
+it was checked rather than reported: Texaport publishes four real vacancies
+(`it-support-analyst-apac`, `2nd-line-support-engineer-sao-paulo`, `cloud-engineer-uk`,
+`1st-line-support-engineer-mexico`), none of which is a commercial role. A positive control on
+the same live HTML — one title relabelled to `Head of Revenue Operations` — yields exactly one
+candidate. The pipeline reaches the links; the role filter is what rejects them.
+
+**This does not yet fill the queue.** Three sources that are hiring support engineers produce
+nothing to rank, and that is the honest state: the schedule is the mechanism, sources are the
+input, and three is not enough. Widening the source list is the next move, not another
+mechanism.
+
 ## Accessibility
 
 - Queue rows are `<button>` elements; the ledger is keyboard reachable.

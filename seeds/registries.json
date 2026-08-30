@@ -625,5 +625,22 @@
       "status": "accepted_directional",
       "reviewed_at": "2026-08-20"
     }
+  ],
+  "hiring_sources": [
+    {
+      "company": "CloudTech24",
+      "source_url": "https://cloudtech24.com/careers",
+      "label": "Careers page"
+    },
+    {
+      "company": "Transputec",
+      "source_url": "https://www.transputec.com/careers/",
+      "label": "Careers page"
+    },
+    {
+      "company": "Texaport",
+      "source_url": "https://texaport.co.uk/careers/",
+      "label": "Careers page"
+    }
   ]
 }

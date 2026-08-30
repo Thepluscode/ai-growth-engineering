@@ -497,10 +497,50 @@ class SeedDurabilityTests(unittest.TestCase):
         self.assertEqual(loaded.get("product_opportunities"), 5)
         self.assertEqual(loaded.get("product_format_decisions"), 2)
 
+    def test_hiring_sources_defer_when_the_store_has_no_prospects_yet(self):
+        from ai_growth_engineering.registry import seed_registries
+        loaded = seed_registries(self.db, self.seeds)
+        self.assertGreaterEqual(loaded.get("hiring_sources_awaiting_prospects", 0), 1)
+        self.assertNotIn("hiring_sources", loaded)
+
+    def test_hiring_sources_load_once_their_prospects_exist(self):
+        from ai_growth_engineering.hiring_signal_connector import list_hiring_sources
+        from ai_growth_engineering.registry import seed_prospects, seed_registries
+        csv_path = str(Path(__file__).resolve().parents[1]
+                       / "experiments" / "EXP-ACQ-0001" / "prospects.csv")
+        seed_prospects(self.db, csv_path)
+        loaded = seed_registries(self.db, self.seeds)
+        self.assertGreaterEqual(loaded.get("hiring_sources", 0), 1)
+        saved = list_hiring_sources(self.db)
+        self.assertGreaterEqual(len(saved), 1)
+        self.assertTrue(all(r["source_url"].startswith("https://") for r in saved))
+        self.assertEqual(seed_registries(self.db, self.seeds), {})
+
+    def test_a_source_naming_a_company_that_is_not_a_prospect_is_an_error(self):
+        import json
+        from ai_growth_engineering.registry import seed_prospects, seed_registries
+        csv_path = str(Path(__file__).resolve().parents[1]
+                       / "experiments" / "EXP-ACQ-0001" / "prospects.csv")
+        seed_prospects(self.db, csv_path)
+        with open(self.seeds, encoding="utf-8") as handle:
+            data = json.load(handle)
+        data["hiring_sources"] = [
+            {"company": "Nowhere Ltd", "source_url": "https://nowhere.example/careers"}
+        ]
+        broken = str(Path(self.tmp.name) / "broken-seeds.json")
+        with open(broken, "w", encoding="utf-8") as handle:
+            json.dump(data, handle)
+        with self.assertRaisesRegex(ValueError, "not a prospect"):
+            seed_registries(self.db, broken)
+
     def test_seeding_is_idempotent(self):
         from ai_growth_engineering.registry import seed_registries
         seed_registries(self.db, self.seeds)
-        self.assertEqual(seed_registries(self.db, self.seeds), {})
+        # The deferral notice is not a load and keeps reporting until it is resolved;
+        # nothing else may be inserted twice.
+        again = seed_registries(self.db, self.seeds)
+        again.pop("hiring_sources_awaiting_prospects", None)
+        self.assertEqual(again, {})
 
     def test_a_rebuild_restores_what_was_recorded(self):
         from ai_growth_engineering.registry import seed_registries

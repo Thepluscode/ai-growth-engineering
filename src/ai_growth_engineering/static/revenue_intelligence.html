@@ -243,6 +243,7 @@
       <a href="#queue" aria-current="page">Queue</a>
       <a href="#held">Held by a gate</a>
       <a href="#sources">Sources</a>
+      <a href="#review">Awaiting review</a>
       <a href="#performance">Performance</a>
       <a href="#board">Scoreboard</a>
       <a href="/">Command center</a>
@@ -267,6 +268,7 @@
       <div><span class="lbl">Held</span><strong class="held" id="n-held">—</strong></div>
       <div><span class="lbl">Signals</span><strong id="n-signals">—</strong></div>
       <div><span class="lbl">Sources</span><strong id="n-sources">—</strong></div>
+      <div><span class="lbl">Awaiting review</span><strong id="n-pending">—</strong></div>
     </div>
 
     <div class="sheet">
@@ -298,6 +300,11 @@
           <button type="button" class="btn" id="scan">Scan all sources</button>
         </div>
         <div class="ledger" id="source-ledger"><div class="void">Reading state.</div></div>
+      </section>
+
+      <section class="sec" id="review">
+        <div class="sec-head"><div><span class="lbl">Awaiting review</span></div></div>
+        <div class="ledger" id="review-ledger"></div>
       </section>
 
       <section class="sec" id="performance">
@@ -473,6 +480,25 @@ function drawFunnel(steps,perCustomer){
   root.append(rev,missing);
 }
 
+function drawPending(rows){
+  const root=$('review-ledger');
+  if(!rows.length)return empty(root,'Nothing awaiting review.');
+  root.replaceChildren(...rows.slice(0,20).map(c=>{
+    const rec=el('div','rec');rec.dataset.mark='pending';
+    const rank=el('div','rank',String(c.strength));rank.append(el('em','','Strength'));
+    const who=el('div','who');
+    who.append(el('b','',c.company),el('span','',c.title));
+    who.append(el('span','num',`${conf(c.confidence)} · ${words(c.evidence_kind).toUpperCase()}`));
+    const said=el('div','said col-mid',c.observed_fact);
+    said.append(el('span','num',`${c.candidate_id} · SEEN ${stamp(c.last_seen_at)}`));
+    const flags=el('div','flags');
+    flags.append(el('span','flag pend','not a signal yet'));
+    flags.append(link(c.source_url));
+    rec.append(rank,who,said,flags,el('div','auth','Command center'));
+    return rec;
+  }));
+}
+
 function drawBoard(rows){
   $('board-grid').replaceChildren(...rows.slice(0,8).map(r=>{
     const c=el('div','cell');
@@ -609,11 +635,11 @@ function stall(message){
   const a=$('alert');
   a.replaceChildren(el('b','','State unavailable'),el('span','',message));
   a.dataset.shown='';
-  ['queue-ledger','held-ledger','source-ledger'].forEach(id=>
+  ['queue-ledger','held-ledger','source-ledger','review-ledger'].forEach(id=>
     empty($(id),'Not readable — this is a failed read, not an empty result.'));
 }
 
-function paint(state,intel,sources){
+function paint(state,intel,sources,pending){
   delete $('alert').dataset.shown;
   $('clock').textContent=`READ ${new Date(state.generated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
   $('rail-mode').textContent=String(state.mode||'').replaceAll(' / ',' · ');
@@ -622,9 +648,11 @@ function paint(state,intel,sources){
   $('n-held').textContent=String(intel.ineligible_count);
   $('n-signals').textContent=String(VIEW.signals.length);
   $('n-sources').textContent=String(sources.length);
+  $('n-pending').textContent=String(pending.length);
   drawQueue(VIEW.buyers);
   drawHeld(intel.ineligible||[]);
   drawSources(sources);
+  drawPending(pending);
   drawFunnel(state.funnel||[],state.revenue_per_customer_pence);
   drawBoard(state.scoreboard||[]);
   drawLines('experiments',state.experiments||[],'experiment');
@@ -640,7 +668,7 @@ function read(path){
 
 function load(){
   return Promise.all([read('/api/state'),read('/api/intelligence'),read('/api/signals/sources')])
-    .then(([s,i,src])=>paint(s,i,src.sources||[]));
+    .then(([s,i,src])=>paint(s,i,src.sources||[],src.pending||[]));
 }
 
 $('scan').addEventListener('click',()=>{

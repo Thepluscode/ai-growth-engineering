@@ -2,7 +2,7 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean
+.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean sweep sweep-schedule
 
 hooks:
 	git config core.hooksPath .githooks
@@ -40,6 +40,12 @@ demo: seed
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-result --db $(DB) --experiment-id EXP-ACQ-0001 --sample-size 50 --observed-value 0.0 --learning "50 counted sends, 0 meaningful replies. 48 of 50 went to a role inbox; 2 reached a named buyer. See experiments/EXP-ACQ-0001/VERDICT.md"
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli recipient-split --db $(DB)
+
+sweep:
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli sweep-sources --db $(DB) --min-interval-hours 0 --pause-seconds 2
+
+sweep-schedule:
+	scripts/sweep-cron.sh install
 
 clean:
 	rm -rf .age __pycache__ src/ai_growth_engineering/__pycache__ tests/__pycache__

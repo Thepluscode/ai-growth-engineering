@@ -46,6 +46,7 @@
         "signal_to_revenue_lineage": "IMPLEMENTED",
         "public_hiring_signal_connector": "IMPLEMENTED",
         "saved_signal_source_sweep": "IMPLEMENTED",
+        "scheduled_signal_source_sweep": "IMPLEMENTED",
         "external_signal_connectors": "HYPOTHESIS",
         "enrichment_provider_adapters": "HYPOTHESIS",
         "tenant_safe_pattern_learning": "HYPOTHESIS"

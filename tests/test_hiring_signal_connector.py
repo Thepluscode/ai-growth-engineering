@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ai_growth_engineering.hiring_signal_connector import (
@@ -11,8 +11,10 @@ from ai_growth_engineering.hiring_signal_connector import (
     add_hiring_source,
     extract_hiring_signal_candidates,
     list_hiring_sources,
+    pending_hiring_candidates,
     preview_hiring_signals,
     scan_saved_hiring_sources,
+    set_candidate_status,
 )
 from ai_growth_engineering.signal_intelligence import IntelligenceError, add_intent_signal
 from ai_growth_engineering.storage import connect, init_db
@@ -246,6 +248,140 @@ class SavedHiringSourceTests(unittest.TestCase):
         second = scan_saved_hiring_sources(self.db, connector=StubConnector(), observed_at=NOW)
         self.assertEqual(second["candidate_count"], 1)
         self.assertEqual(second["new_candidate_count"], 0)
+
+
+class ScheduledSweepTests(unittest.TestCase):
+    """What has to hold before this runs unattended on somebody else's server."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "growth.db")
+        init_db(self.db)
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                         evidence, source_url, status)
+                   VALUES (1, 'Acme', 'https://acme.example', 'A', 'Revenue leader',
+                           'Public B2B offer', 'https://acme.example/about', 'qualified')"""
+            )
+        add_hiring_source(self.db, {"prospect_id": 1, "source_url": "https://acme.example/careers"})
+        self.calls = []
+
+    def connector(self, *titles):
+        candidates = [
+            extract_hiring_signal_candidates(
+                structured_page({"@type": "JobPosting", "title": title,
+                                 "url": f"/jobs/{title.lower().replace(' ', '-')}",
+                                 "datePosted": "2026-08-29"}),
+                SOURCE, "Acme", observed_at=NOW,
+            )[0]
+            for title in titles
+        ]
+        calls = self.calls
+
+        class Stub:
+            def scan(self, source_url, company, *, observed_at=None, max_age_days=45):
+                calls.append(source_url)
+                return list(candidates)
+
+        return Stub()
+
+    def test_a_swept_candidate_is_stored_as_a_proposal_and_never_as_a_signal(self):
+        result = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True,
+        )
+        self.assertTrue(result["persisted"])
+        self.assertEqual(result["stored_candidate_count"], 1)
+        pending = pending_hiring_candidates(self.db)
+        self.assertEqual(len(pending), 1)
+        self.assertEqual(pending[0]["status"], "pending")
+        self.assertEqual(pending[0]["company"], "Acme")
+        with connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM intent_signals").fetchone()[0], 0)
+
+    def test_a_source_fetched_recently_is_skipped_rather_than_fetched_again(self):
+        later = NOW + timedelta(hours=2)
+        first = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True, min_interval_hours=20,
+        )
+        self.assertEqual(first["scanned_source_count"], 1)
+        self.assertEqual(first["skipped_source_count"], 0)
+        self.assertEqual(len(self.calls), 1)
+
+        second = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=later,
+            persist_candidates=True, min_interval_hours=20,
+        )
+        self.assertEqual(second["scanned_source_count"], 0)
+        self.assertEqual(second["skipped_source_count"], 1)
+        self.assertIn("inside the 20h interval", second["sources"][0]["skipped"])
+        self.assertEqual(len(self.calls), 1, "the skipped source must not be fetched")
+
+    def test_the_interval_lets_the_source_through_once_it_has_elapsed(self):
+        scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True, min_interval_hours=20,
+        )
+        scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW + timedelta(hours=21),
+            persist_candidates=True, min_interval_hours=20,
+        )
+        self.assertEqual(len(self.calls), 2)
+
+    def test_a_never_scanned_source_is_not_treated_as_recently_scanned(self):
+        result = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True, min_interval_hours=999,
+        )
+        self.assertEqual(result["scanned_source_count"], 1)
+        self.assertEqual(len(self.calls), 1)
+
+    def test_a_reviewed_candidate_never_returns_as_pending_on_the_next_sweep(self):
+        scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True,
+        )
+        candidate_id = pending_hiring_candidates(self.db)[0]["candidate_id"]
+        set_candidate_status(self.db, candidate_id, "dismissed")
+        self.assertEqual(pending_hiring_candidates(self.db), [])
+
+        again = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW + timedelta(days=1),
+            persist_candidates=True,
+        )
+        self.assertEqual(again["candidate_count"], 1)
+        self.assertEqual(again["stored_candidate_count"], 0)
+        self.assertEqual(pending_hiring_candidates(self.db), [],
+                         "a dismissed candidate must not be resurrected by a machine")
+
+    def test_a_second_sweep_stores_only_what_is_genuinely_new(self):
+        scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW,
+            persist_candidates=True,
+        )
+        second = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales", "Head of Revenue Operations"),
+            observed_at=NOW + timedelta(days=1), persist_candidates=True,
+        )
+        self.assertEqual(second["candidate_count"], 2)
+        self.assertEqual(second["stored_candidate_count"], 1)
+        self.assertEqual(len(pending_hiring_candidates(self.db)), 2)
+
+    def test_persistence_is_off_unless_asked_for(self):
+        result = scan_saved_hiring_sources(
+            self.db, connector=self.connector("VP Sales"), observed_at=NOW
+        )
+        self.assertFalse(result["persisted"])
+        self.assertEqual(pending_hiring_candidates(self.db), [])
+
+    def test_an_unknown_candidate_cannot_be_reviewed(self):
+        with self.assertRaisesRegex(IntelligenceError, "does not exist"):
+            set_candidate_status(self.db, "HIRE-NOPE", "dismissed")
+        with self.assertRaisesRegex(IntelligenceError, "must be pending"):
+            set_candidate_status(self.db, "HIRE-NOPE", "banished")
 
 
 if __name__ == "__main__":
