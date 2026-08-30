@@ -48,6 +48,65 @@ class CommandCenterServerTests(unittest.TestCase):
             revenue_html = response.read().decode()
         self.assertIn("Revenue Intelligence", revenue_html)
 
+    def test_revenue_workspace_reads_only_the_intelligence_surfaces(self):
+        with urllib.request.urlopen(self.base + "/revenue-intelligence") as response:
+            html = response.read().decode()
+        self.assertIn("/api/state", html)
+        self.assertIn("/api/intelligence", html)
+        for surface in ('id="drawer"', 'role="dialog"', "Signal timeline", 'id="blocked-list"'):
+            self.assertIn(surface, html)
+        for mutation in ("/api/outbound/drafts", "/api/signals", "/api/identities", "record-send"):
+            self.assertNotIn(mutation, html)
+        for remote in ('src="http', 'href="http', "googleapis", "cdn."):
+            self.assertNotIn(remote, html)
+
+    def test_a_blocked_prospect_never_reaches_the_actionable_queue(self):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(
+                     company, website, priority, target_roles, evidence, source_url, status
+                   ) VALUES ('Blocked Ltd', 'https://blocked.example', 'A', 'Founder',
+                             'Public B2B offer', 'https://blocked.example/about', 'disqualified')"""
+            )
+        self.post(
+            "/api/signals",
+            {
+                "prospect_id": 1,
+                "signal_type": "hiring",
+                "source_url": "https://blocked.example/careers",
+                "observed_fact": "The company published a revenue operations vacancy.",
+                "commercial_interpretation": "The vacancy may indicate investment in pipeline operations.",
+                "observed_at": "2026-08-29",
+                "confidence": 0.95,
+                "strength": 5,
+                "freshness_half_life_days": 14,
+            },
+            expected=201,
+        )
+        self.post(
+            "/api/identities",
+            {
+                "prospect_id": 1,
+                "identity_type": "linkedin",
+                "value": "https://www.linkedin.com/in/blocked-buyer",
+                "provider": "operator_research",
+                "verification_status": "verified",
+                "source_url": "https://blocked.example/team",
+                "observed_at": "2026-08-29",
+                "confidence": 0.9,
+            },
+            expected=201,
+        )
+        with urllib.request.urlopen(self.base + "/api/intelligence") as response:
+            state = json.load(response)
+        self.assertEqual(state["eligible_count"], 0)
+        self.assertEqual(state["ranked_buyers"], [])
+        self.assertEqual(len(state["ineligible"]), 1)
+        blocked = state["ineligible"][0]
+        self.assertEqual(blocked["company"], "Blocked Ltd")
+        self.assertEqual(blocked["signal_count"], 1)
+        self.assertIn("Prospect status is disqualified", blocked["reasons"])
+
     def test_write_routes_are_refused(self):
         request = urllib.request.Request(self.base + "/api/state", method="POST", data=b"{}")
         with self.assertRaises(urllib.error.HTTPError) as error:
