@@ -109,17 +109,23 @@ The internal operator reads the existing evidence, experiments, route-level outr
 and commercial scoreboard, then proposes exactly one next action. It is deliberately read-only:
 customer contact, publishing, spend and experiment-contract changes remain behind human approval.
 
-Launch the visible local interface:
+Open it:
 
 ```bash
-make command-center
+make ui          # http://127.0.0.1:8899 — starts the server against the existing store
 ```
 
-Or point it at an existing store without reseeding:
+There are two workspaces behind that one address, and the rail's `Workspace` group switches
+between them:
 
-```bash
-age command-center --db .age/growth.db --open-browser
-```
+| | |
+| --- | --- |
+| `/` — **Command center** | act on what is decided: draft, approve, record a send or a reply |
+| `/revenue-intelligence` | decide who is worth acting on: the queue, what a gate held, sources, evidence |
+
+`make command-center` also works but re-runs the whole demo chain first — reseeding, re-importing
+outreach and re-recording an experiment result — which is not what you want just to look at the
+interface.
 
 ## Quick start
 

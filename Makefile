@@ -2,7 +2,7 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean sweep sweep-schedule
+.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean sweep sweep-schedule ui
 
 hooks:
 	git config core.hooksPath .githooks
@@ -28,6 +28,10 @@ capability-map:
 
 scoreboard:
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
+
+ui:
+	@echo "opening http://127.0.0.1:8899 — Ctrl-C to stop"
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli command-center --db $(DB) --port 8899 --open-browser
 
 command-center: demo
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli command-center --db $(DB) --open-browser
