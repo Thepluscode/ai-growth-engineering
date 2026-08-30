@@ -46,6 +46,9 @@ def build_server(
             if path == "/":
                 self._send(200, _asset("command_center.html"), "text/html; charset=utf-8")
                 return
+            if path == "/revenue-intelligence":
+                self._send(200, _asset("revenue_intelligence.html"), "text/html; charset=utf-8")
+                return
             if path == "/api/state":
                 payload = json.dumps(command_center_state(db_path), separators=(",", ":")).encode()
                 self._send(200, payload, "application/json; charset=utf-8")
@@ -148,6 +151,7 @@ def serve_command_center(
     server = build_server(db_path, host, port)
     url = f"http://{host}:{server.server_port}"
     print(f"GrowthOps Command Center: {url}")
+    print(f"Revenue Intelligence: {url}/revenue-intelligence")
     print("Mode: INTERNAL / HUMAN GATED / NO AUTOSEND")
     if open_browser:
         webbrowser.open(url)
