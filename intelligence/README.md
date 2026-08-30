@@ -2,7 +2,7 @@
 
 # intelligence
 
-**Market intelligence** — 21 of 36 capabilities implemented.
+**Market intelligence** — 22 of 37 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -37,6 +37,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `prospect_eligibility_gate` | IMPLEMENTED |
 | `prospect_registry` | IMPLEMENTED |
 | `public_hiring_signal_connector` | IMPLEMENTED |
+| `saved_signal_source_sweep` | IMPLEMENTED |
 | `signal_freshness_decay` | IMPLEMENTED |
 | `signal_to_revenue_lineage` | IMPLEMENTED |
 | `social_voice_of_customer` | IMPLEMENTED |

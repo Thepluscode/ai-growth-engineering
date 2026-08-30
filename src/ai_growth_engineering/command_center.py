@@ -9,7 +9,12 @@ from importlib.resources import files
 from urllib.parse import urlparse
 
 from .growthops import command_center_state
-from .hiring_signal_connector import preview_hiring_signals
+from .hiring_signal_connector import (
+    add_hiring_source,
+    list_hiring_sources,
+    preview_hiring_signals,
+    scan_saved_hiring_sources,
+)
 from .outbound_workbench import (
     WorkbenchError,
     approve_draft,
@@ -67,6 +72,9 @@ def build_server(
             if path == "/api/intelligence":
                 self._send_json(200, intelligence_state(db_path))
                 return
+            if path == "/api/signals/sources":
+                self._send_json(200, {"sources": list_hiring_sources(db_path)})
+                return
             if path == "/healthz":
                 self._send(200, b'{"status":"ok","mode":"human_gated"}', "application/json")
                 return
@@ -82,6 +90,8 @@ def build_server(
                 "/api/outbound/drafts",
                 "/api/signals",
                 "/api/signals/hiring/scan",
+                "/api/signals/sources",
+                "/api/signals/sources/scan",
                 "/api/identities",
                 "/api/enrichment/inspect",
             }
@@ -101,6 +111,12 @@ def build_server(
                     return
                 if path == "/api/signals/hiring/scan":
                     self._send_json(200, preview_hiring_signals(db_path, payload))
+                    return
+                if path == "/api/signals/sources":
+                    self._send_json(201, {"source": add_hiring_source(db_path, payload)})
+                    return
+                if path == "/api/signals/sources/scan":
+                    self._send_json(200, scan_saved_hiring_sources(db_path))
                     return
                 if path == "/api/identities":
                     self._send_json(201, {"identity": add_identity(db_path, payload)})

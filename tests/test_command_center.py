@@ -53,10 +53,13 @@ class CommandCenterServerTests(unittest.TestCase):
             html = response.read().decode()
         self.assertIn("/api/state", html)
         self.assertIn("/api/intelligence", html)
-        for surface in ('id="drawer"', 'role="dialog"', "Signal timeline", 'id="blocked-list"'):
+        self.assertIn("/api/signals/sources", html)
+        for surface in ('id="dossier"', 'role="dialog"', "Signal history", 'id="held-ledger"', 'id="source-ledger"'):
             self.assertIn(surface, html)
-        for mutation in ("/api/outbound/drafts", "/api/signals", "/api/identities", "record-send"):
-            self.assertNotIn(mutation, html)
+        # scanning a public page is a read; contacting a person is not, and none of
+        # the routes that reach a prospect may be callable from this screen.
+        for reaching in ("/api/outbound/drafts", "/api/identities", "/record-send", "/record-reply", "/approve"):
+            self.assertNotIn(reaching, html)
         for remote in ('src="http', 'href="http', "googleapis", "cdn."):
             self.assertNotIn(remote, html)
 

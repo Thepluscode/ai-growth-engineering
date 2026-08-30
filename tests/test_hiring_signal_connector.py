@@ -8,8 +8,11 @@ from pathlib import Path
 
 from ai_growth_engineering.hiring_signal_connector import (
     PublicHiringSignalConnector,
+    add_hiring_source,
     extract_hiring_signal_candidates,
+    list_hiring_sources,
     preview_hiring_signals,
+    scan_saved_hiring_sources,
 )
 from ai_growth_engineering.signal_intelligence import IntelligenceError, add_intent_signal
 from ai_growth_engineering.storage import connect, init_db
@@ -145,6 +148,104 @@ class HiringSignalConnectorTests(unittest.TestCase):
             PublicHiringSignalConnector().scan(
                 "http://127.0.0.1/careers", "Acme", observed_at=NOW
             )
+
+
+class SavedHiringSourceTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "growth.db")
+        init_db(self.db)
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                         evidence, source_url, status)
+                   VALUES (1, 'Acme', 'https://acme.example', 'A', 'Revenue leader',
+                           'Public B2B offer', 'https://acme.example/about', 'qualified')"""
+            )
+            con.execute(
+                """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                         evidence, source_url, status)
+                   VALUES (2, 'Beta', 'https://beta.example', 'A', 'Revenue leader',
+                           'Public B2B offer', 'https://beta.example/about', 'qualified')"""
+            )
+
+    def _candidate(self, title="VP Sales", url="/jobs/vp-sales"):
+        return extract_hiring_signal_candidates(
+            structured_page(
+                {"@type": "JobPosting", "title": title, "url": url, "datePosted": "2026-08-29"}
+            ),
+            SOURCE,
+            "Acme",
+            observed_at=NOW,
+        )[0]
+
+    def test_a_source_must_be_a_public_url_on_a_known_prospect_and_saved_once(self):
+        saved = add_hiring_source(
+            self.db,
+            {"prospect_id": 1, "source_url": "https://acme.example/careers", "label": "Careers"},
+        )
+        self.assertEqual(saved["company"], "Acme")
+        self.assertEqual(len(list_hiring_sources(self.db)), 1)
+        with self.assertRaisesRegex(IntelligenceError, "already saved"):
+            add_hiring_source(
+                self.db, {"prospect_id": 1, "source_url": "https://acme.example/careers"}
+            )
+        with self.assertRaisesRegex(IntelligenceError, "public http"):
+            add_hiring_source(self.db, {"prospect_id": 1, "source_url": "http://127.0.0.1/careers"})
+        with self.assertRaisesRegex(IntelligenceError, "does not exist"):
+            add_hiring_source(self.db, {"prospect_id": 99, "source_url": "https://x.example/jobs"})
+        self.assertEqual(len(list_hiring_sources(self.db)), 1)
+
+    def test_one_unreachable_source_does_not_lose_the_candidates_from_the_others(self):
+        add_hiring_source(self.db, {"prospect_id": 1, "source_url": "https://acme.example/careers"})
+        add_hiring_source(self.db, {"prospect_id": 2, "source_url": "https://beta.example/careers"})
+        candidate = self._candidate()
+
+        class HalfBrokenConnector:
+            def scan(self, source_url, company, *, observed_at=None, max_age_days=45):
+                if "beta" in source_url:
+                    raise IntelligenceError("source_fetch_failed", "Public page inspection failed")
+                return [candidate]
+
+        result = scan_saved_hiring_sources(
+            self.db, connector=HalfBrokenConnector(), observed_at=NOW
+        )
+        self.assertFalse(result["persisted"])
+        self.assertEqual(result["source_count"], 2)
+        self.assertEqual(result["failed_source_count"], 1)
+        self.assertEqual(result["candidate_count"], 1)
+        self.assertEqual(result["candidates"][0]["company"], "Acme")
+
+        by_company = {row["company"]: row for row in result["sources"]}
+        self.assertEqual(by_company["Acme"]["candidate_count"], 1)
+        self.assertEqual(by_company["Acme"]["error"], "")
+        self.assertIsNone(by_company["Beta"]["candidate_count"])
+        self.assertIn("source_fetch_failed", by_company["Beta"]["error"])
+
+        stored = {row["company"]: row for row in list_hiring_sources(self.db)}
+        self.assertEqual(stored["Acme"]["last_candidate_count"], 1)
+        self.assertEqual(stored["Beta"]["last_candidate_count"], -1)
+        self.assertIn("source_fetch_failed", stored["Beta"]["last_error"])
+        self.assertTrue(stored["Beta"]["last_scanned_at"])
+
+        with connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM intent_signals").fetchone()[0], 0)
+
+    def test_an_already_recorded_candidate_is_not_counted_as_new(self):
+        add_hiring_source(self.db, {"prospect_id": 1, "source_url": "https://acme.example/careers"})
+        candidate = self._candidate()
+
+        class StubConnector:
+            def scan(self, source_url, company, *, observed_at=None, max_age_days=45):
+                return [candidate]
+
+        first = scan_saved_hiring_sources(self.db, connector=StubConnector(), observed_at=NOW)
+        self.assertEqual(first["new_candidate_count"], 1)
+        add_intent_signal(self.db, first["candidates"][0]["signal_payload"])
+        second = scan_saved_hiring_sources(self.db, connector=StubConnector(), observed_at=NOW)
+        self.assertEqual(second["candidate_count"], 1)
+        self.assertEqual(second["new_candidate_count"], 0)
 
 
 if __name__ == "__main__":

@@ -371,3 +371,143 @@ def _is_public_http_url(value: str) -> bool:
 
 def _utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
+SOURCE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS hiring_signal_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    source_url TEXT NOT NULL,
+    label TEXT NOT NULL DEFAULT '',
+    added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_scanned_at TEXT NOT NULL DEFAULT '',
+    last_candidate_count INTEGER NOT NULL DEFAULT -1,
+    last_error TEXT NOT NULL DEFAULT '',
+    UNIQUE(prospect_id, source_url)
+);
+"""
+
+
+def init_source_store(db_path: str) -> None:
+    init_db(db_path)
+    with connect(db_path) as con:
+        con.executescript(SOURCE_SCHEMA)
+
+
+def add_hiring_source(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
+    """Save a public careers page so later scans need no pasted URL."""
+    init_source_store(db_path)
+    try:
+        prospect_id = int(values.get("prospect_id"))
+    except (TypeError, ValueError) as exc:
+        raise IntelligenceError("invalid_field", "prospect_id must be an integer") from exc
+    source_url = str(values.get("source_url") or "").strip()
+    label = str(values.get("label") or "").strip()[:120]
+    if not _is_public_http_url(source_url):
+        raise IntelligenceError("invalid_field", "source_url must be a public http(s) URL")
+    with connect(db_path) as con:
+        prospect = con.execute(
+            "SELECT company FROM prospects WHERE id = ?", (prospect_id,)
+        ).fetchone()
+        if prospect is None:
+            raise IntelligenceError("prospect_not_found", "Prospect does not exist")
+        duplicate = con.execute(
+            "SELECT id FROM hiring_signal_sources WHERE prospect_id = ? AND source_url = ?",
+            (prospect_id, source_url),
+        ).fetchone()
+        if duplicate is not None:
+            raise IntelligenceError(
+                "duplicate_source", f"This source is already saved as source {duplicate['id']}"
+            )
+        cursor = con.execute(
+            "INSERT INTO hiring_signal_sources(prospect_id, source_url, label) VALUES (?, ?, ?)",
+            (prospect_id, source_url, label),
+        )
+    return {
+        "source_id": cursor.lastrowid,
+        "prospect_id": prospect_id,
+        "company": prospect["company"],
+        "source_url": source_url,
+        "label": label,
+    }
+
+
+def list_hiring_sources(db_path: str) -> list[dict[str, Any]]:
+    init_source_store(db_path)
+    with connect(db_path) as con:
+        rows = con.execute(
+            """SELECT s.*, p.company FROM hiring_signal_sources s
+               JOIN prospects p ON p.id = s.prospect_id
+               ORDER BY p.company, s.id"""
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def scan_saved_hiring_sources(
+    db_path: str,
+    *,
+    connector: PublicHiringSignalConnector | None = None,
+    observed_at: datetime | None = None,
+    max_age_days: int = 45,
+) -> dict[str, Any]:
+    """Scan every saved source. Persists nothing but the scan outcome per source.
+
+    One source failing must not lose the candidates found by the others, so each
+    failure is recorded against its own row and the sweep continues.
+    """
+    sources = list_hiring_sources(db_path)
+    connector = connector or PublicHiringSignalConnector()
+    scanned_at = _utc(observed_at or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+    results: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
+    for source in sources:
+        error = ""
+        found: list[dict[str, Any]] = []
+        try:
+            preview = preview_hiring_signals(
+                db_path,
+                {
+                    "prospect_id": source["prospect_id"],
+                    "source_url": source["source_url"],
+                    "max_age_days": max_age_days,
+                },
+                connector=connector,
+                observed_at=observed_at,
+            )
+            found = preview["candidates"]
+        except IntelligenceError as exc:
+            error = f"{exc.code}: {exc}"
+        except Exception as exc:  # a single unreachable source must not end the sweep
+            error = f"scan_failed: {exc}"
+        for row in found:
+            row["source_id"] = source["id"]
+            row["prospect_id"] = source["prospect_id"]
+            row["company"] = source["company"]
+        candidates.extend(found)
+        with connect(db_path) as con:
+            con.execute(
+                """UPDATE hiring_signal_sources
+                   SET last_scanned_at = ?, last_candidate_count = ?, last_error = ?
+                   WHERE id = ?""",
+                (scanned_at, -1 if error else len(found), error, source["id"]),
+            )
+        results.append({
+            "source_id": source["id"],
+            "prospect_id": source["prospect_id"],
+            "company": source["company"],
+            "source_url": source["source_url"],
+            "label": source["label"],
+            "candidate_count": None if error else len(found),
+            "error": error,
+        })
+    new_candidates = [row for row in candidates if not row.get("already_recorded_as")]
+    return {
+        "scanned_at": scanned_at,
+        "persisted": False,
+        "source_count": len(sources),
+        "failed_source_count": sum(1 for row in results if row["error"]),
+        "candidate_count": len(candidates),
+        "new_candidate_count": len(new_candidates),
+        "sources": results,
+        "candidates": candidates,
+    }
