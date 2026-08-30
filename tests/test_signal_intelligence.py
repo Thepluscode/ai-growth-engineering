@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_growth_engineering.signal_intelligence import (
+    GATE_NAMES,
     IntelligenceError,
     PublicPageEnrichmentProvider,
     add_identity,
@@ -154,6 +155,80 @@ class SignalIntelligenceTests(unittest.TestCase):
     def test_signal_source_rejects_embedded_credentials(self):
         with self.assertRaisesRegex(IntelligenceError, r"http\(s\) URL"):
             self.add_signal(source_url="https://user:secret@example.com/careers")
+
+
+class GateResultTests(unittest.TestCase):
+    """Non-compensatory means each gate decides alone, so the state must say WHICH one."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        init_db(self.db)
+
+    def prospect(self, pid, company, status="qualified", roles="Founder",
+                 evidence="Public B2B offer", source="https://x.example/about"):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                         evidence, source_url, status)
+                   VALUES (?, ?, 'https://x.example', 'A', ?, ?, ?, ?)""",
+                (pid, company, roles, evidence, source, status),
+            )
+
+    def strong_signal(self, pid):
+        add_intent_signal(self.db, {
+            "prospect_id": pid, "signal_type": "hiring",
+            "source_url": "https://x.example/careers",
+            "observed_fact": "A revenue operations vacancy was published.",
+            "commercial_interpretation": "May indicate investment in pipeline operations.",
+            "observed_at": "2026-08-29", "confidence": 0.95, "strength": 5,
+            "freshness_half_life_days": 21,
+        })
+
+    def gates_for(self, company):
+        state = intelligence_state(self.db, now=datetime(2026, 8, 30, tzinfo=timezone.utc))
+        for row in state["ranked_buyers"] + state["ineligible"]:
+            if row["company"] == company:
+                return {g["gate"]: g for g in row["gates"]}
+        self.fail(f"{company} appears in neither list")
+
+    def test_every_gate_reports_its_own_verdict_in_a_fixed_order(self):
+        self.prospect(1, "Acme")
+        self.strong_signal(1)
+        state = intelligence_state(self.db, now=datetime(2026, 8, 30, tzinfo=timezone.utc))
+        gates = state["ineligible"][0]["gates"] if state["ineligible"] else state["ranked_buyers"][0]["gates"]
+        self.assertEqual([g["gate"] for g in gates], list(GATE_NAMES))
+
+    def test_the_strongest_possible_signal_does_not_flip_a_failed_gate(self):
+        """5/5 strength, 0.95 confidence, observed yesterday - and still ineligible,
+        with the failure named rather than averaged away."""
+        self.prospect(1, "Blocked Ltd", status="disqualified_market_fit")
+        self.strong_signal(1)
+        gates = self.gates_for("Blocked Ltd")
+        self.assertFalse(gates["Not disqualified"]["passed"])
+        self.assertTrue(gates["Signal strength >= 2/5"]["passed"])
+        self.assertTrue(gates["Signal confidence >= 0.50"]["passed"])
+        state = intelligence_state(self.db, now=datetime(2026, 8, 30, tzinfo=timezone.utc))
+        self.assertEqual(state["ranked_buyers"], [])
+
+    def test_a_prospect_with_no_signal_marks_the_signal_gates_not_applicable(self):
+        """Unscoreable is not failed: there was nothing to score."""
+        self.prospect(1, "Quiet Ltd")
+        gates = self.gates_for("Quiet Ltd")
+        self.assertFalse(gates["Intent signal observed"]["passed"])
+        for name in ("Signal confidence >= 0.50", "Signal strength >= 2/5",
+                     "Signal within 3 half-lives"):
+            self.assertIsNone(gates[name]["passed"], name)
+
+    def test_each_gate_carries_the_value_it_judged(self):
+        self.prospect(1, "Acme", roles="Head of Revenue")
+        self.strong_signal(1)
+        gates = self.gates_for("Acme")
+        self.assertEqual(gates["ICP target role known"]["detail"], "Head of Revenue")
+        self.assertEqual(gates["Signal strength >= 2/5"]["detail"], "5/5")
+        self.assertEqual(gates["Signal confidence >= 0.50"]["detail"], "0.95")
+        self.assertEqual(gates["Reachable identity"]["detail"], "none resolved")
 
 
 if __name__ == "__main__":

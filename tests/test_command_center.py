@@ -54,6 +54,10 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertIn("/api/state", html)
         self.assertIn("/api/intelligence", html)
         self.assertIn("/api/signals/sources", html)
+        # the eligibility checklist and the signal filters are on the page
+        for surface in ('id="signal-ledger"', 'id="f-type"', 'id="f-conf"', 'id="f-age"',
+                        'id="f-company"', 'id="f-text"', "gate-list", "Eligibility"):
+            self.assertIn(surface, html)
         # unobserved prospects are summarised, not rendered as sixty identical rows
         self.assertIn("No observed intent event", html)
         self.assertIn("not yet looked at", html)

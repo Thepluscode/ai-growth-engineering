@@ -259,6 +259,19 @@ def intelligence_state(
             if not _signal_ineligibility_reasons(signal, score)
         ]
         best_score, best_signal = eligible_signals[0] if eligible_signals else (None, None)
+        available_identities = [
+            value
+            for value in identities_by_prospect.get(prospect["id"], [])
+            if value["verification_status"] != "bounced"
+            and value["value"].casefold() not in suppression
+        ]
+        identity = available_identities[0] if available_identities else None
+        gates = _gate_results(
+            prospect,
+            prospect_signals,
+            [(signal, score) for score, signal in scored_signals],
+            identity,
+        )
         reasons = _prospect_ineligibility_reasons(prospect)
         if not prospect_signals:
             reasons.append("No observed intent event")
@@ -271,16 +284,10 @@ def intelligence_state(
                     "company": prospect["company"],
                     "reasons": reasons,
                     "signal_count": len(prospect_signals),
+                    "gates": gates,
                 }
             )
             continue
-        available_identities = [
-            value
-            for value in identities_by_prospect.get(prospect["id"], [])
-            if value["verification_status"] != "bounced"
-            and value["value"].casefold() not in suppression
-        ]
-        identity = available_identities[0] if available_identities else None
         unknowns = []
         if not identity:
             unknowns.append("No usable recipient identity has been observed or verified")
@@ -306,6 +313,7 @@ def intelligence_state(
                     "confidence": best_signal["confidence"],
                 },
                 "unknowns": unknowns,
+                "gates": gates,
                 "disqualifier": None,
                 "suggested_angle": best_signal["commercial_interpretation"],
                 "identity": identity,
@@ -352,6 +360,67 @@ def _signal_score(
         "freshness": round(freshness, 3),
         "age_days": round(age_days, 1),
     }
+
+
+GATE_NAMES = (
+    "Not disqualified",
+    "ICP target role known",
+    "ICP evidence sourced",
+    "Intent signal observed",
+    "Signal confidence >= 0.50",
+    "Signal strength >= 2/5",
+    "Signal within 3 half-lives",
+    "Reachable identity",
+)
+
+
+def _gate_results(
+    prospect: Mapping[str, Any],
+    signals: list[Mapping[str, Any]],
+    scored: list[tuple[Mapping[str, Any], Mapping[str, Any]]],
+    identity: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Every gate with its own verdict, in a fixed order.
+
+    Non-compensatory means each gate decides alone, so the interface has to be able to
+    say WHICH one decided. A single pass/fail cannot: a prospect held on suppression and
+    one held for having no signal at all look identical, and only one of them is worth
+    a person's time.
+    """
+    status = str(prospect["status"]).lower()
+    best = scored[0] if scored else None
+    signal, score = (best if best else (None, None))
+    checks: list[tuple[str, bool | None, str]] = [
+        ("Not disqualified", not status.startswith("disqualified"), prospect["status"]),
+        ("ICP target role known", bool(str(prospect["target_roles"]).strip()),
+         str(prospect["target_roles"]).strip() or "not recorded"),
+        ("ICP evidence sourced",
+         bool(str(prospect["evidence"]).strip() and str(prospect["source_url"]).strip()),
+         str(prospect["source_url"]).strip() or "no source"),
+        ("Intent signal observed", bool(signals), f"{len(signals)} recorded"),
+    ]
+    if signal is None:
+        checks += [
+            ("Signal confidence >= 0.50", None, "no signal to score"),
+            ("Signal strength >= 2/5", None, "no signal to score"),
+            ("Signal within 3 half-lives", None, "no signal to score"),
+        ]
+    else:
+        age, half_life = score["age_days"], int(signal["freshness_half_life_days"])
+        checks += [
+            ("Signal confidence >= 0.50", float(signal["confidence"]) >= 0.5,
+             f"{float(signal['confidence']):.2f}"),
+            ("Signal strength >= 2/5", int(signal["strength"]) >= 2,
+             f"{int(signal['strength'])}/5"),
+            ("Signal within 3 half-lives", age <= half_life * 3,
+             f"{age:.0f}d of {half_life * 3}d"),
+        ]
+    checks.append((
+        "Reachable identity", identity is not None,
+        f"{identity['identity_type']} · {identity['verification_status']}" if identity
+        else "none resolved",
+    ))
+    return [{"gate": name, "passed": passed, "detail": detail} for name, passed, detail in checks]
 
 
 def _prospect_ineligibility_reasons(prospect: Mapping[str, Any]) -> list[str]:

@@ -188,6 +188,24 @@
     .tl .rul{margin-bottom:6px}
     .tl p{margin:0;font-size:12px;line-height:1.5}
     .tl .why{margin-top:5px;font-size:11px;color:var(--ink-3)}
+    .gate-list{display:grid;gap:1px;margin:0;padding:0;list-style:none}
+    .gate-list li{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--rule-2)}
+    .gate-list li:first-child{border-top:0}
+    .gate-list b{font:700 11px/1.4 var(--mono);text-align:center}
+    .gate-list li[data-v="pass"] b{color:var(--observed)}
+    .gate-list li[data-v="fail"] b{color:var(--held)}
+    .gate-list li[data-v="na"] b{color:var(--ink-3)}
+    .gate-list span{font-size:11.5px}
+    .gate-list li[data-v="fail"] span{color:var(--held);font-weight:600}
+    .gate-list em{font:500 10px/1.4 var(--mono);font-style:normal;color:var(--ink-3);text-align:right;overflow-wrap:anywhere}
+    .verdict{margin:11px 0 0;padding:9px 11px;border:1px solid;border-left-width:3px;font:600 10px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+    .verdict[data-v="eligible"]{border-color:var(--observed-wash);border-left-color:var(--observed);background:var(--observed-wash);color:var(--observed)}
+    .verdict[data-v="ineligible"]{border-color:var(--held-wash);border-left-color:var(--held);background:var(--held-wash);color:var(--held)}
+    .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 22px;background:var(--wash);border-top:1px solid var(--rule)}
+    .filters label{display:flex;align-items:center;gap:6px}
+    .filters select,.filters input{height:27px;padding:0 7px;border:1px solid var(--rule);border-radius:3px;background:var(--surface);color:var(--ink);font:500 11px/1 var(--mono)}
+    .filters input[type=search]{width:150px}
+    .filters .count{margin-left:auto;font:500 10px/1 var(--mono);color:var(--ink-2)}
     .unk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 14px;margin:0}
     .unk dt{font-size:12px;color:var(--ink-2)}
     .unk dd{margin:0;font:600 9px/1.5 var(--mono);letter-spacing:.09em;color:var(--pending);text-align:right}
@@ -261,6 +279,7 @@
       <a href="#queue">Queue</a>
       <a href="#held">Held by a gate</a>
       <a href="#sources">Sources</a>
+      <a href="#signals">Signals</a>
       <a href="#review">Awaiting review</a>
       <a href="#performance">Performance</a>
       <a href="#board">Scoreboard</a>
@@ -324,6 +343,23 @@
         <div class="ledger" id="source-ledger"><div class="void">Reading state.</div></div>
       </section>
 
+      <section class="sec" id="signals">
+        <div class="sec-head"><div><span class="lbl">Signals</span></div></div>
+        <div class="filters">
+          <label><span class="lbl">Type</span><select id="f-type"><option value="">any</option></select></label>
+          <label><span class="lbl">Min confidence</span><select id="f-conf">
+            <option value="0">any</option><option value="0.5">0.50</option>
+            <option value="0.7">0.70</option><option value="0.9">0.90</option></select></label>
+          <label><span class="lbl">Observed within</span><select id="f-age">
+            <option value="">any</option><option value="7">7 days</option>
+            <option value="30">30 days</option><option value="90">90 days</option></select></label>
+          <label><span class="lbl">Company</span><select id="f-company"><option value="">any</option></select></label>
+          <label><span class="lbl">Find</span><input type="search" id="f-text" placeholder="fact or source"></label>
+          <span class="count" id="f-count"></span>
+        </div>
+        <div class="ledger" id="signal-ledger"></div>
+      </section>
+
       <section class="sec" id="review">
         <div class="sec-head"><div><span class="lbl">Awaiting review</span></div></div>
         <div class="ledger" id="review-ledger"></div>
@@ -379,6 +415,7 @@ const web=v=>typeof v==='string'&&/^https?:\/\//.test(v);
 const host=v=>{try{return new URL(v).hostname.replace(/^www\./,'')}catch{return v||'unknown'}};
 
 let VIEW={buyers:[],signals:[],lineage:{}};
+let COMPANIES={};
 let cameFrom=null;
 
 function tick(value){
@@ -582,6 +619,88 @@ function drawLines(id,rows,kind){
   }));
 }
 
+/* Non-compensatory means each gate decides alone, so show which one decided. */
+function gateList(gates){
+  const ul=el('ul','gate-list');
+  (gates||[]).forEach(g=>{
+    const li=el('li');
+    li.dataset.v=g.passed===null?'na':(g.passed?'pass':'fail');
+    li.append(el('b','',g.passed===null?'–':(g.passed?'✓':'✗')),
+              el('span','',g.gate),el('em','',g.detail));
+    ul.append(li);
+  });
+  const failed=(gates||[]).filter(g=>g.passed===false);
+  const v=el('div','verdict');
+  v.dataset.v=failed.length?'ineligible':'eligible';
+  v.textContent=failed.length
+    ? `Ineligible — ${failed.map(g=>g.gate.toLowerCase()).join(' · ')}`
+    : 'Eligible — every gate passed';
+  const wrap=el('div');wrap.append(ul,v);return wrap;
+}
+
+/* Filters are frontend-only over the signals the API already returned. */
+let SIGFILTER={type:'',conf:0,age:'',company:'',text:''};
+
+function drawSignals(){
+  const root=$('signal-ledger'),rows=VIEW.signals;
+  const now=Date.now();
+  const shown=rows.filter(r=>{
+    if(SIGFILTER.type&&r.signal_type!==SIGFILTER.type)return false;
+    if(Number(r.confidence)<SIGFILTER.conf)return false;
+    if(SIGFILTER.company&&String(r.prospect_id)!==SIGFILTER.company)return false;
+    if(SIGFILTER.age){
+      const d=(now-new Date(r.observed_at).getTime())/86400000;
+      if(!(d<=Number(SIGFILTER.age)))return false;
+    }
+    if(SIGFILTER.text){
+      const hay=`${r.observed_fact} ${r.source_url} ${r.signal_id} ${r.commercial_interpretation}`.toLowerCase();
+      if(!hay.includes(SIGFILTER.text.toLowerCase()))return false;
+    }
+    return true;
+  });
+  $('f-count').textContent=`${shown.length} of ${rows.length}`;
+  if(!rows.length)return empty(root,'No signals observed.');
+  if(!shown.length)return empty(root,'No signal matches these filters.');
+  root.replaceChildren(...shown.map(r=>{
+    const rec=el('div','rec');rec.dataset.mark='observed';
+    const rank=el('div','rank',String(r.strength));rank.append(el('em','','Strength'));
+    const who=el('div','who');
+    who.append(el('b','',COMPANIES[r.prospect_id]||`Prospect ${r.prospect_id}`));
+    who.append(el('span','',words(r.signal_type)));
+    who.append(el('span','num',r.signal_id));
+    const said=el('div','said col-mid',r.observed_fact);
+    said.append(ruledLine(r.observed_at,r.confidence,r.source_url));
+    const flags=el('div','flags');
+    flags.append(el('span','flag ok','observed'));
+    rec.append(rank,who,said,flags,el('div','auth',stamp(r.observed_at)));
+    return rec;
+  }));
+}
+
+function bindFilters(){
+  const map={'f-type':'type','f-conf':'conf','f-age':'age','f-company':'company','f-text':'text'};
+  Object.entries(map).forEach(([id,key])=>{
+    $(id).addEventListener('input',e=>{
+      SIGFILTER[key]=key==='conf'?Number(e.target.value):e.target.value;
+      drawSignals();
+    });
+  });
+}
+
+function fillFilterOptions(){
+  const types=[...new Set(VIEW.signals.map(s=>s.signal_type))].sort();
+  const sel=$('f-type'),keep=sel.value;
+  sel.replaceChildren(el('option','','any'),...types.map(t=>{
+    const o=el('option','',words(t));o.value=t;return o}));
+  sel.firstChild.value='';sel.value=keep;
+  const cos=[...new Set(VIEW.signals.map(s=>s.prospect_id))]
+    .map(id=>[String(id),COMPANIES[id]||`Prospect ${id}`]).sort((a,b)=>a[1].localeCompare(b[1]));
+  const csel=$('f-company'),ckeep=csel.value;
+  csel.replaceChildren(el('option','','any'),...cos.map(([id,name])=>{
+    const o=el('option','',name);o.value=id;return o}));
+  csel.firstChild.value='';csel.value=ckeep;
+}
+
 function blk(label,...kids){
   const b=el('section','blk');b.append(el('span','lbl',label),...kids);return b;
 }
@@ -673,7 +792,8 @@ function openDossier(index,from){
   $('doss-name').textContent=b.signal&&b.signal.person_name?b.signal.person_name:b.company;
   const named=b.signal&&b.signal.person_name;
   $('doss-meta').textContent=(named?`${b.company.toUpperCase()} · `:'')+`PRIORITY ${Math.round(b.priority_score)} · R3 APPROVAL`;
-  $('doss-body').replaceChildren(dossOverview(b),dossWhy(b),dossTimeline(b),dossUnknowns(b),dossChain(b),dossAction(b));
+  $('doss-body').replaceChildren(dossOverview(b),blk('Eligibility',gateList(b.gates)),
+    dossWhy(b),dossTimeline(b),dossUnknowns(b),dossChain(b),dossAction(b));
   $('scrim').hidden=false;$('dossier').hidden=false;
   requestAnimationFrame(()=>{$('scrim').dataset.open='';$('dossier').dataset.open='';$('doss-x').focus()});
 }
@@ -693,7 +813,7 @@ function stall(message){
   const a=$('alert');
   a.replaceChildren(el('b','','State unavailable'),el('span','',message));
   a.dataset.shown='';
-  ['queue-ledger','held-ledger','source-ledger','review-ledger'].forEach(id=>
+  ['queue-ledger','held-ledger','source-ledger','review-ledger','signal-ledger'].forEach(id=>
     empty($(id),'Not readable — this is a failed read, not an empty result.'));
 }
 
@@ -702,6 +822,9 @@ function paint(state,intel,sources,pending){
   $('clock').textContent=`READ ${new Date(state.generated_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`;
   $('rail-mode').textContent=String(state.mode||'').replaceAll(' / ',' · ');
   VIEW={buyers:intel.ranked_buyers||[],signals:intel.signals||[],lineage:intel.lineage||{}};
+  COMPANIES={};
+  (intel.ranked_buyers||[]).forEach(b=>{COMPANIES[b.prospect_id]=b.company});
+  (intel.ineligible||[]).forEach(r=>{COMPANIES[r.prospect_id]=r.company});
   $('n-queued').textContent=String(intel.eligible_count);
   $('n-held').textContent=String(intel.ineligible_count);
   $('n-signals').textContent=String(VIEW.signals.length);
@@ -711,6 +834,8 @@ function paint(state,intel,sources,pending){
   drawQueue(VIEW.buyers);
   drawHeld(intel.ineligible||[]);
   drawSources(sources);
+  fillFilterOptions();
+  drawSignals();
   drawPending(pending);
   drawFunnel(state.funnel||[],state.revenue_per_customer_pence);
   drawBoard(state.scoreboard||[]);
@@ -744,6 +869,7 @@ $('scan').addEventListener('click',()=>{
     .finally(()=>{setTimeout(()=>{b.disabled=false;b.textContent='Scan all sources'},4000)});
 });
 
+bindFilters();
 load().catch(e=>stall(e.message));
 setInterval(()=>{if($('dossier').hidden)load().catch(e=>stall(e.message))},30000);
 </script>
