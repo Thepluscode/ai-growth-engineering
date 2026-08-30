@@ -133,6 +133,49 @@ CREATE TABLE IF NOT EXISTS outbound_drafts (
 
 CREATE INDEX IF NOT EXISTS idx_outbound_drafts_status
 ON outbound_drafts(status, created_at);
+
+CREATE TABLE IF NOT EXISTS intent_signals (
+    signal_id TEXT PRIMARY KEY,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    person_name TEXT NOT NULL DEFAULT '',
+    person_role TEXT NOT NULL DEFAULT '',
+    signal_type TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    observed_fact TEXT NOT NULL,
+    commercial_interpretation TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+    strength INTEGER NOT NULL CHECK(strength BETWEEN 1 AND 5),
+    freshness_half_life_days INTEGER NOT NULL CHECK(freshness_half_life_days > 0),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_intent_signals_prospect_observed
+ON intent_signals(prospect_id, observed_at DESC);
+
+CREATE TABLE IF NOT EXISTS prospect_identities (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    identity_type TEXT NOT NULL,
+    value TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    verification_status TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    observed_at TEXT NOT NULL,
+    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(prospect_id, identity_type, value)
+);
+
+CREATE INDEX IF NOT EXISTS idx_prospect_identities_prospect
+ON prospect_identities(prospect_id, verification_status);
+
+CREATE TABLE IF NOT EXISTS draft_signal_lineage (
+    draft_id INTEGER NOT NULL REFERENCES outbound_drafts(id),
+    signal_id TEXT NOT NULL REFERENCES intent_signals(signal_id),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(draft_id, signal_id)
+);
 """
 
 
@@ -234,10 +277,24 @@ def migrate(con: sqlite3.Connection) -> list[str]:
     )
 
 
+def _separate_legacy_revenue_signal_table(con: sqlite3.Connection) -> None:
+    """Move the brief evidence-led signal schema away from the operational table name."""
+    columns = {row[1] for row in con.execute("PRAGMA table_info(intent_signals)")}
+    if not columns or "source_url" in columns or "evidence_id" not in columns:
+        return
+    revenue_table = con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'revenue_intent_signals'"
+    ).fetchone()
+    if revenue_table:
+        raise RuntimeError("Both legacy and current revenue signal tables exist; manual review required")
+    con.execute("ALTER TABLE intent_signals RENAME TO revenue_intent_signals")
+
+
 def init_db(db_path: str) -> None:
     from .registries import migrate_columns, schema_sql
 
     with connect(db_path) as con:
+        _separate_legacy_revenue_signal_table(con)
         con.executescript(SCHEMA)
         con.executescript(schema_sql())
         migrate(con)

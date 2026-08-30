@@ -51,9 +51,19 @@ def workbench_state(db_path: str) -> dict[str, Any]:
                 "SELECT status, COUNT(*) AS count FROM outbound_drafts GROUP BY status"
             )
         }
+        lineage: dict[int, list[str]] = {}
+        for row in con.execute(
+            "SELECT draft_id, signal_id FROM draft_signal_lineage ORDER BY created_at, signal_id"
+        ):
+            lineage.setdefault(row["draft_id"], []).append(row["signal_id"])
+    draft_values = []
+    for row in drafts:
+        value = dict(row)
+        value["signal_ids"] = lineage.get(row["id"], [])
+        draft_values.append(value)
     return {
         "prospects": [dict(row) for row in prospects],
-        "drafts": [dict(row) for row in drafts],
+        "drafts": draft_values,
         "counts": {
             "pending_approval": counts.get("pending_approval", 0),
             "approved": counts.get("approved", 0),
@@ -85,6 +95,7 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
     cta = _required(values, "cta", 5, 180)
     metric = _required(values, "metric", 3, 120)
     source_url = _required(values, "source_url", 8, 800)
+    signal_ids = _signal_ids(values.get("signal_ids"))
     if not source_url.startswith(("https://", "http://")):
         raise WorkbenchError("invalid_source", "Observed claims require an http(s) source URL")
     if observation.casefold() == hypothesis.casefold():
@@ -99,6 +110,20 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
             raise WorkbenchError("prospect_not_found", "Prospect does not exist")
         if prospect["status"].lower().startswith("disqualified"):
             raise WorkbenchError("prospect_disqualified", "Disqualified prospects cannot enter outreach")
+        if signal_ids:
+            rows = con.execute(
+                f"""SELECT signal_id, prospect_id FROM intent_signals
+                    WHERE signal_id IN ({','.join('?' for _ in signal_ids)})""",
+                signal_ids,
+            ).fetchall()
+            found = {row["signal_id"]: row["prospect_id"] for row in rows}
+            missing = [signal_id for signal_id in signal_ids if signal_id not in found]
+            if missing:
+                raise WorkbenchError("signal_not_found", f"Intent signal does not exist: {missing[0]}")
+            if any(found[signal_id] != prospect_id for signal_id in signal_ids):
+                raise WorkbenchError(
+                    "signal_prospect_mismatch", "Every linked signal must belong to the selected prospect"
+                )
         suppressed = con.execute(
             "SELECT reason FROM suppression WHERE lower(identity) = lower(?)", (identity,)
         ).fetchone()
@@ -139,6 +164,10 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
             ),
         )
         draft_id = cursor.lastrowid
+        con.executemany(
+            "INSERT INTO draft_signal_lineage(draft_id, signal_id) VALUES (?, ?)",
+            ((draft_id, signal_id) for signal_id in signal_ids),
+        )
     return get_draft(db_path, draft_id)
 
 
@@ -166,33 +195,32 @@ def record_manual_send(db_path: str, draft_id: int) -> dict[str, Any]:
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
-        if draft["status"] == "sent":
-            return dict(draft)
-        if draft["status"] != "approved":
+        if draft["status"] not in {"approved", "sent"}:
             raise WorkbenchError("approval_required", "Approve the draft before recording a send")
-        suppressed = con.execute(
-            "SELECT reason FROM suppression WHERE lower(identity) = lower(?)",
-            (draft["recipient_identity"],),
-        ).fetchone()
-        if suppressed:
-            raise WorkbenchError("suppressed", f"Recipient is suppressed: {suppressed['reason']}")
-        outreach = con.execute(
-            """INSERT INTO outreach(
-                 company, sent_at, notes, stage, recipient_class, channel
-               ) VALUES (?, CURRENT_TIMESTAMP, ?, 'sent_awaiting_reply', ?, ?)""",
-            (
-                draft["company"],
-                f"Recorded from approved outbound draft #{draft_id}",
-                draft["recipient_class"],
-                draft["channel"],
-            ),
-        )
-        con.execute(
-            """UPDATE outbound_drafts
-               SET status = 'sent', outreach_id = ?, sent_at = CURRENT_TIMESTAMP
-               WHERE id = ?""",
-            (outreach.lastrowid, draft_id),
-        )
+        if draft["status"] == "approved":
+            suppressed = con.execute(
+                "SELECT reason FROM suppression WHERE lower(identity) = lower(?)",
+                (draft["recipient_identity"],),
+            ).fetchone()
+            if suppressed:
+                raise WorkbenchError("suppressed", f"Recipient is suppressed: {suppressed['reason']}")
+            outreach = con.execute(
+                """INSERT INTO outreach(
+                     company, sent_at, notes, stage, recipient_class, channel
+                   ) VALUES (?, CURRENT_TIMESTAMP, ?, 'sent_awaiting_reply', ?, ?)""",
+                (
+                    draft["company"],
+                    f"Recorded from approved outbound draft #{draft_id}",
+                    draft["recipient_class"],
+                    draft["channel"],
+                ),
+            )
+            con.execute(
+                """UPDATE outbound_drafts
+                   SET status = 'sent', outreach_id = ?, sent_at = CURRENT_TIMESTAMP
+                   WHERE id = ?""",
+                (outreach.lastrowid, draft_id),
+            )
     return get_draft(db_path, draft_id)
 
 
@@ -200,29 +228,36 @@ def record_meaningful_reply(db_path: str, draft_id: int) -> dict[str, Any]:
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
-        if draft["status"] == "replied":
-            return dict(draft)
-        if draft["status"] != "sent" or not draft["outreach_id"]:
+        if draft["status"] not in {"sent", "replied"} or not draft["outreach_id"]:
             raise WorkbenchError("send_required", "A sent draft is required before recording a reply")
-        con.execute(
-            """UPDATE outreach
-               SET meaningful_reply = 1, stage = 'meaningful_reply'
-               WHERE id = ?""",
-            (draft["outreach_id"],),
-        )
-        con.execute(
-            """UPDATE outbound_drafts
-               SET status = 'replied', replied_at = CURRENT_TIMESTAMP
-               WHERE id = ?""",
-            (draft_id,),
-        )
+        if draft["status"] == "sent":
+            con.execute(
+                """UPDATE outreach
+                   SET meaningful_reply = 1, stage = 'meaningful_reply'
+                   WHERE id = ?""",
+                (draft["outreach_id"],),
+            )
+            con.execute(
+                """UPDATE outbound_drafts
+                   SET status = 'replied', replied_at = CURRENT_TIMESTAMP
+                   WHERE id = ?""",
+                (draft_id,),
+            )
     return get_draft(db_path, draft_id)
 
 
 def get_draft(db_path: str, draft_id: int) -> dict[str, Any]:
     init_db(db_path)
     with connect(db_path) as con:
-        return dict(_draft_row(con, draft_id))
+        value = dict(_draft_row(con, draft_id))
+        value["signal_ids"] = [
+            row["signal_id"]
+            for row in con.execute(
+                "SELECT signal_id FROM draft_signal_lineage WHERE draft_id = ? ORDER BY created_at, signal_id",
+                (draft_id,),
+            )
+        ]
+        return value
 
 
 def _transition(
@@ -236,17 +271,16 @@ def _transition(
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
-        if draft["status"] == to_status:
-            return dict(draft)
-        if draft["status"] != from_status:
+        if draft["status"] not in {from_status, to_status}:
             raise WorkbenchError(
                 "invalid_transition",
                 f"Draft is {draft['status']}; expected {from_status}",
             )
-        con.execute(
-            f"UPDATE outbound_drafts SET status = ?, {timestamp_column} = CURRENT_TIMESTAMP WHERE id = ?",
-            (to_status, draft_id),
-        )
+        if draft["status"] == from_status:
+            con.execute(
+                f"UPDATE outbound_drafts SET status = ?, {timestamp_column} = CURRENT_TIMESTAMP WHERE id = ?",
+                (to_status, draft_id),
+            )
     return get_draft(db_path, draft_id)
 
 
@@ -285,3 +319,24 @@ def _validate_low_friction_cta(cta: str) -> None:
         raise WorkbenchError(
             "cta_not_low_friction", f"CTA contains high-friction request: {blocked}"
         )
+
+
+def _signal_ids(value: Any) -> list[str]:
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        raise WorkbenchError("invalid_field", "signal_ids must be a list")
+    signal_ids = []
+    for item in value:
+        signal_id = str(item).strip()
+        if not _valid_signal_id(signal_id):
+            raise WorkbenchError("invalid_field", "signal_ids contains an invalid signal ID")
+        if signal_id not in signal_ids:
+            signal_ids.append(signal_id)
+    if len(signal_ids) > 20:
+        raise WorkbenchError("invalid_field", "A draft may link at most 20 intent signals")
+    return signal_ids
+
+
+def _valid_signal_id(value: str) -> bool:
+    return value.startswith("SIG-") and len(value) == 16 and value[4:].isalnum()

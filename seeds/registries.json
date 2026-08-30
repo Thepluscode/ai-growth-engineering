@@ -352,6 +352,14 @@
       "observed": true,
       "statement": "The GrowthOps Command Center now executes a human-gated outbound lifecycle rather than only reporting state. A real-browser test against an isolated store created a sourced observation + economic hypothesis + low-friction CTA draft, persisted its teardown, approved it, recorded an operator-confirmed manual send, then recorded a meaningful reply. The scoreboard moved from 0/0 to one delivered and one reply; route integrity reported email/named_buyer 1/1. The production-shaped store exposed 51 selectable actionable prospects with disqualified rows excluded. Desktop and mobile had zero horizontal overflow and zero console errors. There is no autosend interface; suppression is checked at draft creation and immediately before a manual send can be recorded.",
       "source": "isolated browser lifecycle + command-center HTTP and workbench tests, 2026-08-29"
+    },
+    {
+      "evidence_id": "EV-GROWTHOPS-BUYER-DESK-01",
+      "kind": "observation",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "An isolated real-browser lifecycle recorded a cited intent event with observed fact separate from commercial interpretation, moved one eligible account into Today's 10 best buyers, routed the missing recipient identity to research, then changed the action to Prepare approval draft after an observed_published identity fixture was added. The prepared draft inherited the signal, source, fact, hypothesis, identity and channel; after creation both the draft and buyer card showed one linked outcome. Zero sends occurred. Deterministic tests cover hard disqualification, freshness, confidence, alternate eligible signals, identity provenance, private-network rejection and Signal to Draft to Reply lineage. The real operational store received schema only and contains no fabricated signal or identity rows.",
+      "source": "isolated browser buyer-desk lifecycle + signal intelligence, HTTP and workbench tests, 2026-08-30"
     }
   ],
   "channels": [

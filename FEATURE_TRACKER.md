@@ -1,11 +1,11 @@
 # Digital Marketing Project — Feature and Market Tracker
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
-| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 164 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 180 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
 | Twenty-two software-memory registries | DEPLOYED | Twenty generated and two specialised registries now include product opportunities and product-format decisions; typed schemas, write/read interfaces, durable seeds and in-place migration are tested |
 | Product build gate | DEPLOYED | Non-compensatory code requires buyer, problem, unique evidence threshold, demand signal, distribution path, measurable purchase action, validation test and economics before scoring; high margin cannot override missing evidence |
 | Product format decision model | DEPLOYED | Deterministic tests choose static asset, interactive tool, manual service, software or subscription from recurrence, data, state, automation, integration and ongoing value |
@@ -13,7 +13,8 @@ Last updated: 2026-08-29
 | Opportunity Graveyard | DEPLOYED | Parking preserves the idea, reason, date and observable reopen condition; current graveyard is empty because no product-level purchase test has failed |
 | GrowthOps operator | VERIFIED LOCAL | Deterministic operator reads scoreboard, route splits, experiment state, evidence and product eligibility, then proposes exactly one next action; it can now persist sourced teardown/draft workflow state but still has no external send, spend or publish interface |
 | Human-gated outbound workbench | VERIFIED LOCAL | Browser-verified lifecycle on an isolated store: source + observed fact + economic hypothesis + low-friction CTA → persisted teardown/draft → approval → operator-confirmed manual send → meaningful reply. Metrics moved to 1 delivered / 1 reply on `email/named_buyer`; suppression is checked at creation and again before recording send; no autosend exists |
-| Growth Command Center | VERIFIED LOCAL | Interactive operations console connected to 51 real actionable prospect rows. Workbench and reporting surface render at 1440×1000 and 390×844 with 0px overflow and zero console errors; state mutations require an explicit intent header and the loopback-only server remains no-store/CSP/frame protected. Evidence: `EV-GROWTHOPS-COMMAND-CENTER-01` |
+| Signal-led buyer intelligence | VERIFIED LOCAL | Durable intent-event and identity registries feed a non-compensatory fit/freshness/confidence gate and transparent heuristic rank. The buyer desk exposes observed fact, inferred commercial meaning, unknown identity, score components, recommended human action and Signal → Draft → Send/Reply lineage. A public-page enrichment provider is bounded to public HTML, rejects loopback/private targets and labels candidates `observed_published` rather than verified. Browser lifecycle used an isolated store; the real store has zero fabricated signals. Evidence: `EV-GROWTHOPS-BUYER-DESK-01` |
+| Growth Command Center | VERIFIED LOCAL | Interactive operations console connected to 51 real actionable prospect rows. Buyer desk, intake, workbench and reporting surfaces execute real persisted workflows; state mutations require an explicit intent header and the loopback-only server remains no-store/CSP/frame protected. Evidence: `EV-GROWTHOPS-COMMAND-CENTER-01` |
 | Universal experiment contract | DEPLOYED | One persisted contract covers all 13 experiment namespaces, evidence lineage, controls, metrics, economics, samples, budgets, thresholds, dates, decisions and learning |
 | Social conversion and attribution contract | DEPLOYED | Content, profile, DM, contact capture, offer, customer and revenue IDs share one lineage; deterministic tests cover funnel rates, audience capture, legacy schema migration and unknown denominators |
 | Unit and lifecycle economics decision layer | DEPLOYED | Integer-pence models distinguish CAC from contribution profit and add realised 30/90/365-day value, gross profit per acquired customer and expansion rate; deterministic tests cover edge cases |

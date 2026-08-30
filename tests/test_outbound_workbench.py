@@ -13,6 +13,7 @@ from ai_growth_engineering.outbound_workbench import (
     workbench_state,
 )
 from ai_growth_engineering.registry import reply_rate_by_route, scoreboard
+from ai_growth_engineering.signal_intelligence import add_intent_signal, intelligence_state
 from ai_growth_engineering.storage import connect, init_db
 
 
@@ -112,6 +113,55 @@ class OutboundWorkbenchTests(unittest.TestCase):
             {**VALID, "recipient_identity": identity, "channel": "linkedin"},
         )
         self.assertEqual(draft["recipient_identity"], identity)
+
+    def test_signal_to_draft_to_reply_lineage_is_preserved(self):
+        signal = add_intent_signal(
+            self.db,
+            {
+                "prospect_id": 1,
+                "signal_type": "website_change",
+                "source_url": "https://example.com/offer",
+                "observed_fact": "The company published a new assessment route on its public offer page.",
+                "commercial_interpretation": "The new route may indicate an active attempt to improve qualified demand capture.",
+                "observed_at": "2026-08-29",
+                "confidence": 0.9,
+                "strength": 4,
+                "freshness_half_life_days": 30,
+            },
+        )
+        draft = create_draft(self.db, {**VALID, "signal_ids": [signal["signal_id"]]})
+        self.assertEqual(draft["signal_ids"], [signal["signal_id"]])
+        approve_draft(self.db, draft["id"])
+        record_manual_send(self.db, draft["id"])
+        record_meaningful_reply(self.db, draft["id"])
+        lineage = intelligence_state(self.db)["lineage"][signal["signal_id"]][0]
+        self.assertEqual(lineage["draft_status"], "replied")
+        self.assertEqual(lineage["meaningful_reply"], 1)
+
+    def test_draft_rejects_a_signal_from_another_prospect(self):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(
+                     id, company, website, priority, target_roles, evidence, source_url, status
+                   ) VALUES (2, 'Other Company', 'https://other.example', 'A', 'Founder',
+                             'Public B2B offer', 'https://other.example', 'qualified')"""
+            )
+        signal = add_intent_signal(
+            self.db,
+            {
+                "prospect_id": 2,
+                "signal_type": "hiring",
+                "source_url": "https://other.example/jobs",
+                "observed_fact": "The company published a commercial operations vacancy on its careers page.",
+                "commercial_interpretation": "The role may indicate planned investment in commercial systems and measurement.",
+                "observed_at": "2026-08-29",
+                "confidence": 0.8,
+                "strength": 3,
+                "freshness_half_life_days": 20,
+            },
+        )
+        with self.assertRaisesRegex(WorkbenchError, "selected prospect"):
+            create_draft(self.db, {**VALID, "signal_ids": [signal["signal_id"]]})
 
 
 if __name__ == "__main__":

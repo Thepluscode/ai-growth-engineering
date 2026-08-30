@@ -2,169 +2,158 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_growth_engineering.growthops import command_center_state
-from ai_growth_engineering.models import Evidence, EvidenceKind
-from ai_growth_engineering.registry import add_evidence
 from ai_growth_engineering.signal_intelligence import (
-    IntentSignal,
-    PriorityInput,
-    ProspectEligibilityGate,
-    ProspectEligibilityInput,
-    freshness_weight,
-    priority_score,
-)
-from ai_growth_engineering.signal_store import (
+    IntelligenceError,
+    PublicPageEnrichmentProvider,
     add_identity,
-    add_lineage,
-    add_signal,
-    init_signal_store,
-    ranked_prospects,
+    add_intent_signal,
+    extract_public_identities,
+    intelligence_state,
 )
 from ai_growth_engineering.storage import connect, init_db
+
+
+NOW = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
 
 
 class SignalIntelligenceTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.db = str(Path(self.tmp.name) / "g.db")
+        self.db = str(Path(self.tmp.name) / "growth.db")
         init_db(self.db)
-        add_evidence(self.db, Evidence(
-            evidence_id="EV-SIG-001",
-            kind=EvidenceKind.OBSERVATION,
-            statement="Buyer changed role this week",
-            source="https://example.com/source",
-            confidence=0.95,
-            observed=True,
-            observed_at="2026-08-29",
-        ))
-
-    def candidate(self, **overrides):
-        data = dict(
-            prospect_id="P-001",
-            company="Example Co",
-            buyer="VP Sales",
-            identity_status="verified",
-            suppression_clear=True,
-            icp_fit=True,
-            hard_disqualifier=False,
-            evidence_ids=("EV-SIG-001",),
-            reachable_channel="linkedin",
-        )
-        data.update(overrides)
-        return ProspectEligibilityInput(**data)
-
-    def test_eligibility_is_non_compensatory(self):
-        decision = ProspectEligibilityGate.evaluate(
-            self.candidate(hard_disqualifier=True, identity_status="verified")
-        )
-        self.assertFalse(decision.eligible)
-        self.assertIn("hard_disqualifier", decision.reasons)
-
-    def test_missing_identity_cannot_be_ranked(self):
-        decision = ProspectEligibilityGate.evaluate(
-            self.candidate(identity_status="unverified")
-        )
-        self.assertFalse(decision.eligible)
-        self.assertIn("identity_not_verified", decision.reasons)
-
-    def test_freshness_decays_without_erasing_old_evidence(self):
-        recent = freshness_weight("2026-08-29", today=date(2026, 8, 30))
-        old = freshness_weight("2026-05-01", today=date(2026, 8, 30))
-        self.assertGreater(recent, old)
-        self.assertGreater(old, 0)
-
-    def test_priority_is_explainable_and_bounded(self):
-        result = priority_score(PriorityInput(
-            icp_fit_score=5,
-            signal_strength=5,
-            signal_confidence=0.9,
-            observed_at="2026-08-29",
-            evidence_count=3,
-            route_quality=4,
-        ), today=date(2026, 8, 30))
-        self.assertGreater(result.score, 80)
-        self.assertLessEqual(result.score, 100)
-        self.assertTrue(any(item.startswith("signal_strength=") for item in result.explanation))
-
-    def test_signal_requires_registered_evidence(self):
-        signal = IntentSignal(
-            signal_id="SIG-404", prospect_id="P-404", company="No Evidence Ltd",
-            signal_type="funding", source="https://example.com/funding",
-            observed_at="2026-08-29", evidence_id="EV-MISSING",
-            confidence=0.8, strength=4,
-        )
-        with self.assertRaises(ValueError):
-            add_signal(self.db, signal)
-
-    def test_store_preserves_signal_identity_and_revenue_lineage(self):
-        signal = IntentSignal(
-            signal_id="SIG-001", prospect_id="P-001", company="Example Co",
-            signal_type="job_change", source="https://example.com/source",
-            observed_at="2026-08-29", evidence_id="EV-SIG-001",
-            confidence=0.95, strength=5,
-            commercial_interpretation="New VP Sales may be rebuilding pipeline motion",
-        )
-        add_signal(self.db, signal, raw={"observed": "role changed"})
-        add_identity(
-            self.db,
-            identity_id="ID-001", prospect_id="P-001", company="Example Co",
-            person_name="Alex Buyer", buyer_role="VP Sales", status="verified",
-            reachable_channel="linkedin", provider="manual", source="https://example.com/profile",
-            linkedin_url="https://linkedin.example/alex", confidence=0.9,
-            verified_at="2026-08-29",
-        )
-        add_lineage(
-            self.db,
-            lineage_id="LIN-001", prospect_id="P-001", signal_id="SIG-001",
-            evidence_id="EV-SIG-001", identity_id="ID-001", offer_id="OFF-001",
-            angle_id="ANGLE-001", experiment_id="EXP-ACQ-0002",
-            channel_id="CH-LINKEDIN", recommended_action="review outreach draft",
-            outcome_id="CUS-001", revenue_pence=200_000,
-            contribution_profit_pence=120_000,
-        )
         with connect(self.db) as con:
-            row = con.execute(
-                "SELECT * FROM prospect_signal_lineage WHERE lineage_id='LIN-001'"
-            ).fetchone()
-        self.assertEqual(row["signal_id"], "SIG-001")
-        self.assertEqual(row["revenue_pence"], 200_000)
-        self.assertEqual(row["contribution_profit_pence"], 120_000)
+            con.execute(
+                """INSERT INTO prospects(
+                     id, company, website, priority, target_roles, evidence, source_url, status
+                   ) VALUES (1, 'Acme Platform', 'https://example.com', 'A', 'Founder, Revenue lead',
+                             'Public B2B offer and named buyer role', 'https://example.com/about',
+                             'qualified')"""
+            )
 
-    def test_ranked_prospects_excludes_suppressed_and_surfaces_authority(self):
-        signal = IntentSignal(
-            signal_id="SIG-001", prospect_id="P-001", company="Example Co",
-            signal_type="job_change", source="https://example.com/source",
-            observed_at="2026-08-29", evidence_id="EV-SIG-001",
-            confidence=0.95, strength=5,
-            commercial_interpretation="New VP Sales may be reviewing GTM systems",
-        )
-        add_signal(self.db, signal)
-        add_identity(
-            self.db,
-            identity_id="ID-001", prospect_id="P-001", company="Example Co",
-            person_name="Alex Buyer", buyer_role="VP Sales", status="verified",
-            reachable_channel="linkedin", confidence=0.9,
-        )
-        ranked = ranked_prospects(self.db)
-        self.assertEqual(len(ranked), 1)
-        self.assertEqual(ranked[0]["authority"], "R3_APPROVAL_REQUIRED")
-        self.assertFalse(ranked[0]["executable"])
+    def add_signal(self, **overrides):
+        values = {
+            "prospect_id": 1,
+            "signal_type": "hiring",
+            "source_url": "https://example.com/careers",
+            "observed_fact": "The company published a revenue operations vacancy on its careers page.",
+            "commercial_interpretation": "The new role may indicate active investment in pipeline operations and measurement.",
+            "observed_at": "2026-08-29T12:00:00+00:00",
+            "confidence": 0.9,
+            "strength": 4,
+            "freshness_half_life_days": 10,
+        }
+        return add_intent_signal(self.db, {**values, **overrides})
 
+    def test_no_signal_is_ineligible_instead_of_receiving_a_score(self):
+        state = intelligence_state(self.db, now=NOW)
+        self.assertEqual(state["ranked_buyers"], [])
+        self.assertIn("No observed intent event", state["ineligible"][0]["reasons"])
+
+    def test_ranked_buyer_separates_evidence_inference_and_unknown_identity(self):
+        signal = self.add_signal()
+        buyer = intelligence_state(self.db, now=NOW)["ranked_buyers"][0]
+        self.assertEqual(buyer["signal"]["signal_id"], signal["signal_id"])
+        self.assertEqual(buyer["evidence"]["observed_fact"], signal["observed_fact"])
+        self.assertEqual(buyer["why_now"], signal["commercial_interpretation"])
+        self.assertEqual(buyer["recommended_action"], "enrich_identity")
+        self.assertTrue(buyer["approval_required"])
+        self.assertGreater(buyer["priority_score"], 0)
+
+    def test_hard_disqualification_cannot_be_compensated_by_a_strong_signal(self):
+        self.add_signal(confidence=1, strength=5)
         with connect(self.db) as con:
-            con.execute("INSERT INTO suppression(identity, reason) VALUES (?, ?)", ("P-001", "opt_out"))
-        self.assertEqual(ranked_prospects(self.db), [])
+            con.execute("UPDATE prospects SET status = 'disqualified_fit' WHERE id = 1")
+        state = intelligence_state(self.db, now=NOW)
+        self.assertEqual(state["ranked_buyers"], [])
+        self.assertIn("Prospect status is disqualified_fit", state["ineligible"][0]["reasons"])
 
-    def test_growthops_exposes_intent_prospects_without_execution_authority(self):
-        init_signal_store(self.db)
-        state = command_center_state(self.db, today=date(2026, 8, 30))
-        self.assertIn("intent_prospects", state)
-        self.assertEqual(state["intent_prospects"], [])
-        self.assertIn("rank eligible intent prospects with source provenance", state["authority"]["allowed"])
-        self.assertIn("contact a customer or prospect", state["authority"]["human_approval_required"])
+    def test_stale_signal_fails_eligibility_before_ranking(self):
+        self.add_signal(observed_at="2026-06-01", freshness_half_life_days=10)
+        state = intelligence_state(self.db, now=NOW)
+        self.assertEqual(state["ranked_buyers"], [])
+        self.assertIn("Signal is beyond three freshness half-lives", state["ineligible"][0]["reasons"])
+
+    def test_ineligible_signal_cannot_hide_a_lower_scoring_eligible_signal(self):
+        eligible = self.add_signal(strength=2, confidence=0.5)
+        self.add_signal(
+            signal_type="funding",
+            observed_fact="The company announced a new funding round on its public company news page.",
+            commercial_interpretation="The funding event may indicate budget availability for a new commercial initiative.",
+            confidence=0.49,
+            strength=5,
+        )
+        buyer = intelligence_state(self.db, now=NOW)["ranked_buyers"][0]
+        self.assertEqual(buyer["signal"]["signal_id"], eligible["signal_id"])
+
+    def test_observed_identity_changes_action_without_claiming_deliverability(self):
+        self.add_signal()
+        identity = add_identity(
+            self.db,
+            {
+                "prospect_id": 1,
+                "identity_type": "email",
+                "value": "buyer@example.com",
+                "provider": "public_page",
+                "verification_status": "observed_published",
+                "source_url": "https://example.com/team",
+                "observed_at": "2026-08-29",
+                "confidence": 0.75,
+            },
+        )
+        buyer = intelligence_state(self.db, now=NOW)["ranked_buyers"][0]
+        self.assertEqual(buyer["identity"]["id"], identity["id"])
+        self.assertEqual(buyer["identity"]["verification_status"], "observed_published")
+        self.assertEqual(buyer["recommended_action"], "prepare_approval_draft")
+        self.assertEqual(buyer["recommended_channel"], "email")
+
+    def test_verified_identity_is_preferred_to_higher_confidence_unverified_identity(self):
+        self.add_signal()
+        for value, status, confidence in (
+            ("unverified@example.com", "unverified", 0.99),
+            ("verified@example.com", "verified", 0.7),
+        ):
+            add_identity(
+                self.db,
+                {
+                    "prospect_id": 1,
+                    "identity_type": "email",
+                    "value": value,
+                    "provider": "operator_research",
+                    "verification_status": status,
+                    "source_url": "https://example.com/team",
+                    "observed_at": "2026-08-29",
+                    "confidence": confidence,
+                },
+            )
+        buyer = intelligence_state(self.db, now=NOW)["ranked_buyers"][0]
+        self.assertEqual(buyer["identity"]["value"], "verified@example.com")
+
+    def test_public_page_parser_returns_observed_candidates_only(self):
+        candidates = extract_public_identities(
+            """<a href="mailto:buyer@example.com">buyer@example.com</a>
+                <a href="https://www.linkedin.com/in/example-buyer">Profile</a>
+                <a href="/contact">Contact</a>""",
+            "https://example.com/team",
+        )
+        self.assertEqual(
+            [value.identity_type for value in candidates],
+            ["email", "linkedin", "contact_form"],
+        )
+        self.assertTrue(
+            all(value.verification_status == "observed_published" for value in candidates)
+        )
+
+    def test_public_page_provider_rejects_loopback_sources(self):
+        with self.assertRaisesRegex(IntelligenceError, "public internet"):
+            PublicPageEnrichmentProvider().inspect("http://127.0.0.1/")
+
+    def test_signal_source_rejects_embedded_credentials(self):
+        with self.assertRaisesRegex(IntelligenceError, r"http\(s\) URL"):
+            self.add_signal(source_url="https://user:secret@example.com/careers")
 
 
 if __name__ == "__main__":

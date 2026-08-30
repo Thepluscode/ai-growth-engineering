@@ -8,12 +8,18 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 
-from .signal_intelligence import IntentSignal, ProspectEligibilityGate, ProspectEligibilityInput, PriorityInput, priority_score
+from .revenue_signal_intelligence import (
+    IntentSignal,
+    PriorityInput,
+    ProspectEligibilityGate,
+    ProspectEligibilityInput,
+    priority_score,
+)
 from .storage import connect
 
 
 SIGNAL_SCHEMA = """
-CREATE TABLE IF NOT EXISTS intent_signals (
+CREATE TABLE IF NOT EXISTS revenue_intent_signals (
     signal_id TEXT PRIMARY KEY,
     prospect_id TEXT NOT NULL,
     company TEXT NOT NULL,
@@ -48,7 +54,7 @@ CREATE TABLE IF NOT EXISTS identity_resolutions (
 CREATE TABLE IF NOT EXISTS prospect_signal_lineage (
     lineage_id TEXT PRIMARY KEY,
     prospect_id TEXT NOT NULL,
-    signal_id TEXT NOT NULL REFERENCES intent_signals(signal_id),
+    signal_id TEXT NOT NULL REFERENCES revenue_intent_signals(signal_id),
     evidence_id TEXT NOT NULL,
     identity_id TEXT NOT NULL DEFAULT '',
     offer_id TEXT NOT NULL DEFAULT '',
@@ -79,7 +85,7 @@ def add_signal(db_path: str, signal: IntentSignal, *, raw: dict | None = None) -
         if evidence is None:
             raise ValueError("signal evidence_id must exist in evidence registry")
         con.execute(
-            """INSERT INTO intent_signals(
+            """INSERT INTO revenue_intent_signals(
                    signal_id, prospect_id, company, signal_type, source, observed_at,
                    evidence_id, confidence, strength, commercial_interpretation, raw_json
                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -158,7 +164,7 @@ def add_lineage(
     init_signal_store(db_path)
     with connect(db_path) as con:
         signal = con.execute(
-            "SELECT evidence_id FROM intent_signals WHERE signal_id = ?", (signal_id,)
+            "SELECT evidence_id FROM revenue_intent_signals WHERE signal_id = ?", (signal_id,)
         ).fetchone()
         if signal is None:
             raise ValueError("signal_id must exist")
@@ -185,7 +191,7 @@ def ranked_prospects(db_path: str, *, limit: int = 10) -> list[dict]:
         rows = con.execute(
             """SELECT s.*, i.identity_id, i.person_name, i.buyer_role, i.status AS identity_status,
                       i.reachable_channel, i.confidence AS identity_confidence
-               FROM intent_signals s
+               FROM revenue_intent_signals s
                JOIN identity_resolutions i ON i.prospect_id = s.prospect_id
                ORDER BY s.observed_at DESC, s.strength DESC"""
         ).fetchall()

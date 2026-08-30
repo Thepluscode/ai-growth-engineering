@@ -163,7 +163,7 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-capability_map.json         full Digital Marketing scope, 164 capabilities with build status
+capability_map.json         full Digital Marketing scope, 180 capabilities with build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
                             GrowthOps operator, Command Center, registries and economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)

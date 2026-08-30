@@ -104,6 +104,43 @@
     .table tbody tr:hover { background: #fbfcfd; }
     .table .number { color: var(--ink); font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; }
     .rate { font-weight: 700; }
+    .intelligence-grid { display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(390px, .72fr); }
+    .buyer-board { min-width: 0; border-right: 1px solid var(--line); }
+    .desk-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 55px; padding: 0 20px; background: var(--surface-subtle); border-bottom: 1px solid var(--line); }
+    .desk-summary strong { font-size: 11px; }
+    .desk-summary span { color: var(--faint); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
+    .buyer-list { display: grid; }
+    .buyer-card { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 17px; padding: 20px; border-top: 1px solid var(--line); background: #fff; }
+    .buyer-card:first-child { border-top: 0; }
+    .buyer-rank { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 64px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-subtle); }
+    .buyer-rank strong { font: 600 21px/1 var(--mono); letter-spacing: -.05em; }
+    .buyer-rank span { margin-top: 7px; color: var(--faint); font: 700 7px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .buyer-company { margin: 0; font-size: 14px; font-weight: 650; letter-spacing: -.01em; }
+    .buyer-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 13px; }
+    .buyer-fact { padding: 11px 12px; border-left: 2px solid var(--line-strong); background: var(--surface-subtle); }
+    .buyer-fact.inferred { border-left-color: var(--amber); background: var(--amber-soft); }
+    .buyer-fact b { display: block; margin-bottom: 5px; color: var(--faint); font-size: 7px; letter-spacing: .1em; text-transform: uppercase; }
+    .buyer-fact p { margin: 0; color: #455164; font-size: 9px; line-height: 1.5; }
+    .buyer-line { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; color: var(--faint); font-family: var(--mono); font-size: 8px; }
+    .buyer-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+    .intake { padding: 20px; background: var(--surface-subtle); }
+    .intake details { overflow: hidden; margin-top: 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+    .intake details:first-of-type { margin-top: 0; }
+    .intake summary { display: flex; align-items: center; justify-content: space-between; min-height: 43px; padding: 0 13px; cursor: pointer; list-style: none; color: #435064; font-size: 10px; font-weight: 700; }
+    .intake summary::-webkit-details-marker { display: none; }
+    .intake summary::after { content: "+"; color: var(--faint); font-family: var(--mono); }
+    .intake details[open] summary::after { content: "−"; }
+    .intake-form { padding: 14px; border-top: 1px solid var(--line); }
+    .compact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .compact-grid .field.full { grid-column: 1 / -1; }
+    .compact-grid .field textarea { min-height: 68px; }
+    .candidate-list { display: grid; gap: 7px; margin-top: 10px; }
+    .candidate { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .candidate-copy { min-width: 0; }
+    .candidate-copy strong, .candidate-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .candidate-copy strong { color: var(--ink); font-size: 9px; }
+    .candidate-copy span { margin-top: 2px; color: var(--faint); font-family: var(--mono); font-size: 7px; }
+    .lineage-chip { color: var(--blue); font-family: var(--mono); font-size: 8px; }
     .workbench-grid { display: grid; grid-template-columns: minmax(360px, .82fr) minmax(0, 1.18fr); }
     .composer { padding: 22px; border-right: 1px solid var(--line); }
     .queue { min-width: 0; background: var(--surface-subtle); }
@@ -196,6 +233,8 @@
       .app { grid-template-columns: 210px minmax(0, 1fr); }
       .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .layout-2 { grid-template-columns: 1fr; }
+      .intelligence-grid { grid-template-columns: 1fr; }
+      .buyer-board { border-right: 0; border-bottom: 1px solid var(--line); }
       .workbench-grid { grid-template-columns: 1fr; }
       .composer { border-right: 0; border-bottom: 1px solid var(--line); }
       .channels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -220,7 +259,9 @@
       .status-reason, .status-freshness { margin-left: 0; }
       .evidence, .authority { grid-template-columns: 1fr; }
       .field-grid { grid-template-columns: 1fr; }
+      .buyer-facts, .compact-grid { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
+      .compact-grid .field.full { grid-column: auto; }
       .evidence details:nth-child(even), .authority-block + .authority-block { border-left: 0; }
       .authority-block + .authority-block { border-top: 1px solid var(--line); }
     }
@@ -246,12 +287,14 @@
       <div class="nav-label">Workspace</div>
       <nav class="nav" aria-label="Command Center sections">
         <a href="#overview"><span class="nav-icon">01</span>Overview</a>
-        <a href="#workbench"><span class="nav-icon">02</span>Workbench</a>
-        <a href="#performance"><span class="nav-icon">03</span>Performance</a>
-        <a href="#experiments"><span class="nav-icon">04</span>Experiments</a>
-        <a href="#evidence"><span class="nav-icon">05</span>Evidence</a>
-        <a href="#portfolio"><span class="nav-icon">06</span>Portfolio</a>
-        <a href="#channels"><span class="nav-icon">07</span>Channels</a>
+        <a href="#intelligence"><span class="nav-icon">02</span>Buyer desk</a>
+        <a href="#workbench"><span class="nav-icon">03</span>Workbench</a>
+        <a href="#performance"><span class="nav-icon">04</span>Performance</a>
+        <a href="#experiments"><span class="nav-icon">05</span>Experiments</a>
+        <a href="#evidence"><span class="nav-icon">06</span>Evidence</a>
+        <a href="#portfolio"><span class="nav-icon">07</span>Portfolio</a>
+        <a href="#channels"><span class="nav-icon">08</span>Channels</a>
+        <a href="/revenue-intelligence"><span class="nav-icon">09</span>Revenue ledger</a>
       </nav>
       <div class="sidebar-foot"><div class="system-line"><span class="system-dot" aria-hidden="true"></span>Workflow engine online</div><p class="system-mode" id="mode">Internal · human gated · no autosend</p></div>
     </aside>
@@ -262,6 +305,65 @@
           <div class="status-summary"><p class="overline">Current operating constraint</p><div class="status-row"><span class="status-icon" id="status-icon" data-level="red" aria-hidden="true">!</span><h2 class="status-title loading" id="constraint-title">Reading state</h2></div><p class="status-reason" id="constraint-reason">Connecting to the evidence store.</p><div class="status-freshness"><span>Last external contact</span><strong id="freshness">Unknown</strong></div></div>
           <div class="next-move"><div class="next-move-head"><p class="overline">Recommended next move</p><span class="approval-chip">Approval required</span></div><h3 class="next-title" id="action-title">Waiting for evidence</h3><p class="next-copy" id="action-copy">The operator proposes one action after reading the commercial state.</p><div class="next-meta"><span>Metric · <strong id="action-metric">—</strong></span><span id="action-approval">Human approval required</span></div><a class="action-link" href="#workbench">Open outbound workbench →</a></div>
         </section>
+        <section class="section panel" id="intelligence" aria-labelledby="intelligence-title">
+          <header class="panel-head"><div><h3 id="intelligence-title">Today’s buyer desk</h3></div><span class="panel-label">Fit gate → intent rank → human action</span></header>
+          <div class="intelligence-grid">
+            <div class="buyer-board">
+              <div class="desk-summary"><strong>Today’s 10 best buyers</strong><span id="buyer-counts">Reading signals…</span></div>
+              <div class="buyer-list" id="buyer-list"><div class="empty">Loading evidence-backed priorities…</div></div>
+            </div>
+            <aside class="intake" aria-label="Buyer intelligence intake">
+              <details open>
+                <summary>Record observed intent event</summary>
+                <form class="intake-form" id="signal-form">
+                  <div class="compact-grid">
+                    <div class="field full"><label for="signal-prospect-id">Prospect</label><select id="signal-prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                    <div class="field"><label for="signal-type">Signal type</label><select id="signal-type" name="signal_type" required></select></div>
+                    <div class="field"><label for="signal-observed-at">Observed date</label><input id="signal-observed-at" name="observed_at" type="date" required></div>
+                    <div class="field"><label for="signal-person">Person <small>Optional</small></label><input id="signal-person" name="person_name" type="text" maxlength="160"></div>
+                    <div class="field"><label for="signal-role">Role <small>Optional</small></label><input id="signal-role" name="person_role" type="text" maxlength="160"></div>
+                    <div class="field full"><label for="signal-source">Evidence URL</label><input id="signal-source" name="source_url" type="url" placeholder="https://company.com/source" required></div>
+                    <div class="field full"><label for="signal-fact">Observed fact <small>No diagnosis</small></label><textarea id="signal-fact" name="observed_fact" minlength="30" maxlength="1600" required></textarea></div>
+                    <div class="field full"><label for="signal-interpretation">Commercial interpretation <small>Explicit inference</small></label><textarea id="signal-interpretation" name="commercial_interpretation" minlength="30" maxlength="1600" required></textarea></div>
+                    <div class="field"><label for="signal-confidence">Confidence · 0–1</label><input id="signal-confidence" name="confidence" type="number" min="0" max="1" step="0.05" value="0.7" required></div>
+                    <div class="field"><label for="signal-strength">Strength · 1–5</label><input id="signal-strength" name="strength" type="number" min="1" max="5" value="3" required></div>
+                    <div class="field full"><label for="signal-half-life">Freshness half-life · days</label><input id="signal-half-life" name="freshness_half_life_days" type="number" min="1" max="365" value="14" required></div>
+                  </div>
+                  <div class="form-foot"><p class="form-note">Observed evidence and inferred meaning remain separate records.</p><button class="button primary" type="submit">Record signal</button></div>
+                  <div class="feedback" id="signal-feedback" role="status" aria-live="polite"></div>
+                </form>
+              </details>
+              <details>
+                <summary>Inspect public identity source</summary>
+                <form class="intake-form" id="enrichment-form">
+                  <div class="compact-grid">
+                    <div class="field full"><label for="enrichment-prospect-id">Prospect</label><select id="enrichment-prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                    <div class="field full"><label for="enrichment-source">Public page</label><input id="enrichment-source" name="source_url" type="url" placeholder="https://company.com/team" required></div>
+                  </div>
+                  <div class="form-foot"><p class="form-note">Inspection finds published identities. It does not claim deliverability.</p><button class="button" type="submit">Inspect page</button></div>
+                  <div class="feedback" id="enrichment-feedback" role="status" aria-live="polite"></div>
+                  <div class="candidate-list" id="candidate-list"></div>
+                </form>
+              </details>
+              <details>
+                <summary>Record researched identity</summary>
+                <form class="intake-form" id="identity-form">
+                  <div class="compact-grid">
+                    <div class="field full"><label for="identity-prospect-id">Prospect</label><select id="identity-prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                    <div class="field"><label for="identity-type">Identity type</label><select id="identity-type" name="identity_type"><option value="linkedin">LinkedIn</option><option value="email">Email</option><option value="contact_form">Contact form</option></select></div>
+                    <div class="field"><label for="identity-status">Evidence status</label><select id="identity-status" name="verification_status"><option value="observed_published">Observed published</option><option value="unverified">Unverified</option><option value="verified">Verified</option></select></div>
+                    <div class="field full"><label for="identity-value">Identity value</label><input id="identity-value" name="value" type="text" placeholder="Profile URL, email, or form URL" required></div>
+                    <div class="field full"><label for="identity-source">Evidence URL</label><input id="identity-source" name="source_url" type="url" required></div>
+                    <div class="field"><label for="identity-provider">Provider</label><input id="identity-provider" name="provider" type="text" value="operator_research" required></div>
+                    <div class="field"><label for="identity-confidence">Confidence · 0–1</label><input id="identity-confidence" name="confidence" type="number" min="0" max="1" step="0.05" value="0.7" required></div>
+                  </div>
+                  <div class="form-foot"><p class="form-note">Save the source and evidence status; do not infer deliverability.</p><button class="button" type="submit">Record identity</button></div>
+                  <div class="feedback" id="identity-feedback" role="status" aria-live="polite"></div>
+                </form>
+              </details>
+            </aside>
+          </div>
+        </section>
         <section class="section panel" id="workbench" aria-labelledby="workbench-title">
           <header class="panel-head"><div><h3 id="workbench-title">Outbound workbench</h3></div><span class="panel-label">Draft → approve → copy → record</span></header>
           <div class="workbench-grid">
@@ -269,6 +371,7 @@
               <div class="workflow-line" aria-label="Workflow stages"><span>1 Source</span><span>2 Draft</span><span>3 Approve</span><span>4 Send manually</span><span>5 Record</span></div>
               <div class="field-grid">
                 <div class="field full"><label for="prospect-id">Prospect <small>Disqualified accounts excluded</small></label><select id="prospect-id" name="prospect_id" required><option value="">Loading prospects…</option></select></div>
+                <div class="field full"><label for="draft-signal">Intent lineage <small>Optional; links message to evidence and outcome</small></label><select id="draft-signal" name="signal_id"><option value="">No intent signal linked</option></select></div>
                 <div class="field"><label for="recipient-identity">Recipient identity</label><input id="recipient-identity" name="recipient_identity" type="text" placeholder="buyer@company.com or profile URL" autocomplete="off" required></div>
                 <div class="field"><label for="source-url">Observed source</label><input id="source-url" name="source_url" type="url" placeholder="https://company.com/page" required></div>
                 <div class="field"><label for="channel">Channel</label><select id="channel" name="channel"><option value="email">Email</option><option value="linkedin">LinkedIn</option><option value="contact_form">Contact form</option></select></div>
@@ -310,6 +413,36 @@
     const stateName = (value) => String(value || 'unknown').toLowerCase().replaceAll('_', ' ');
     const empty = (message) => node('div', 'empty', message);
     function badge(value) { const el = node('span', 'badge', stateName(value)); el.dataset.state = String(value || 'unknown').toLowerCase(); return el; }
+    function populateProspects(select, prospects) {
+      const selected = select.value; select.replaceChildren(node('option', '', 'Choose a prospect')); select.firstChild.value = '';
+      prospects.forEach((prospect) => { const option = node('option', '', `${prospect.company} · ${stateName(prospect.status)}`); option.value = String(prospect.id); select.append(option); });
+      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+    }
+    function updateDraftSignals(prospectId) {
+      const select = $('draft-signal'); const selected = select.value; select.replaceChildren(node('option', '', 'No intent signal linked')); select.firstChild.value = '';
+      (window.intelligenceData?.signals || []).filter((row) => String(row.prospect_id) === String(prospectId)).forEach((row) => { const option = node('option', '', `${row.signal_id} · ${stateName(row.signal_type)} · ${row.observed_at.slice(0, 10)}`); option.value = row.signal_id; select.append(option); });
+      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+    }
+    function renderIntelligence(data) {
+      window.intelligenceData = data;
+      $('buyer-counts').textContent = `${data.eligible_count} eligible · ${data.ineligible_count} held by gate`;
+      const typeSelect = $('signal-type'); const selectedType = typeSelect.value; typeSelect.replaceChildren(); data.signal_types.forEach((value) => { const option = node('option', '', stateName(value)); option.value = value; typeSelect.append(option); }); if (data.signal_types.includes(selectedType)) typeSelect.value = selectedType;
+      const root = $('buyer-list'); root.replaceChildren();
+      if (!data.ranked_buyers.length) { root.append(empty(data.signals.length ? 'No account passes the complete fit, confidence and freshness gate.' : 'No observed intent signals yet. Record one from a cited public source; no diagnosis will be invented.')); updateDraftSignals($('prospect-id').value); return; }
+      data.ranked_buyers.forEach((row, index) => {
+        const card = node('article', 'buyer-card');
+        const rank = node('div', 'buyer-rank'); rank.append(node('strong', '', String(index + 1).padStart(2, '0')), node('span', '', `${row.priority_score} score`));
+        const body = node('div'); const top = node('div', 'item-top'); top.append(node('h4', 'buyer-company', row.company), badge(row.recommended_action)); body.append(top);
+        const facts = node('div', 'buyer-facts'); const observed = node('div', 'buyer-fact'); observed.append(node('b', '', 'Observed'), node('p', '', row.evidence.observed_fact)); const inferred = node('div', 'buyer-fact inferred'); inferred.append(node('b', '', 'Economic hypothesis'), node('p', '', row.why_now)); facts.append(observed, inferred); body.append(facts);
+        const identity = row.identity ? `${row.identity.identity_type} · ${row.identity.verification_status}` : row.unknowns.join(' · ');
+        const lineage = data.lineage[row.signal.signal_id] || [];
+        const line = node('div', 'buyer-line'); line.append(node('span', '', `ICP ${row.icp.priority} · ${row.icp.target_roles}`), node('span', '', `${stateName(row.signal.signal_type)} · ${row.score_components.age_days}d old`), node('span', '', identity), node('span', 'lineage-chip', `${lineage.length} linked outcome${lineage.length === 1 ? '' : 's'}`)); body.append(line);
+        const actions = node('div', 'buyer-actions'); const primary = node('button', 'button primary', row.identity ? 'Prepare approval draft' : 'Research recipient identity'); primary.type = 'button'; primary.dataset.buyerAction = row.identity ? 'prepare' : 'enrich'; primary.dataset.prospectId = String(row.prospect_id); primary.dataset.signalId = row.signal.signal_id; actions.append(primary); const source = node('a', 'button', 'Open evidence'); source.href = row.evidence.source_url; source.target = '_blank'; source.rel = 'noreferrer'; actions.append(source); body.append(actions);
+        card.append(rank, body); root.append(card);
+      });
+      updateDraftSignals($('prospect-id').value);
+    }
+    function loadIntelligence() { return fetch('/api/intelligence', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`intelligence request failed: ${response.status}`); return response.json(); }).then(renderIntelligence).catch((error) => { $('buyer-list').replaceChildren(empty(error.message)); }); }
     function renderScoreboard(rows) {
       const root = $('scoreboard'); root.replaceChildren();
       rows.forEach((row) => { const card = node('article', 'metric'); card.append(node('div', 'metric-label', row.label)); const numbers = node('div', 'metric-numbers'); numbers.append(node('span', 'metric-value', row.kind === 'money' ? money(row.value) : String(row.value)), node('span', 'metric-target', `of ${row.kind === 'money' ? money(row.target) : row.target}`)); card.append(numbers); const bar = node('div', 'bar'); const fill = node('i'); bar.append(fill); card.append(bar); requestAnimationFrame(() => { fill.style.width = `${Math.round(row.ratio * 100)}%`; }); root.append(card); });
@@ -338,10 +471,7 @@
     }
     function renderWorkbench(data) {
       window.workbenchData = data;
-      const select = $('prospect-id'); const selected = select.value; select.replaceChildren(node('option', '', 'Choose a prospect'));
-      select.firstChild.value = '';
-      data.prospects.forEach((prospect) => { const option = node('option', '', `${prospect.company} · ${stateName(prospect.status)}`); option.value = String(prospect.id); select.append(option); });
-      if ([...select.options].some((option) => option.value === selected)) select.value = selected;
+      const select = $('prospect-id'); populateProspects(select, data.prospects); populateProspects($('signal-prospect-id'), data.prospects); populateProspects($('enrichment-prospect-id'), data.prospects); populateProspects($('identity-prospect-id'), data.prospects); updateDraftSignals(select.value);
       const counts = data.counts;
       $('queue-counts').textContent = `${counts.pending_approval} pending · ${counts.approved} approved · ${counts.sent + counts.replied} recorded`;
       const root = $('draft-list'); root.replaceChildren();
@@ -351,6 +481,7 @@
         const top = node('div', 'item-top'); top.append(node('span', 'id', `DRAFT-${String(row.id).padStart(4, '0')}`), badge(row.status)); card.append(top);
         card.append(node('p', 'item-title', row.company));
         card.append(node('div', 'draft-meta', `${row.channel} · ${stateName(row.recipient_class)} · ${row.recipient_identity}`));
+        if (row.signal_ids.length) card.append(node('div', 'lineage-chip', `Lineage · ${row.signal_ids.join(' · ')}`));
         card.append(node('div', 'draft-message', row.message));
         const source = node('a', 'draft-source', row.source_url); source.href = row.source_url; source.target = '_blank'; source.rel = 'noreferrer'; card.append(source);
         const actions = node('div', 'draft-actions');
@@ -380,18 +511,45 @@
       renderScoreboard(state.scoreboard); renderRoutes(state.routes); renderExperiments(state.experiments); renderEvidence(state.evidence); renderOpportunities(state.opportunities); renderAuthority(state.authority); renderChannels(state.channels);
     }
     function loadState() { return fetch('/api/state', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`state request failed: ${response.status}`); return response.json(); }).then(render).catch((error) => { $('constraint-title').textContent = 'State unavailable'; $('constraint-title').classList.remove('loading'); $('constraint-reason').textContent = error.message; }); }
+    $('signal-observed-at').value = new Date().toISOString().slice(0, 10);
     $('prospect-id').addEventListener('change', (event) => {
       const prospect = window.workbenchData?.prospects.find((row) => String(row.id) === event.target.value);
-      if (prospect) $('source-url').value = prospect.source_url || prospect.website || '';
+      if (prospect) $('source-url').value = prospect.source_url || prospect.website || ''; updateDraftSignals(event.target.value);
+    });
+    $('buyer-list').addEventListener('click', (event) => {
+      const control = event.target.closest('button[data-buyer-action]'); if (!control) return;
+      const buyer = window.intelligenceData?.ranked_buyers.find((row) => row.signal.signal_id === control.dataset.signalId); if (!buyer) return;
+      if (control.dataset.buyerAction === 'enrich') { $('enrichment-prospect-id').value = String(buyer.prospect_id); $('identity-prospect-id').value = String(buyer.prospect_id); $('enrichment-source').value = buyer.icp.source_url || buyer.evidence.source_url; $('enrichment-form').closest('details').open = true; $('enrichment-source').focus(); return; }
+      $('prospect-id').value = String(buyer.prospect_id); updateDraftSignals(buyer.prospect_id); $('draft-signal').value = buyer.signal.signal_id; $('source-url').value = buyer.evidence.source_url; $('observation').value = buyer.evidence.observed_fact; $('economic-hypothesis').value = buyer.why_now; $('recipient-identity').value = buyer.identity.value; $('channel').value = buyer.recommended_channel; $('recipient-class').value = buyer.identity.identity_type === 'linkedin' ? 'named_buyer' : 'role_inbox'; $('workbench').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    $('signal-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('signal-feedback'); feedback.textContent = 'Validating observed fact, inference and freshness…'; feedback.dataset.level = '';
+      try { const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id); payload.confidence = Number(payload.confidence); payload.strength = Number(payload.strength); payload.freshness_half_life_days = Number(payload.freshness_half_life_days); const result = await mutate('/api/signals', payload); feedback.textContent = `${result.signal.signal_id} recorded. Ranking recalculated; nothing was sent.`; feedback.dataset.level = 'success'; $('signal-fact').value = ''; $('signal-interpretation').value = ''; await loadIntelligence(); }
+      catch (error) { feedback.textContent = error.message; feedback.dataset.level = 'error'; } finally { control.disabled = false; }
+    });
+    $('enrichment-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('enrichment-feedback'); feedback.textContent = 'Inspecting bounded public HTML…'; feedback.dataset.level = ''; $('candidate-list').replaceChildren();
+      try { const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); const result = await mutate('/api/enrichment/inspect', { source_url: payload.source_url }); window.enrichmentCandidates = { prospectId: Number(payload.prospect_id), values: result.candidates }; feedback.textContent = result.candidates.length ? `${result.candidates.length} published candidate${result.candidates.length === 1 ? '' : 's'} found. Review before saving.` : 'No published email, profile, or contact route found on this page.'; feedback.dataset.level = result.candidates.length ? 'success' : ''; result.candidates.forEach((candidate, index) => { const card = node('div', 'candidate'); const copy = node('div', 'candidate-copy'); copy.append(node('strong', '', candidate.value), node('span', '', `${stateName(candidate.identity_type)} · ${stateName(candidate.verification_status)} · ${Math.round(candidate.confidence * 100)}% confidence`)); const save = node('button', 'button', 'Save'); save.type = 'button'; save.dataset.candidateIndex = String(index); card.append(copy, save); $('candidate-list').append(card); }); }
+      catch (error) { feedback.textContent = error.message; feedback.dataset.level = 'error'; } finally { control.disabled = false; }
+    });
+    $('candidate-list').addEventListener('click', async (event) => {
+      const control = event.target.closest('button[data-candidate-index]'); if (!control) return; const set = window.enrichmentCandidates; const candidate = set?.values[Number(control.dataset.candidateIndex)]; if (!candidate) return; control.disabled = true;
+      try { await mutate('/api/identities', { ...candidate, prospect_id: set.prospectId, observed_at: new Date().toISOString() }); control.textContent = 'Saved'; $('enrichment-feedback').textContent = 'Identity provenance saved. Deliverability remains unclaimed.'; $('enrichment-feedback').dataset.level = 'success'; await loadIntelligence(); }
+      catch (error) { $('enrichment-feedback').textContent = error.message; $('enrichment-feedback').dataset.level = 'error'; control.disabled = false; }
+    });
+    $('identity-form').addEventListener('submit', async (event) => {
+      event.preventDefault(); const control = event.submitter || event.currentTarget.querySelector('button[type="submit"]'); control.disabled = true; const feedback = $('identity-feedback'); feedback.textContent = 'Validating identity provenance…'; feedback.dataset.level = '';
+      try { const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id); payload.confidence = Number(payload.confidence); payload.observed_at = new Date().toISOString(); const result = await mutate('/api/identities', payload); feedback.textContent = `${stateName(result.identity.identity_type)} identity recorded as ${stateName(result.identity.verification_status)}. Deliverability remains unclaimed.`; feedback.dataset.level = 'success'; $('identity-value').value = ''; await loadIntelligence(); }
+      catch (error) { feedback.textContent = error.message; feedback.dataset.level = 'error'; } finally { control.disabled = false; }
     });
     $('draft-form').addEventListener('submit', async (event) => {
       event.preventDefault(); const control = $('create-draft'); control.disabled = true; setFeedback('Validating evidence and suppression…');
       try {
-        const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id);
+        const payload = Object.fromEntries(new FormData(event.currentTarget).entries()); payload.prospect_id = Number(payload.prospect_id); const signalId = payload.signal_id; delete payload.signal_id; payload.signal_ids = signalId ? [signalId] : [];
         const result = await mutate('/api/outbound/drafts', payload);
         setFeedback(`Draft #${result.draft.id} created and waiting for approval. Nothing was sent.`, 'success');
         $('observation').value = ''; $('economic-hypothesis').value = '';
-        await Promise.all([loadWorkbench(), loadState()]);
+        await Promise.all([loadWorkbench(), loadState(), loadIntelligence()]);
       } catch (error) { setFeedback(error.message, 'error'); } finally { control.disabled = false; }
     });
     $('draft-list').addEventListener('click', async (event) => {
@@ -411,10 +569,10 @@
         const result = await mutate(`/api/outbound/drafts/${draft.id}/${action}`);
         const messages = { approve: 'Approved. Copy and send it manually.', reject: 'Rejected and preserved.', 'record-send': 'Manual send recorded in the commercial scoreboard.', 'record-reply': 'Meaningful reply recorded.' };
         setFeedback(`Draft #${result.draft.id}: ${messages[action]}`, 'success');
-        await Promise.all([loadWorkbench(), loadState()]);
+        await Promise.all([loadWorkbench(), loadState(), loadIntelligence()]);
       } catch (error) { setFeedback(error.message, 'error'); control.disabled = false; }
     });
-    loadState(); loadWorkbench(); window.setInterval(() => { loadState(); loadWorkbench(); }, 30000);
+    loadState(); loadWorkbench(); loadIntelligence(); window.setInterval(() => { loadState(); loadWorkbench(); loadIntelligence(); }, 30000);
   </script>
 </body>
 </html>

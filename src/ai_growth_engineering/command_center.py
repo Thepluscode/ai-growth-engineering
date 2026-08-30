@@ -1,4 +1,4 @@
-"""Local, read-only HTTP surface for the internal GrowthOps Command Center."""
+"""Local, human-gated HTTP surface for the internal GrowthOps Command Center."""
 from __future__ import annotations
 
 import json
@@ -17,6 +17,13 @@ from .outbound_workbench import (
     record_meaningful_reply,
     reject_draft,
     workbench_state,
+)
+from .signal_intelligence import (
+    IntelligenceError,
+    PublicPageEnrichmentProvider,
+    add_identity,
+    add_intent_signal,
+    intelligence_state,
 )
 from .storage import init_db
 
@@ -56,6 +63,9 @@ def build_server(
             if path == "/api/workbench":
                 self._send_json(200, workbench_state(db_path))
                 return
+            if path == "/api/intelligence":
+                self._send_json(200, intelligence_state(db_path))
+                return
             if path == "/healthz":
                 self._send(200, b'{"status":"ok","mode":"human_gated"}', "application/json")
                 return
@@ -63,11 +73,17 @@ def build_server(
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            if path == "/api/state" or path == "/api/workbench":
+            if path in {"/api/state", "/api/workbench", "/api/intelligence"}:
                 self._send_json(405, {"error": "method_not_allowed"}, allow="GET")
                 return
             match = _DRAFT_ACTION.match(path)
-            if path != "/api/outbound/drafts" and match is None:
+            mutation_routes = {
+                "/api/outbound/drafts",
+                "/api/signals",
+                "/api/identities",
+                "/api/enrichment/inspect",
+            }
+            if path not in mutation_routes and match is None:
                 self._send_json(404, {"error": "not_found"})
                 return
             if self.headers.get("X-Command-Center-Intent") != "mutate":
@@ -77,6 +93,25 @@ def build_server(
                 payload = self._read_json()
                 if path == "/api/outbound/drafts":
                     self._send_json(201, {"draft": create_draft(db_path, payload)})
+                    return
+                if path == "/api/signals":
+                    self._send_json(201, {"signal": add_intent_signal(db_path, payload)})
+                    return
+                if path == "/api/identities":
+                    self._send_json(201, {"identity": add_identity(db_path, payload)})
+                    return
+                if path == "/api/enrichment/inspect":
+                    source_url = str(payload.get("source_url") or "").strip()
+                    candidates = PublicPageEnrichmentProvider().inspect(source_url)
+                    self._send_json(
+                        200,
+                        {
+                            "source_url": source_url,
+                            "provider": "public_page",
+                            "persisted": False,
+                            "candidates": [value.as_dict() for value in candidates],
+                        },
+                    )
                     return
                 draft_id = int(match.group("draft_id"))
                 action = match.group("action")
@@ -92,6 +127,9 @@ def build_server(
                     "suppressed", "active_draft_exists", "approval_required",
                     "send_required", "invalid_transition",
                 } else 422
+                self._send_json(status, {"error": exc.code, "message": str(exc)})
+            except IntelligenceError as exc:
+                status = 404 if exc.code.endswith("not_found") else 422
                 self._send_json(status, {"error": exc.code, "message": str(exc)})
             except (json.JSONDecodeError, UnicodeDecodeError):
                 self._send_json(400, {"error": "invalid_json"})
