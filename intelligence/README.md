@@ -2,7 +2,7 @@
 
 # intelligence
 
-**Market intelligence** — 11 of 23 capabilities implemented.
+**Market intelligence** — 17 of 32 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -22,13 +22,19 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `demand_evidence_score` | IMPLEMENTED |
 | `evidence_registry` | IMPLEMENTED |
 | `idea_evidence_lineage` | IMPLEMENTED |
+| `identity_resolution_store` | IMPLEMENTED |
+| `intent_icp_priority_engine` | IMPLEMENTED |
+| `intent_signal_store` | IMPLEMENTED |
 | `opportunity_graveyard` | IMPLEMENTED |
 | `pattern_extraction_registry` | IMPLEMENTED |
 | `product_build_gate` | IMPLEMENTED |
 | `product_opportunity_portfolio` | IMPLEMENTED |
 | `product_opportunity_ranking` | IMPLEMENTED |
 | `product_opportunity_registry` | IMPLEMENTED |
+| `prospect_eligibility_gate` | IMPLEMENTED |
 | `prospect_registry` | IMPLEMENTED |
+| `signal_freshness_decay` | IMPLEMENTED |
+| `signal_to_revenue_lineage` | IMPLEMENTED |
 | `social_voice_of_customer` | IMPLEMENTED |
 | `buyer_awareness_model` | HYPOTHESIS |
 | `buying_committee_psychology` | HYPOTHESIS |
@@ -36,11 +42,14 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `content_to_offer_learning_loop` | SPECIFIED |
 | `customer_intelligence_workflow` | SPECIFIED |
 | `demand_discovery` | HYPOTHESIS |
+| `enrichment_provider_adapters` | HYPOTHESIS |
+| `external_signal_connectors` | HYPOTHESIS |
 | `market_research_workflow` | SPECIFIED |
 | `miracles_and_miseries` | HYPOTHESIS |
 | `problem_query_maps` | HYPOTHESIS |
 | `product_opportunity_analysis_workflow` | SPECIFIED |
 | `product_research` | HYPOTHESIS |
+| `tenant_safe_pattern_learning` | HYPOTHESIS |
 | `voice_of_customer` | HYPOTHESIS |
 
 `IMPLEMENTED` = code exists and a deterministic test covers it. `SPECIFIED` = written as a skill, template or policy, not executable. `HYPOTHESIS` = named and understood, nothing built.
