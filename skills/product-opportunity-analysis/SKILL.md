@@ -1,6 +1,19 @@
 ---
 name: product-opportunity-analysis
 description: Evaluate evidence-backed product opportunities, select the smallest justified delivery format, and park failed ideas with reopen conditions. Use when deciding what to validate or build; do not use for unconstrained idea generation.
+metadata:
+  mode: READ
+  version: "1.0.0"
+  last_reviewed: 2026-09-06
+  forbidden:
+    - delete a failed idea — move it to the graveyard with a reopen condition
+    - let a high margin or an exciting concept compensate for a missing gate input
+  evidence: every opportunity separates observed facts from inference, and cites the evidence ids behind each
+  escalate_when: a candidate passes the gate on inferred demand, willingness to pay or distribution access
+  termination:
+    - stop after ranking; validate at most the top 3 rather than working down the list
+    - stop after 2 attempts to satisfy a mandatory gate input and park the idea instead
+  verified_by: tests/test_product_opportunities.py
 ---
 
 # Product Opportunity Analysis

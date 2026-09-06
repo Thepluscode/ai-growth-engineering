@@ -1,3 +1,21 @@
+---
+name: persuasion-engineering
+description: "Make genuine value easy to understand and hard to dismiss, across ads, email, pages, offers and content. Triggers on: writing or reviewing anything intended to move a buyer to act. Does NOT trigger on: internal documentation. Produces: copy optimised for qualified action at minimum unnecessary friction, never for compliance."
+metadata:
+  mode: GENERATE
+  version: "1.0.0"
+  last_reviewed: 2026-09-06
+  forbidden:
+    - manufacture urgency, scarcity or social proof that does not exist
+    - trade a short-term conversion lift for a cost that lands later in refunds, churn or complaints
+  evidence: every claim is backed by something the reader could check, and every proof element names its source
+  escalate_when: the claims scanner returns a BLOCK, or the brief asks for a result promise
+  termination:
+    - stop after 3 rewrites of a claim the scanner blocks and report the claim rather than rewording a 4th
+    - stop after 2 passes over one asset; a 3rd optimises wording past the point the offer is the constraint
+  verified_by: tests/test_persuasion.py
+---
+
 # Persuasion Engineering
 
 Make genuine value easy to understand and hard to dismiss. Never manufacture pressure.

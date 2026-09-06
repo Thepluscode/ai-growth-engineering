@@ -1,3 +1,21 @@
+---
+name: revenue-intelligence
+description: "Turn observed commercial signals into internal prospect recommendations, preserving the path from signal to revenue. Triggers on: prioritising accounts, deciding who to contact now and why. Does NOT trigger on: sending anything, or optimising outreach volume. Produces: ranked buyer actions justified now, each traceable back to the signal that caused it."
+metadata:
+  mode: READ
+  version: "1.0.0"
+  last_reviewed: 2026-09-06
+  forbidden:
+    - recommend an action with no observed signal behind it
+    - optimise for outreach volume rather than for justified actions
+  evidence: every recommendation carries the full chain: observed signal, source, evidence, identity, gate, priority
+  escalate_when: a recommendation would act on an identity the eligibility gate cannot confirm
+  termination:
+    - stop after the eligibility gate rejects 3 candidates for the same reason and report the pattern
+    - stop after 1 ranking pass per signal refresh; the same signals return the same order
+  verified_by: tests/test_revenue_signal_intelligence.py
+---
+
 # Revenue Intelligence
 
 Use this skill when turning observed commercial signals into internal prospect recommendations.
