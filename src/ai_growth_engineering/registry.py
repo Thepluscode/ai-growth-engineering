@@ -5,7 +5,7 @@ import json
 from dataclasses import asdict
 
 from .models import Evidence, ExperimentDecision, ExperimentSpec
-from .storage import connect
+from .storage import connect, init_db
 
 
 def add_evidence(db_path: str, evidence: Evidence) -> None:
@@ -247,8 +247,25 @@ def reply_rate_by_route(db_path: str) -> dict[str, dict[str, int]]:
 def scoreboard(db_path: str) -> dict[str, int]:
     with connect(db_path) as con:
         return {
+            # A prospect counts as qualified only when it SAYS it is qualified.
+            #
+            # This read `NOT LIKE 'disqualified%'`, which made qualification the default
+            # and every other state qualified by omission. On 2026-09-08 that counted 10
+            # rows nobody had qualified — 5 `research`, 5 `ready_for_deep_research` — and
+            # reported 51 where the qualified figure was 41. The danger is not those 10:
+            # it is that any later import using `candidate`, `pending`, `unreviewed`,
+            # `borderline` or `unknown` would inflate a VERIFIED number without a person
+            # deciding anything, which is the false validation this scoreboard exists to
+            # prevent.
             "qualified_prospects": con.execute(
-                "SELECT COUNT(*) FROM prospects WHERE status NOT LIKE 'disqualified%'"
+                "SELECT COUNT(*) FROM prospects WHERE status LIKE 'qualified%'"
+            ).fetchone()[0],
+            # Reported beside it so the pipeline stays visible. Without this the
+            # correction reads as accounts having vanished, rather than as accounts that
+            # were never qualified in the first place.
+            "unreviewed_prospects": con.execute(
+                """SELECT COUNT(*) FROM prospects
+                   WHERE status NOT LIKE 'qualified%' AND status NOT LIKE 'disqualified%'"""
             ).fetchone()[0],
             "outreach_sent": con.execute(
                 "SELECT COUNT(*) FROM outreach WHERE sent_at IS NOT NULL AND stage != 'bounced'"
@@ -260,6 +277,83 @@ def scoreboard(db_path: str) -> dict[str, int]:
             "paying_customers": con.execute("SELECT COALESCE(SUM(paid),0) FROM outreach").fetchone()[0],
             "collected_revenue_pence": con.execute("SELECT COALESCE(SUM(collected_revenue_pence),0) FROM outreach").fetchone()[0],
         }
+
+
+SOURCING_STEPS = (
+    ("website_evidence_rate", "Register candidate to website-evidenced", "website_evidenced", "raw_candidates"),
+    ("qualification_rate", "Website-evidenced to QUALIFIED", "qualified", "website_evidenced"),
+    ("identity_rate", "QUALIFIED to LinkedIn identity", "identity_resolved", "qualified"),
+)
+
+
+def record_sourcing_run(db_path: str, values) -> dict:
+    """Persist one sourcing run's stage counts.
+
+    Stored per run rather than globally because the sourcing rates are only meaningful
+    within the cohort they were measured on. Dividing a batch's qualified count by the
+    portfolio's website-evidenced count would invent a denominator, which is the defect
+    `funnel_rates` already exists to prevent one step further down the funnel.
+    """
+    init_db(db_path)
+    counts = {k: int(values[k]) for k in
+              ("raw_candidates", "website_evidenced", "qualified", "borderline",
+               "rejected", "identity_resolved")}
+    if counts["website_evidenced"] > counts["raw_candidates"]:
+        raise ValueError("website_evidenced cannot exceed raw_candidates")
+    reviewed = counts["qualified"] + counts["borderline"] + counts["rejected"]
+    if reviewed and reviewed != counts["website_evidenced"]:
+        raise ValueError(
+            f"qualified+borderline+rejected ({reviewed}) must account for every "
+            f"website_evidenced candidate ({counts['website_evidenced']})")
+    if counts["identity_resolved"] > counts["qualified"]:
+        raise ValueError("identity_resolved cannot exceed qualified")
+    with connect(db_path) as con:
+        con.execute(
+            """INSERT INTO sourcing_runs(run_id, ran_at, source, raw_candidates,
+                 website_evidenced, qualified, borderline, rejected, identity_resolved, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(run_id) DO UPDATE SET
+                 ran_at=excluded.ran_at, source=excluded.source,
+                 raw_candidates=excluded.raw_candidates,
+                 website_evidenced=excluded.website_evidenced,
+                 qualified=excluded.qualified, borderline=excluded.borderline,
+                 rejected=excluded.rejected, identity_resolved=excluded.identity_resolved,
+                 notes=excluded.notes""",
+            (str(values["run_id"]), str(values["ran_at"]), str(values.get("source", "")),
+             counts["raw_candidates"], counts["website_evidenced"], counts["qualified"],
+             counts["borderline"], counts["rejected"], counts["identity_resolved"],
+             str(values.get("notes", ""))),
+        )
+    return sourcing_funnel(db_path, run_id=str(values["run_id"]))
+
+
+def sourcing_funnel(db_path: str, run_id: str | None = None) -> dict:
+    """Register-to-identity conversion for one run, denominators kept honest.
+
+    A zero denominator yields `rate: None`, never 0.0 — the same rule the commercial
+    funnel uses, for the same reason: nothing asked is not the same as nothing returned.
+    """
+    init_db(db_path)
+    with connect(db_path) as con:
+        if run_id is None:
+            row = con.execute(
+                "SELECT * FROM sourcing_runs ORDER BY ran_at DESC, run_id DESC LIMIT 1"
+            ).fetchone()
+        else:
+            row = con.execute("SELECT * FROM sourcing_runs WHERE run_id = ?", (run_id,)).fetchone()
+    if row is None:
+        return {"run_id": None, "steps": [], "compound_rate": None}
+    counts = dict(row)
+    steps = []
+    for key, label, num_key, den_key in SOURCING_STEPS:
+        num, den = counts[num_key], counts[den_key]
+        steps.append({"key": key, "label": label, "numerator": num, "denominator": den,
+                      "numerator_label": num_key, "denominator_label": den_key,
+                      "rate": None if den == 0 else num / den, "observed": den > 0})
+    compound = (None if counts["raw_candidates"] == 0
+                else counts["identity_resolved"] / counts["raw_candidates"])
+    return {"run_id": counts["run_id"], "source": counts["source"], "counts": counts,
+            "steps": steps, "compound_rate": compound}
 
 
 def claim_publication_check(db_path: str, claim_id: str):

@@ -134,6 +134,19 @@ CREATE TABLE IF NOT EXISTS outbound_drafts (
 CREATE INDEX IF NOT EXISTS idx_outbound_drafts_status
 ON outbound_drafts(status, created_at);
 
+CREATE TABLE IF NOT EXISTS sourcing_runs (
+    run_id TEXT PRIMARY KEY,
+    ran_at TEXT NOT NULL,
+    source TEXT NOT NULL,
+    raw_candidates INTEGER NOT NULL CHECK(raw_candidates >= 0),
+    website_evidenced INTEGER NOT NULL CHECK(website_evidenced >= 0),
+    qualified INTEGER NOT NULL CHECK(qualified >= 0),
+    borderline INTEGER NOT NULL DEFAULT 0,
+    rejected INTEGER NOT NULL DEFAULT 0,
+    identity_resolved INTEGER NOT NULL DEFAULT 0,
+    notes TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS intent_signals (
     signal_id TEXT PRIMARY KEY,
     prospect_id INTEGER NOT NULL REFERENCES prospects(id),

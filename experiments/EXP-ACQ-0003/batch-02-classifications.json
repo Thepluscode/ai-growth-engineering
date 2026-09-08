@@ -1,0 +1,639 @@
+[
+ {
+  "company": "Proteus-Cyber Ltd",
+  "website": "https://proteuscyber.com",
+  "classification": "QUALIFIED",
+  "reason": "4 commercial-complexity signals",
+  "signal_count": 4,
+  "signals": {
+   "recurring_packages": "https://proteuscyber.com",
+   "commercial_roles": "https://proteuscyber.com",
+   "service_lines": "https://proteuscyber.com",
+   "sustained_content": "https://proteuscyber.com/privacy-database/news"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "07239733"
+ },
+ {
+  "company": "Cyber Sheku Limited",
+  "website": "https://cybersheku.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 0 commercial-complexity signal(s)",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "11829605"
+ },
+ {
+  "company": "Cyber Security (N.I.) Ltd",
+  "website": "https://cybersecurityni.com",
+  "classification": "REJECTED",
+  "reason": "only 0 commercial-complexity signal(s)",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 3,
+  "service_offer": true,
+  "director_count": 4,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "NI647179"
+ },
+ {
+  "company": "Cyber Security Specialists Limited",
+  "website": "https://cybersecurityspecialists.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "2 commercial-complexity signals (2-3 band)",
+  "signal_count": 2,
+  "signals": {
+   "named_customers": "https://cybersecurityspecialists.co.uk",
+   "accreditations": "https://cybersecurityspecialists.co.uk"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "09563339"
+ },
+ {
+  "company": "E2E-Cyber Limited",
+  "website": "https://e2ecyber.com",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "accreditations": "https://e2ecyber.com"
+  },
+  "pages": 2,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08732949"
+ },
+ {
+  "company": "Ascent Cyber Ltd",
+  "website": "https://ascentcyber.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "3 commercial-complexity signals (2-3 band)",
+  "signal_count": 3,
+  "signals": {
+   "recurring_packages": "https://ascentcyber.co.uk",
+   "accreditations": "https://ascentcyber.co.uk",
+   "service_lines": "https://ascentcyber.co.uk"
+  },
+  "pages": 4,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "SC628336"
+ },
+ {
+  "company": "Global Cyber Consultants Ltd",
+  "website": "https://globalcyberconsultants.com",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": false,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "11229097"
+ },
+ {
+  "company": "Cyber Leader Ltd",
+  "website": "https://cyberleader.co.uk",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": false,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "11326898"
+ },
+ {
+  "company": "Secure Cyber Ltd",
+  "website": "https://securecyber.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "3 commercial-complexity signals (2-3 band)",
+  "signal_count": 3,
+  "signals": {
+   "accreditations": "https://securecyber.co.uk",
+   "service_lines": "https://securecyber.co.uk",
+   "sustained_content": "https://securecyber.co.uk/resources/"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "12287409"
+ },
+ {
+  "company": "Secure Cyber Solutions Limited",
+  "website": "https://securecybersolutions.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 0 commercial-complexity signal(s)",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "10325687"
+ },
+ {
+  "company": "Cyber Distribution Ltd",
+  "website": "https://cyberdistribution.co.uk",
+  "classification": "QUALIFIED",
+  "reason": "5 commercial-complexity signals",
+  "signal_count": 5,
+  "signals": {
+   "vertical_offerings": "https://cyberdistribution.co.uk",
+   "recurring_packages": "https://cyberdistribution.co.uk/news/",
+   "case_studies": "https://cyberdistribution.co.uk/news/",
+   "multiple_offices": "https://cyberdistribution.co.uk/contact/",
+   "sustained_content": "https://cyberdistribution.co.uk/news/"
+  },
+  "pages": 4,
+  "service_offer": true,
+  "director_count": 3,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "11246527"
+ },
+ {
+  "company": "Cyber Sharp I.T Limited",
+  "website": "https://cybersharpit.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "accreditations": "https://cybersharpit.co.uk"
+  },
+  "pages": 2,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "10653984"
+ },
+ {
+  "company": "Cyber-Duck Limited",
+  "website": "https://cyberduck.co.uk",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 5,
+  "signals": {
+   "case_studies": "https://cyberduck.co.uk",
+   "accreditations": "https://cyberduck.co.uk",
+   "service_lines": "https://cyberduck.co.uk",
+   "active_hiring": "https://cyberduck.co.uk/careers",
+   "sustained_content": "https://cyberduck.co.uk/insights"
+  },
+  "pages": 6,
+  "service_offer": false,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "04356226"
+ },
+ {
+  "company": "Cambridge Cyber Limited",
+  "website": "https://cambridgecyber.co.uk",
+  "classification": "QUALIFIED",
+  "reason": "5 commercial-complexity signals",
+  "signal_count": 5,
+  "signals": {
+   "accreditations": "https://cambridgecyber.co.uk",
+   "commercial_roles": "https://cambridgecyber.co.uk",
+   "multiple_offices": "https://cambridgecyber.co.uk",
+   "service_lines": "https://cambridgecyber.co.uk",
+   "sustained_content": "https://cambridgecyber.co.uk/blog/rss.xml"
+  },
+  "pages": 6,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "10181626"
+ },
+ {
+  "company": "One Brightly Cyber Ltd",
+  "website": "https://onebrightlycyber.com",
+  "classification": "BORDERLINE",
+  "reason": "3 commercial-complexity signals (2-3 band)",
+  "signal_count": 3,
+  "signals": {
+   "named_customers": "https://onebrightlycyber.com",
+   "accreditations": "https://onebrightlycyber.com",
+   "vertical_offerings": "https://onebrightlycyber.com"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "11736822"
+ },
+ {
+  "company": "Cyber Chain Alliance Ltd",
+  "website": "https://cyberchainalliance.com",
+  "classification": "QUALIFIED",
+  "reason": "8 commercial-complexity signals",
+  "signal_count": 8,
+  "signals": {
+   "case_studies": "https://cyberchainalliance.com",
+   "named_customers": "https://cyberchainalliance.com",
+   "accreditations": "https://cyberchainalliance.com",
+   "procurement_frameworks": "https://cyberchainalliance.com",
+   "commercial_roles": "https://cyberchainalliance.com/why-cca/about-us/",
+   "service_lines": "https://cyberchainalliance.com",
+   "active_hiring": "https://cyberchainalliance.com/why-cca/careers/",
+   "sustained_content": "https://cyberchainalliance.com/news-insights/"
+  },
+  "pages": 7,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "11706569"
+ },
+ {
+  "company": "Smart Cyber Cafe Ltd",
+  "website": "https://smartcybercafe.com",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": false,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08772423"
+ },
+ {
+  "company": "Cyber Resilience Consulting Ltd",
+  "website": "https://cyberresilienceconsulting.com",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 2,
+  "service_offer": false,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "10250473"
+ },
+ {
+  "company": "Quorum Cyber Security Limited",
+  "website": "https://quorumcybersecurity.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "case_studies": "https://quorumcybersecurity.co.uk"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 3,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "SC510322"
+ },
+ {
+  "company": "Cyber Defence Alliance Limited",
+  "website": "https://cyberdefencealliance.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 0 commercial-complexity signal(s)",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 6,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "09899234"
+ },
+ {
+  "company": "It Help Support Limited",
+  "website": "https://ithelpsupport.com",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 3,
+  "service_offer": false,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "09345042"
+ },
+ {
+  "company": "It Biz Support Limited",
+  "website": "https://itbizsupport.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "3 commercial-complexity signals (2-3 band)",
+  "signal_count": 3,
+  "signals": {
+   "named_customers": "https://itbizsupport.co.uk",
+   "accreditations": "https://itbizsupport.co.uk",
+   "booking_funnel": "https://itbizsupport.co.uk"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08845673"
+ },
+ {
+  "company": "Dragon It Support Limited",
+  "website": "https://dragonitsupport.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "recurring_packages": "https://dragonitsupport.co.uk"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "06794018"
+ },
+ {
+  "company": "It Support North West Limited",
+  "website": "https://itsupportnorthwest.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "2 commercial-complexity signals (2-3 band)",
+  "signal_count": 2,
+  "signals": {
+   "recurring_packages": "https://itsupportnorthwest.co.uk",
+   "accreditations": "https://itsupportnorthwest.co.uk"
+  },
+  "pages": 3,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08613627"
+ },
+ {
+  "company": "Smart Computers It Support Limited",
+  "website": "https://smartcomputersitsupport.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "2 commercial-complexity signals (2-3 band)",
+  "signal_count": 2,
+  "signals": {
+   "recurring_packages": "https://smartcomputersitsupport.co.uk",
+   "accreditations": "https://smartcomputersitsupport.co.uk"
+  },
+  "pages": 3,
+  "service_offer": true,
+  "director_count": 3,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "10074950"
+ },
+ {
+  "company": "Hero It Support Ltd",
+  "website": "https://heroitsupport.com",
+  "classification": "QUALIFIED",
+  "reason": "4 commercial-complexity signals",
+  "signal_count": 4,
+  "signals": {
+   "case_studies": "https://heroitsupport.com",
+   "accreditations": "https://heroitsupport.com",
+   "vertical_offerings": "https://heroitsupport.com/blog",
+   "sustained_content": "https://heroitsupport.com/blog"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "05685764"
+ },
+ {
+  "company": "Dovetail It Support Limited",
+  "website": "https://dovetailitsupport.com",
+  "classification": "QUALIFIED",
+  "reason": "5 commercial-complexity signals",
+  "signal_count": 5,
+  "signals": {
+   "case_studies": "https://dovetailitsupport.com",
+   "accreditations": "https://dovetailitsupport.com",
+   "commercial_roles": "https://dovetailitsupport.com",
+   "multiple_offices": "https://dovetailitsupport.com/case-studies",
+   "service_lines": "https://dovetailitsupport.com"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "09860629"
+ },
+ {
+  "company": "Quest It Support Limited",
+  "website": "https://questitsupport.co.uk",
+  "classification": "REJECTED",
+  "reason": "no named current director on the register",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 0,
+  "ownership_structure": "NO_DIRECTOR",
+  "company_number": "SC516437"
+ },
+ {
+  "company": "Rapid It Support Ltd",
+  "website": "https://rapiditsupport.co.uk",
+  "classification": "QUALIFIED",
+  "reason": "4 commercial-complexity signals",
+  "signal_count": 4,
+  "signals": {
+   "vertical_offerings": "https://rapiditsupport.co.uk",
+   "commercial_roles": "https://rapiditsupport.co.uk/about-rapid-it/",
+   "service_lines": "https://rapiditsupport.co.uk",
+   "sustained_content": "https://rapiditsupport.co.uk/blog"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "11853245"
+ },
+ {
+  "company": "Urban It Support Ltd",
+  "website": "https://urbanitsupport.com",
+  "classification": "BORDERLINE",
+  "reason": "3 commercial-complexity signals (2-3 band)",
+  "signal_count": 3,
+  "signals": {
+   "recurring_packages": "https://urbanitsupport.com",
+   "case_studies": "https://urbanitsupport.com",
+   "named_customers": "https://urbanitsupport.com"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "07948984"
+ },
+ {
+  "company": "Kings Lynn It Support Ltd",
+  "website": "https://kingslynnitsupport.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 0 commercial-complexity signal(s)",
+  "signal_count": 0,
+  "signals": {},
+  "pages": 2,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08233866"
+ },
+ {
+  "company": "One Stop It Support Ltd",
+  "website": "https://onestopitsupport.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "2 commercial-complexity signals (2-3 band)",
+  "signal_count": 2,
+  "signals": {
+   "accreditations": "https://onestopitsupport.co.uk",
+   "service_lines": "https://onestopitsupport.co.uk"
+  },
+  "pages": 4,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "11735790"
+ },
+ {
+  "company": "North London It Support Ltd",
+  "website": "https://northlondonitsupport.com",
+  "classification": "QUALIFIED",
+  "reason": "7 commercial-complexity signals",
+  "signal_count": 7,
+  "signals": {
+   "recurring_packages": "https://northlondonitsupport.com",
+   "case_studies": "https://northlondonitsupport.com",
+   "named_customers": "https://northlondonitsupport.com",
+   "accreditations": "https://northlondonitsupport.com",
+   "booking_funnel": "https://northlondonitsupport.com",
+   "service_lines": "https://northlondonitsupport.com",
+   "sustained_content": "https://northlondonitsupport.com/blog"
+  },
+  "pages": 6,
+  "service_offer": true,
+  "director_count": 2,
+  "ownership_structure": "MULTI_DIRECTOR",
+  "company_number": "07231060"
+ },
+ {
+  "company": "It Support 365 Ltd",
+  "website": "https://itsupport365.co.uk",
+  "classification": "QUALIFIED",
+  "reason": "7 commercial-complexity signals",
+  "signal_count": 7,
+  "signals": {
+   "recurring_packages": "https://itsupport365.co.uk",
+   "case_studies": "https://itsupport365.co.uk",
+   "accreditations": "https://itsupport365.co.uk",
+   "vertical_offerings": "https://itsupport365.co.uk",
+   "booking_funnel": "https://itsupport365.co.uk/contact/",
+   "commercial_roles": "https://itsupport365.co.uk/about-us/careers/",
+   "sustained_content": "https://itsupport365.co.uk/resources/data-sheets/"
+  },
+  "pages": 5,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "06678853"
+ },
+ {
+  "company": "Re It Support Limited",
+  "website": "https://reitsupport.co.uk",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "recurring_packages": "https://reitsupport.co.uk"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "04892198"
+ },
+ {
+  "company": "Oxon It Support Ltd",
+  "classification": "REJECTED",
+  "reason": "site did not return 200 on re-fetch",
+  "signals": {},
+  "pages": 0,
+  "service_offer": false,
+  "director_count": 1,
+  "company_number": "07463868",
+  "ownership_structure": "SINGLE_DIRECTOR"
+ },
+ {
+  "company": "It Support Berkshire Limited",
+  "website": "https://itsupportberkshire.com",
+  "classification": "REJECTED",
+  "reason": "only 1 commercial-complexity signal(s)",
+  "signal_count": 1,
+  "signals": {
+   "recurring_packages": "https://itsupportberkshire.com"
+  },
+  "pages": 1,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "07858650"
+ },
+ {
+  "company": "E-Volve It Support Limited",
+  "website": "https://evolveitsupport.co.uk",
+  "classification": "BORDERLINE",
+  "reason": "2 commercial-complexity signals (2-3 band)",
+  "signal_count": 2,
+  "signals": {
+   "named_customers": "https://evolveitsupport.co.uk",
+   "vertical_offerings": "https://evolveitsupport.co.uk"
+  },
+  "pages": 3,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "08726677"
+ },
+ {
+  "company": "Chelmer It Support Ltd",
+  "website": "https://chelmeritsupport.co.uk",
+  "classification": "REJECTED",
+  "reason": "no MSP/cyber/IT service offer on site",
+  "signal_count": 1,
+  "signals": {
+   "recurring_packages": "https://chelmeritsupport.co.uk"
+  },
+  "pages": 1,
+  "service_offer": false,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "07808188"
+ },
+ {
+  "company": "Managed It Experts Ltd",
+  "website": "https://manageditexperts.co.uk",
+  "classification": "QUALIFIED",
+  "reason": "5 commercial-complexity signals",
+  "signal_count": 5,
+  "signals": {
+   "case_studies": "https://manageditexperts.co.uk",
+   "accreditations": "https://manageditexperts.co.uk",
+   "recurring_packages": "https://manageditexperts.co.uk/it-support-solutions/pricing-managed-it-support/",
+   "multiple_offices": "https://manageditexperts.co.uk/it-support-solutions/pricing-managed-it-support/",
+   "sustained_content": "https://manageditexperts.co.uk/blog/"
+  },
+  "pages": 6,
+  "service_offer": true,
+  "director_count": 1,
+  "ownership_structure": "SINGLE_DIRECTOR",
+  "company_number": "SC348738"
+ }
+]

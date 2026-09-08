@@ -69,7 +69,13 @@ def command_center_state(db_path: str, *, today: date | None = None) -> dict[str
                 "kind": "money" if key.endswith("_pence") else "count",
             }
             for key, value in metrics.items()
+            if key in TARGETS
         ],
+        # Deliberately NOT in the scoreboard: prospects nobody has qualified or
+        # disqualified have no target to progress against, and giving them one would
+        # reintroduce the defect this field exists to expose — a review queue that
+        # renders as attainment.
+        "unreviewed_prospects": metrics["unreviewed_prospects"],
         "funnel": funnel_rates(metrics),
         "revenue_per_customer_pence": revenue_per_customer(metrics),
         "routes": _routes(db_path),

@@ -23,6 +23,7 @@ from .registry import (
     record_experiment_result,
     scoreboard,
     seed_prospects,
+    sourcing_funnel,
 )
 from .storage import connect, init_db
 from .teardown import TeardownPacket
@@ -52,6 +53,25 @@ def cmd_scoreboard(args: argparse.Namespace) -> None:
             print(f"{key:28} {_money(actual):>12} / {_money(target)}")
         else:
             print(f"{key:28} {actual:>12} / {target}")
+    # No target, and printed anyway: these are prospects nobody has qualified or
+    # disqualified. They used to be counted as qualified, so leaving them off the
+    # scoreboard would hide the queue rather than the inflation.
+    print(f"{'unreviewed_prospects':28} {values['unreviewed_prospects']:>12}   (no target; not qualified)")
+
+
+def cmd_sourcing_funnel(args: argparse.Namespace) -> None:
+    """Register-to-identity conversion for one sourcing run, denominators intact."""
+    result = sourcing_funnel(args.db, run_id=args.run_id)
+    if result["run_id"] is None:
+        print("no sourcing run recorded")
+        return
+    print(f"run {result['run_id']}  source {result['source']}")
+    for step in result["steps"]:
+        rate = "NOT ASKED" if step["rate"] is None else f"{step['rate']:.1%}"
+        print(f"  {step['label']:<42} {step['numerator']:>5}/{step['denominator']:<5} {rate:>9}")
+    compound = result["compound_rate"]
+    print(f"  {'compound: register -> LinkedIn identity':<42} "
+          f"{'':>5} {'':<5} {'NOT ASKED' if compound is None else f'{compound:.3%}':>9}")
 
 
 def cmd_recipient_split(args: argparse.Namespace) -> None:
@@ -376,6 +396,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="wait between requests that go out (default: %(default)s)")
     p.add_argument("--max-age-days", type=int, default=45)
     p.set_defaults(func=cmd_sweep_sources)
+
+    p = sub.add_parser("sourcing-funnel"); dbarg(p)
+    p.add_argument("--run-id", default=None, help="default: the most recent run")
+    p.set_defaults(func=cmd_sourcing_funnel)
 
     p = sub.add_parser("suppress"); dbarg(p)
     p.add_argument("--identity", required=True)
