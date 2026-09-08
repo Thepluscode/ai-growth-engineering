@@ -12,6 +12,7 @@ from html.parser import HTMLParser
 from typing import Any, Mapping
 from urllib.parse import urljoin, urlparse
 
+from .officer_signal_connector import connector_for
 from .signal_intelligence import IntelligenceError, fetch_public_html
 from .storage import connect, init_db
 
@@ -159,7 +160,8 @@ def preview_hiring_signals(
     if prospect is None:
         raise IntelligenceError("prospect_not_found", "Prospect does not exist")
 
-    candidates = (connector or PublicHiringSignalConnector()).scan(
+    active = connector or connector_for(source_url)
+    candidates = active.scan(
         source_url,
         prospect["company"],
         observed_at=observed_at,
@@ -185,7 +187,11 @@ def preview_hiring_signals(
         "prospect_id": prospect_id,
         "company": prospect["company"],
         "source_url": source_url,
-        "provider": PublicHiringSignalConnector.name,
+        # A connector is duck-typed on `scan` alone, so `name` is not guaranteed —
+        # an injected stub has none. Fall back to what the candidates say produced
+        # them before falling back to the default, so the label is never invented.
+        "provider": getattr(active, "name", "")
+        or (candidates[0].provider if candidates else PublicHiringSignalConnector.name),
         "persisted": False,
         "candidate_count": len(rows),
         "candidates": rows,
@@ -569,9 +575,13 @@ def scan_saved_hiring_sources(
     server: a source fetched recently is skipped rather than fetched again, so a
     crash-looping schedule cannot turn into a crawl. `pause_seconds` spaces the
     requests that do go out.
+
+    Leaving `connector` unset dispatches per source URL, so a Companies House
+    officers page is read by the officer connector and everything else by the
+    careers connector — one saved-source list, one sweep, one cron entry. Passing a
+    connector explicitly overrides that for every source, which is what tests want.
     """
     sources = list_hiring_sources(db_path)
-    connector = connector or PublicHiringSignalConnector()
     now = _utc(observed_at or datetime.now(timezone.utc))
     scanned_at = now.isoformat(timespec="seconds")
     results: list[dict[str, Any]] = []
