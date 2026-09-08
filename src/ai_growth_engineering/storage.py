@@ -134,6 +134,30 @@ CREATE TABLE IF NOT EXISTS outbound_drafts (
 CREATE INDEX IF NOT EXISTS idx_outbound_drafts_status
 ON outbound_drafts(status, created_at);
 
+CREATE TABLE IF NOT EXISTS execution_cohort (
+    cohort_id TEXT NOT NULL,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    identity_id INTEGER NOT NULL REFERENCES prospect_identities(id),
+    identity_value TEXT NOT NULL,
+    frozen_at TEXT NOT NULL,
+    identity_confidence REAL NOT NULL,
+    identity_sourcing TEXT NOT NULL,
+    ownership_structure TEXT NOT NULL DEFAULT 'UNKNOWN',
+    PRIMARY KEY (cohort_id, prospect_id)
+);
+
+CREATE TABLE IF NOT EXISTS invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cohort_id TEXT NOT NULL,
+    prospect_id INTEGER NOT NULL REFERENCES prospects(id),
+    treatment TEXT NOT NULL,
+    submitted_at TEXT NOT NULL DEFAULT '',
+    outcome TEXT NOT NULL DEFAULT 'not_submitted',
+    accepted_at TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    UNIQUE(cohort_id, prospect_id)
+);
+
 CREATE TABLE IF NOT EXISTS sourcing_runs (
     run_id TEXT PRIMARY KEY,
     ran_at TEXT NOT NULL,

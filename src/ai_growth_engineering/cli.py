@@ -14,6 +14,7 @@ from .hiring_signal_connector import (
     pending_hiring_candidates,
     scan_saved_hiring_sources,
 )
+from .execution import access_result, cohort, record_invitation
 from .models import ExperimentSpec
 from .registry import (
     add_experiment,
@@ -72,6 +73,47 @@ def cmd_sourcing_funnel(args: argparse.Namespace) -> None:
     compound = result["compound_rate"]
     print(f"  {'compound: register -> LinkedIn identity':<42} "
           f"{'':>5} {'':<5} {'NOT ASKED' if compound is None else f'{compound:.3%}':>9}")
+
+
+def cmd_invitation_record(args: argparse.Namespace) -> None:
+    """Record one observed invitation outcome. Access only — it reaches no other metric."""
+    result = record_invitation(args.db, args.cohort_id, args.prospect_id, {
+        "outcome": args.outcome, "submitted_at": args.submitted_at,
+        "accepted_at": args.accepted_at, "note": args.note})
+    print(f"{result['prospect_id']}: {result['outcome']}")
+
+
+def cmd_access_result(args: argparse.Namespace) -> None:
+    r = access_result(args.db, args.cohort_id)
+    rate = "NOT ASKED" if r["accept_rate"] is None else f"{r['accept_rate']:.1%}"
+    ci = "" if r["accept_rate_ci"] is None else (
+        f"   Wilson 95% CI {r['accept_rate_ci'][0]:.1%}-{r['accept_rate_ci'][1]:.1%}")
+    print(f"cohort {r['cohort_id']}  size {r['cohort_size']}")
+    print(f"  submitted {r['invitations_submitted']}  accepted {r['accepted']}  "
+          f"pending {r['pending']}  blocked {r['blocked']}  not submitted {r['not_submitted']}")
+    print(f"  accept rate {rate}{ci}   (denominator: invitations submitted)")
+    for label, key in (("identity sourcing", "by_identity_sourcing"),
+                       ("ownership structure", "by_ownership_structure")):
+        print(f"  by {label}:")
+        for name, row in sorted(r[key].items()):
+            sub = "n/a" if row["rate"] is None else f"{row['rate']:.1%}"
+            print(f"    {name:<18} {row['accepted']:>3}/{row['submitted']:<3} {sub:>7}"
+                  f"   (in cohort {row['in_cohort']})")
+    print(f"  VERDICT: {r['verdict']} — {r['reason']}")
+    if "expansion" in r:
+        e = r["expansion"]
+        print(f"  expansion required: {e['additional_accepts_required']} more accepts at "
+              f"{e['observed_accept_rate']:.1%} = "
+              f"{e['additional_verified_identities_required']} more verified identities")
+    print("\n  acceptance tests ACCESS only: it is not demand, not a reply, not pain, not revenue")
+
+
+def cmd_cohort(args: argparse.Namespace) -> None:
+    c = cohort(args.db, args.cohort_id)
+    print(f"cohort {c['cohort_id']}: {c['size']} accounts")
+    for m in c["members"]:
+        print(f"  {m['prospect_id']:>3}  {m['company'][:34]:<36} {m['identity_sourcing']:<14}"
+              f" {m['ownership_structure']:<16} {m['outcome']}")
 
 
 def cmd_recipient_split(args: argparse.Namespace) -> None:
@@ -400,6 +442,25 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("sourcing-funnel"); dbarg(p)
     p.add_argument("--run-id", default=None, help="default: the most recent run")
     p.set_defaults(func=cmd_sourcing_funnel)
+
+    p = sub.add_parser("cohort"); dbarg(p)
+    p.add_argument("--cohort-id", default="EXP-ACQ-0003")
+    p.set_defaults(func=cmd_cohort)
+
+    p = sub.add_parser("invitation-record"); dbarg(p)
+    p.add_argument("--cohort-id", default="EXP-ACQ-0003")
+    p.add_argument("--prospect-id", type=int, required=True)
+    p.add_argument("--outcome", required=True,
+                   choices=["not_submitted", "pending", "accepted", "withdrawn",
+                            "restricted", "undeliverable"])
+    p.add_argument("--submitted-at", default="")
+    p.add_argument("--accepted-at", default="")
+    p.add_argument("--note", default="")
+    p.set_defaults(func=cmd_invitation_record)
+
+    p = sub.add_parser("access-result"); dbarg(p)
+    p.add_argument("--cohort-id", default="EXP-ACQ-0003")
+    p.set_defaults(func=cmd_access_result)
 
     p = sub.add_parser("suppress"); dbarg(p)
     p.add_argument("--identity", required=True)
