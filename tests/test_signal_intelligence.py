@@ -206,11 +206,35 @@ class GateResultTests(unittest.TestCase):
         self.prospect(1, "Blocked Ltd", status="disqualified_market_fit")
         self.strong_signal(1)
         gates = self.gates_for("Blocked Ltd")
-        self.assertFalse(gates["Not disqualified"]["passed"])
+        self.assertFalse(gates["Qualified"]["passed"])
         self.assertTrue(gates["Signal strength >= 2/5"]["passed"])
         self.assertTrue(gates["Signal confidence >= 0.50"]["passed"])
         state = intelligence_state(self.db, now=datetime(2026, 8, 30, tzinfo=timezone.utc))
         self.assertEqual(state["ranked_buyers"], [])
+
+    def test_an_unqualified_prospect_fails_the_gate_even_though_nobody_refused_it(self):
+        """The gate read `not status.startswith("disqualified")`, so every state that
+        was not an explicit refusal passed it — and the remaining gates are all
+        satisfiable by a sourced candidate, whose target role, evidence and source URL
+        are set at sourcing time. An account nobody qualified could reach the buyer desk.
+        """
+        for status in ("research", "sourced_candidate_unqualified", "borderline", "pending"):
+            with self.subTest(status=status):
+                with connect(self.db) as con:
+                    con.execute("DELETE FROM intent_signals")
+                    con.execute("DELETE FROM prospects")
+                self.prospect(1, "Unreviewed Ltd", status=status)
+                self.strong_signal(1)
+                self.assertFalse(self.gates_for("Unreviewed Ltd")["Qualified"]["passed"])
+
+    def test_a_qualified_prospect_passes_that_gate(self):
+        # The positive twin: without it, a gate that fails everyone would also pass.
+        with connect(self.db) as con:
+            con.execute("DELETE FROM intent_signals")
+            con.execute("DELETE FROM prospects")
+        self.prospect(1, "Real Ltd", status="qualified_batch_07")
+        self.strong_signal(1)
+        self.assertTrue(self.gates_for("Real Ltd")["Qualified"]["passed"])
 
     def test_a_prospect_with_no_signal_marks_the_signal_gates_not_applicable(self):
         """Unscoreable is not failed: there was nothing to score."""

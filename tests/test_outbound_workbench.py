@@ -101,6 +101,31 @@ class OutboundWorkbenchTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkbenchError, "Disqualified"):
             create_draft(self.db, VALID)
 
+    def test_an_unreviewed_prospect_is_not_listed_as_someone_to_approach(self):
+        """The gap the disqualified test above leaves open.
+
+        The list read `NOT LIKE 'disqualified%'`, so it proved only that an explicit
+        refusal was excluded and said nothing about every state in between. A sourced
+        candidate nobody had qualified appeared here as somebody to contact.
+        """
+        for status in ("research", "ready_for_deep_research",
+                       "sourced_candidate_unqualified", "borderline", "pending"):
+            with self.subTest(status=status):
+                with connect(self.db) as con:
+                    con.execute("UPDATE prospects SET status = ? WHERE id = 1", (status,))
+                self.assertEqual(
+                    workbench_state(self.db)["prospects"], [],
+                    f"{status!r} is not disqualified, but nobody qualified it either")
+
+    def test_a_qualified_prospect_is_listed(self):
+        # The positive twin. Without it the test above passes on a list that is
+        # always empty, which would be a different defect wearing the same green.
+        for status in ("qualified", "qualified_batch_07"):
+            with self.subTest(status=status):
+                with connect(self.db) as con:
+                    con.execute("UPDATE prospects SET status = ? WHERE id = 1", (status,))
+                self.assertEqual(len(workbench_state(self.db)["prospects"]), 1)
+
     def test_active_duplicate_is_blocked(self):
         create_draft(self.db, VALID)
         with self.assertRaisesRegex(WorkbenchError, "Active draft"):

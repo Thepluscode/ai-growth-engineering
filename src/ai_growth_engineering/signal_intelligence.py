@@ -363,7 +363,7 @@ def _signal_score(
 
 
 GATE_NAMES = (
-    "Not disqualified",
+    "Qualified",
     "ICP target role known",
     "ICP evidence sourced",
     "Intent signal observed",
@@ -391,7 +391,12 @@ def _gate_results(
     best = scored[0] if scored else None
     signal, score = (best if best else (None, None))
     checks: list[tuple[str, bool | None, str]] = [
-        ("Not disqualified", not status.startswith("disqualified"), prospect["status"]),
+        # Asserted, not assumed. This read `not status.startswith("disqualified")`, so
+        # every state that was not an explicit refusal passed the gate — and the other
+        # gates below are all satisfiable by a sourced candidate, whose target role,
+        # evidence and source URL are set at sourcing time. An account nobody had
+        # qualified could therefore reach the buyer desk as eligible.
+        ("Qualified", status.startswith("qualified"), prospect["status"]),
         ("ICP target role known", bool(str(prospect["target_roles"]).strip()),
          str(prospect["target_roles"]).strip() or "not recorded"),
         ("ICP evidence sourced",

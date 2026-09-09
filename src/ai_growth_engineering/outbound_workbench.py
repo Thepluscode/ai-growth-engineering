@@ -33,7 +33,14 @@ def workbench_state(db_path: str) -> dict[str, Any]:
             """SELECT id, company, website, priority, target_roles, evidence,
                       source_url, status
                FROM prospects
-               WHERE lower(status) NOT LIKE 'disqualified%'
+               -- Qualified by assertion, not by omission. This read
+               -- `NOT LIKE 'disqualified%'`, which made the workbench's prospect list
+               -- accept every state that was not an explicit refusal — `research`,
+               -- `ready_for_deep_research`, and any later `candidate` or `pending`
+               -- import. An account nobody qualified would have appeared here as
+               -- somebody to approach, which is the lineage rule broken at the last
+               -- step before contact.
+               WHERE status LIKE 'qualified%'
                ORDER BY CASE priority WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END,
                         company"""
         ).fetchall()
