@@ -6,16 +6,20 @@ acts: a recommendation is data until a person approves it through the existing c
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
-    FUNNEL_PATHS, attribute, compute_metrics, funnel, group_by, money_graph_for_campaign, totals,
+    LADDERS, STAGE_LABELS, attribute, compute_metrics, diagnose_funnel, entity, group_by,
+    money_graph_for_campaign, totals,
 )
 from .storage import connect, init_db
 
 MIN_SAMPLE = 30
 ASSUMED_TRUE_RATE = 0.10
+DESCRIPTIVE = "DESCRIPTIVE_FROZEN_COHORT"
+EXPOSURE_TYPES = frozenset({"invitation_sent", "message_sent"})
 
 # Which single variable moves which step. A leak proposes a test on that step's lever and
 # nothing else, so a recommendation cannot quietly change two things at once.
@@ -23,11 +27,12 @@ STEP_LEVERS: dict[tuple[str, str], tuple[str, str]] = {
     ("impression", "click"): ("hook", "ctr"),
     ("click", "lead_created"): ("landing_page_headline", "lead_cvr"),
     ("lead_created", "lead_qualified"): ("audience", "qualified_lead_rate"),
-    ("message_sent", "reply_meaningful"): ("cta", "meaningful_reply_rate"),
-    ("invitation_sent", "invitation_accepted"): ("recipient_route", "accept_rate"),
-    ("invitation_accepted", "reply_meaningful"): ("cta", "meaningful_reply_rate"),
-    ("reply_meaningful", "meeting_booked"): ("cta", "reply_to_meeting_rate"),
     ("lead_qualified", "meeting_booked"): ("cta", "meeting_rate"),
+    ("message_sent", "reply_received"): ("cta", "reply_rate"),
+    ("invitation_sent", "invitation_accepted"): ("recipient_route", "accept_rate"),
+    ("invitation_accepted", "reply_received"): ("cta", "reply_rate"),
+    ("reply_received", "reply_meaningful"): ("offer", "qualified_reply_rate"),
+    ("reply_meaningful", "meeting_booked"): ("cta", "reply_to_meeting_rate"),
     ("meeting_booked", "proposal_sent"): ("offer", "proposal_rate"),
     ("proposal_sent", "customer_won"): ("price", "close_rate"),
     ("customer_won", "payment_received"): ("price", "close_rate"),
@@ -48,44 +53,67 @@ def _finding(kind: str, experiment_id: str, observation: str, evidence: dict, in
             "why_not_other_metric": why_not, "source": "deterministic_rules"}
 
 
-def _first_zero_step(events: list[dict], experiment_id: str, path: str, min_sample: int) -> list[dict]:
-    """Only the first zero on a path is a finding: every zero after it is its consequence."""
-    t = totals(events)
-    steps = FUNNEL_PATHS[path]
-    for upstream, downstream in zip(steps, steps[1:]):
-        n = t.get(upstream, 0)
-        if not n or t.get(downstream, 0):
-            continue
-        variable, metric = STEP_LEVERS[(upstream, downstream)]
-        classes = {k: len(v) for k, v in group_by(
-            [e for e in events if e["event_type"] == upstream], "metadata.recipient_class").items() if k}
-        evidence: dict[str, Any] = {upstream: n, downstream: 0, "minimum_sample": min_sample,
-                                    "p_zero_at_true_10pct": round((1 - ASSUMED_TRUE_RATE) ** n, 6)}
-        if classes:
-            evidence["by_recipient_class"] = classes
-        if upstream == "message_sent" and classes and classes.get("named_buyer", 0) * 2 < n:
+def _constraint_findings(events: list[dict], experiment_id: str, path: str, min_sample: int,
+                         as_of: str) -> list[dict]:
+    diag = diagnose_funnel(events, path, as_of=as_of, min_sample=min_sample)
+    name = experiment_id or "unassigned"
+    constraint = diag["constraint"]
+    if constraint and constraint["is_leak"]:
+        tr = next(s["transition"] for s in diag["stages"] if s["stage"] == constraint["to"])
+        variable, metric = STEP_LEVERS[(tr["from"], tr["to"])]
+        n, k = tr["denominator"], tr["numerator"]
+        classes = {c: len(v) for c, v in group_by(
+            [e for e in events if e["event_type"] == tr["from"]], "metadata.recipient_class").items() if c}
+        if tr["from"] == "message_sent" and classes and classes.get("named_buyer", 0) * 2 < n:
             # Most sends never reached a named buyer, so the message was not what was tested.
             variable = "recipient_route"
-        observation = f"{experiment_id or 'unassigned'}: {n} {upstream}, 0 {downstream}"
+        evidence: dict[str, Any] = {tr["from"]: n, tr["to"]: k, "rate": tr["rate"], "ci95": tr["ci95"],
+                                    "minimum_sample": min_sample,
+                                    "p_zero_at_true_10pct": round((1 - ASSUMED_TRUE_RATE) ** n, 6) if k == 0 else None}
         if classes:
-            observation += " (" + ", ".join(f"{k} {v}" for k, v in sorted(classes.items())) + ")"
-        if n < min_sample:
-            return [_finding(
-                "unmeasured_not_rejected", experiment_id, observation, evidence,
-                f"{n} is below the {min_sample} minimum: zero from {n} happens "
-                f"{evidence['p_zero_at_true_10pct']:.0%} of the time even at a true 10% rate. "
-                "This is not a rejection.",
-                "Do not conclude on this step; keep exposing the frozen design to its minimum sample.",
-                None, metric, f"Judging {metric} now would read noise as a market answer.")]
+            evidence["by_recipient_class"] = classes
+        observation = f"{name}: {k}/{n} {tr['from']} -> {tr['to']}"
+        if classes:
+            observation += " (" + ", ".join(f"{c} {v}" for c, v in sorted(classes.items())) + ")"
+        if k == 0:
+            interpretation = (f"Zero from {n}: at a true 10% rate that happens "
+                              f"{evidence['p_zero_at_true_10pct']:.2%} of the time, so this step is not working as run.")
+        else:
+            interpretation = (f"{STAGE_LABELS[tr['to']]} converts {tr['rate']:.1%} of {n} "
+                              f"(95% CI {tr['ci95'][0]:.1%}-{tr['ci95'][1]:.1%}), the lowest measured transition on this path.")
+        if variable == "recipient_route" and tr["from"] == "message_sent":
+            interpretation += " Most sends reached a shared inbox, so access was tested, not the message."
         return [_finding(
-            "leak", experiment_id, observation, evidence,
-            f"Zero from {n}: at a true 10% rate that happens {evidence['p_zero_at_true_10pct']:.2%} "
-            "of the time, so this step is not working as run."
-            + (" Most sends reached a shared inbox, so access was tested, not the message."
-               if variable == "recipient_route" else ""),
+            "leak", experiment_id, observation, evidence, interpretation,
             f"Test one change at this step: vary {variable} only.", variable, metric,
-            f"Everything after {downstream} is empty, so optimising any later metric improves nothing.")]
-    return []
+            f"Every stage after {tr['to']} depends on this one; optimising a later metric improves "
+            "nothing while this step is the constraint.")]
+    pending = next((s["transition"] for s in diag["stages"] if s["transition"]
+                    and s["transition"]["status"] in ("IN_FLIGHT", "INSUFFICIENT_DATA")), None)
+    if pending is None:
+        return []
+    metric = STEP_LEVERS.get((pending["from"], pending["to"]), (None, None))[1]
+    n, k = pending["denominator"], pending["numerator"]
+    evidence = {"stage": f"{pending['from']} -> {pending['to']}", "numerator": k, "denominator": n,
+                "in_flight": pending["in_flight"], "minimum_sample": min_sample}
+    if pending["status"] == "IN_FLIGHT":
+        observation = (f"{name}: {pending['in_flight']} {pending['from']} inside the "
+                       f"{diag['response_window_days']}-day response window")
+        interpretation = (f"No {pending['to']} rate is derivable yet: every exposure is still inside the "
+                          "response window. A pending exposure is not a refusal.")
+    else:
+        p_zero = round((1 - ASSUMED_TRUE_RATE) ** n, 6)
+        evidence["p_zero_at_true_10pct"] = p_zero if k == 0 else None
+        observation = f"{name}: {k}/{n} {pending['from']} -> {pending['to']}"
+        if pending["in_flight"]:
+            observation += f", {pending['in_flight']} more in flight"
+        interpretation = (f"{n} is below the {min_sample} minimum"
+                          + (f": zero from {n} happens {p_zero:.0%} of the time even at a true 10% rate" if k == 0 else "")
+                          + ". This is not a rejection.")
+    return [_finding(
+        "unmeasured_not_rejected", experiment_id, observation, evidence, interpretation,
+        "Do not conclude on this step; keep exposing the frozen design until it matures and reaches its minimum sample.",
+        None, metric, f"Judging {metric} now would read noise or unanswered messages as a market answer.")]
 
 
 def _attention_vs_quality(events: list[dict], experiment_id: str) -> list[dict]:
@@ -114,10 +142,11 @@ def _attention_vs_quality(events: list[dict], experiment_id: str) -> list[dict]:
 
 
 def evaluate(events: list[dict], *, min_sample: int = MIN_SAMPLE,
-             minimums: dict[str, int] | None = None) -> list[dict]:
+             minimums: dict[str, int] | None = None, as_of: str | None = None) -> list[dict]:
     """Findings per experiment. Experiments are never pooled: blending two tests' sends into one
-    rate is how a result answers a question nobody asked. An experiment's own preregistered
-    minimum sample decides whether a zero is measured; `min_sample` covers unregistered events."""
+    rate is how a result answers a question nobody asked. An experiment's own minimum sample
+    decides whether a zero is measured; `min_sample` covers unregistered events."""
+    as_of = as_of or date.today().isoformat()
     if not events:
         return [_finding("no_events", "", "No effective funnel events are recorded.", {"events": 0},
                          "There is nothing to interpret; any conclusion now would be invented.",
@@ -128,9 +157,9 @@ def evaluate(events: list[dict], *, min_sample: int = MIN_SAMPLE,
         findings += _attention_vs_quality(scoped, experiment_id)
         t = totals(scoped)
         sample = (minimums or {}).get(experiment_id) or min_sample
-        for path, steps in FUNNEL_PATHS.items():
-            if t.get(steps[0], 0):
-                findings += _first_zero_step(scoped, experiment_id, path, sample)
+        for path, ladder in LADDERS.items():
+            if t.get(ladder[0], 0):
+                findings += _constraint_findings(scoped, experiment_id, path, sample, as_of)
     return findings
 
 
@@ -144,6 +173,12 @@ def _experiment_state(db_path: str) -> tuple[list[dict], dict[str, int], dict[st
     return experiments, supply, guardrails
 
 
+def _minimums(experiments: list[dict]) -> dict[str, int]:
+    """A descriptive execution is judged on the generic minimum, never its unreachable preregistered one."""
+    return {e["experiment_id"]: MIN_SAMPLE if e.get("execution_mode") == DESCRIPTIVE else e["minimum_sample"]
+            for e in experiments}
+
+
 def _history(experiments: list[dict]) -> list[dict]:
     return [{"experiment_id": e["experiment_id"], "decision": e["decision"], "sample_size": e["sample_size"],
              "observed_value": e["observed_value"], "primary_metric": e["primary_metric"],
@@ -153,6 +188,7 @@ def _history(experiments: list[dict]) -> list[dict]:
 
 def _run_preregistered(e: dict, supply: int, exposed: int, guardrails: list[dict],
                        findings: list[dict], history: list[dict]) -> dict:
+    descriptive = e.get("execution_mode") == DESCRIPTIVE
     return {
         "status": "PREREGISTERED_UNRUN",
         "experiment_id": e["experiment_id"],
@@ -166,15 +202,22 @@ def _run_preregistered(e: dict, supply: int, exposed: int, guardrails: list[dict
         "primary_metric": e["primary_metric"],
         "guardrails": [g["metric"] for g in guardrails] or ["none declared"],
         "sample_and_stopping_rule": (
+            f"descriptive execution of the frozen cohort ({supply}): the preregistered minimum of "
+            f"{e['minimum_sample']} is not reachable and is not claimed; every rate uses real exposure "
+            "and the verdict is DESCRIPTIVE_POSITIVE / NEGATIVE / INCONCLUSIVE"
+            if descriptive else
             f"minimum sample {e['minimum_sample']}; evaluated whole, never on a partial read; "
             f"KEEP needs {e['primary_metric']} >= {e['success_threshold']} with guardrails passing"),
         "why_highest_value": (
-            f"It is preregistered with {supply} frozen participants and {exposed} recorded exposures. "
+            f"It is preregistered with {supply} frozen participants and {exposed} delivered exposures. "
             "Running it reduces the open commercial uncertainty at no design cost; designing a new "
             "test while a frozen one is unrun adds a protocol without adding evidence."),
         "evidence": [f["observation"] for f in findings if f["kind"] != "no_events"],
         "previous_experiments": history,
         "stop_condition": (
+            "no preregistered threshold applies to a descriptive execution: once every exposure has "
+            "matured, a person judges the descriptive result and decides what follows"
+            if descriptive else
             f"At the full sample, {e['primary_metric']} below {e['review_threshold']} returns REVIEW: stop "
             "pursuing this hypothesis as run, and a person decides what follows."),
     }
@@ -195,22 +238,21 @@ def _proposal_from_leak(leak: dict, history: list[dict], min_sample: int) -> dic
         "channel": f"carried over from {leak['experiment_id']}",
         "primary_metric": metric,
         "guardrails": ["declare before exposure (experiment_trust_guardrails)"],
-        "sample_and_stopping_rule": f"at least {min_sample} exposures per arm, evaluated whole",
+        "sample_and_stopping_rule": f"at least {min_sample} matured exposures per arm, evaluated whole",
         "why_highest_value": leak["interpretation"],
         "evidence": [leak["observation"]],
         "previous_experiments": history,
-        "stop_condition": (f"If {metric} is still zero after {min_sample} exposures per arm, {variable} is "
-                           "not the constraint: stop and re-examine the step before it."),
+        "stop_condition": (f"If {metric} does not move after {min_sample} matured exposures per arm, {variable} "
+                           "is not the constraint: stop and re-examine the step before it."),
     }
 
 
-def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE) -> dict:
+def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE, as_of: str | None = None) -> dict:
     """Exactly one preferred experiment, plus alternatives with the reason each was not preferred."""
     init_db(db_path)
     events = effective_events(db_path)
     experiments, supply, guardrails = _experiment_state(db_path)
-    findings = evaluate(events, min_sample=min_sample,
-                        minimums={e["experiment_id"]: e["minimum_sample"] for e in experiments})
+    findings = evaluate(events, min_sample=min_sample, minimums=_minimums(experiments), as_of=as_of)
     history = _history(experiments)
     unrun = [e for e in experiments if e["decision"] == "preregistered" and not e["sample_size"]]
     runnable = [e for e in unrun if supply.get(e["experiment_id"], 0)]
@@ -218,7 +260,8 @@ def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE) -> 
     alternatives: list[dict] = []
     if runnable:
         e = runnable[0]
-        exposed = sum(1 for ev in events if ev["experiment_id"] == e["experiment_id"])
+        exposed = len({entity(ev) for ev in events
+                       if ev["experiment_id"] == e["experiment_id"] and ev["event_type"] in EXPOSURE_TYPES})
         preferred = _run_preregistered(e, supply[e["experiment_id"]], exposed,
                                        guardrails.get(e["experiment_id"], []), findings, history)
     for e in unrun:
@@ -248,20 +291,71 @@ def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE) -> 
             "experiments": experiments, "supply": supply}
 
 
-def status_report(db_path: str) -> dict:
+def descriptive_verdict(diag: dict) -> str:
+    """Only INCONCLUSIVE is automatic. A measured descriptive result is judged by a person,
+    because no preregistered threshold applies to it."""
+    response = next((s["transition"] for s in diag["stages"] if s["transition"]
+                     and s["transition"]["from"] in EXPOSURE_TYPES), None)
+    if response is None or response["status"] != "MEASURED":
+        return "DESCRIPTIVE_INCONCLUSIVE — the response step has not matured to a measurable sample"
+    return ("MEASURED — a person assigns DESCRIPTIVE_POSITIVE or DESCRIPTIVE_NEGATIVE from the rates above; "
+            "no preregistered threshold is claimed")
+
+
+def render_diagnosis(experiment_id: str, diag: dict, execution_mode: str = "") -> list[str]:
+    window = f" · response window {diag['response_window_days']}d" if diag["response_window_days"] else ""
+    lines = [f"{experiment_id or 'unassigned'} [{diag['path']}]  as of {diag['as_of']}{window}"
+             f" · min sample {diag['min_sample']}" + (f" · {execution_mode}" if execution_mode else "")]
+    for s in diag["stages"]:
+        tr = s["transition"]
+        if tr is None:
+            detail = "observed"
+        elif tr["status"] == "IN_FLIGHT":
+            detail = f"IN_FLIGHT — {tr['in_flight']} exposures inside the response window"
+        elif tr["status"] == "NOT_REACHED":
+            detail = "NOT_REACHED"
+        else:
+            detail = f"{tr['rate']:6.1%}  ({tr['numerator']}/{tr['denominator']})  {tr['status']}"
+            if tr["in_flight"]:
+                detail += f" · {tr['in_flight']} more in flight"
+        lines.append(f"  {s['label']:<16}{s['count']:>5}   {detail}")
+    if diag["attempts_not_exposure"]:
+        lines.append(f"  attempts that never reached a buyer: {diag['attempts_not_exposure']} (not exposure)")
+    if diag["unlinked_events"]:
+        lines.append(f"  downstream events with no exposure on this path: {diag['unlinked_events']} (not counted)")
+    c = diag["constraint"]
+    if c is None:
+        lines.append("  Largest measurable constraint: none yet — no transition has a matured denominator")
+    else:
+        lines.append(f"  Largest measurable constraint: {STAGE_LABELS[c['from']].lower()} -> "
+                     f"{STAGE_LABELS[c['to']].lower()} ({c['rate']:.1%})")
+        lines.append(f"  Confidence: {c['confidence']} — {c['reason']}"
+                     + ("" if c["is_leak"] else "; below the minimum sample, so not called a leak"))
+    if execution_mode == DESCRIPTIVE:
+        lines.append(f"  Verdict: {descriptive_verdict(diag)}")
+    return lines
+
+
+def status_report(db_path: str, *, as_of: str | None = None) -> dict:
+    as_of = as_of or date.today().isoformat()
     events = effective_events(db_path)
     metrics = compute_metrics(events)
-    recommendation = recommend_next_experiment(db_path)
-    by_channel = {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()}
+    recommendation = recommend_next_experiment(db_path, as_of=as_of)
+    minimums = _minimums(recommendation["experiments"])
+    diagnoses: dict[str, dict[str, dict]] = {}
+    for experiment_id, scoped in group_by(events, "experiment_id").items():
+        t = totals(scoped)
+        for path, ladder in LADDERS.items():
+            if t.get(ladder[0], 0):
+                diagnoses.setdefault(experiment_id, {})[path] = diagnose_funnel(
+                    scoped, path, as_of=as_of, min_sample=minimums.get(experiment_id) or MIN_SAMPLE)
     campaigns = {k: money_graph_for_campaign(events, k) for k in group_by(events, "campaign_id") if k}
     payments = [e for e in events if e["event_type"] == "payment_received"]
     return {
-        "events": len(events), "synthetic_excluded": synthetic_count(db_path),
-        "totals": metrics["totals"], "metrics": metrics["metrics"],
-        "funnels": {exp or "unassigned": {path: funnel(scoped, path) for path, steps in FUNNEL_PATHS.items()
-                                          if totals(scoped).get(steps[0], 0)}
-                    for exp, scoped in group_by(events, "experiment_id").items()},
-        "by_channel": by_channel, "campaigns": campaigns,
+        "as_of": as_of, "events": len(events), "synthetic_excluded": synthetic_count(db_path),
+        "totals": metrics["totals"], "metrics": metrics["metrics"], "diagnoses": diagnoses,
+        "by_channel": {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()},
+        "campaigns": campaigns,
         "attribution_linear": attribute(events, "linear") if payments else [],
         "recommendation": recommendation,
     }
@@ -277,6 +371,7 @@ def render_status(report: dict) -> str:
     roas = report["metrics"]["roas"]
     synthetic = report["synthetic_excluded"]
     roas_text = f"not derivable ({roas['reason']})" if roas["value"] is None else f"{roas['value']:.1f}x"
+    modes = {e["experiment_id"]: e.get("execution_mode") or "" for e in rec["experiments"]}
     lines = [
         "THEPLUS MARKETING ENGINEER",
         f"  [OBSERVED] {report['events']} effective events"
@@ -285,16 +380,15 @@ def render_status(report: dict) -> str:
         f" · Pipeline {_money(t['pipeline_pence'])} · Spend {spend}",
         f"  [DERIVED]  ROAS {roas_text}",
         "",
-        "1. What is happening?  [OBSERVED]",
+        "1. What is happening?  [OBSERVED counts · DERIVED rates]",
     ]
     for channel, ct in sorted(report["by_channel"].items()):
         counts = ", ".join(f"{k} {v}" for k, v in sorted(ct.items())
                            if isinstance(v, int) and not isinstance(v, bool) and not k.endswith("_pence"))
         lines.append(f"   {channel}: {counts}")
-    for experiment, funnels in sorted(report["funnels"].items()):
-        for path, steps in funnels.items():
-            chain = " -> ".join(f"{s['event_type']} {s['count']}" for s in steps)
-            lines.append(f"   {experiment} [{path}] {chain}")
+    for experiment_id, paths in sorted(report["diagnoses"].items()):
+        for diag in paths.values():
+            lines += ["   " + line for line in render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))]
 
     findings = rec["findings"]
     leaks = [f for f in findings if f["kind"] in ("leak", "unmeasured_not_rejected", "attention_vs_quality")]
@@ -314,8 +408,8 @@ def render_status(report: dict) -> str:
               for r in report["attribution_linear"]] or ["   no payment recorded"]
     lines.append("6. Which experiment is currently running?  [OBSERVED]")
     live = [e for e in rec["experiments"] if e["decision"] == "preregistered" and rec["supply"].get(e["experiment_id"])]
-    lines += [f"   {e['experiment_id']}: preregistered, {rec['supply'][e['experiment_id']]} frozen participants, "
-              f"sample {e['sample_size']}/{e['minimum_sample']}" for e in live] or ["   none with frozen supply"]
+    lines += [f"   {e['experiment_id']}: {e.get('execution_mode') or 'preregistered'}, "
+              f"{rec['supply'][e['experiment_id']]} frozen participants" for e in live] or ["   none with frozen supply"]
     lines.append("7. What have we learned?  [OBSERVED experiment decisions]")
     lines += [f"   {h['experiment_id']}: {h['decision'].upper()} at n={h['sample_size']}, "
               f"{h['primary_metric']}={h['observed_value']}" for h in rec["preferred"]["previous_experiments"] or []] \
@@ -323,7 +417,8 @@ def render_status(report: dict) -> str:
     p = rec["preferred"]
     lines.append("8. What should we test next?  [RECOMMENDATION — requires human approval]")
     lines.append(f"   {p['status']}: {p['experiment_id'] or '(new contract needed)'}")
-    for field in ("hypothesis", "single_variable", "primary_metric", "why_highest_value", "stop_condition"):
+    for field in ("hypothesis", "single_variable", "primary_metric", "sample_and_stopping_rule",
+                  "why_highest_value", "stop_condition"):
         if p.get(field):
             lines.append(f"   {field}: {p[field]}")
     for alt in rec["alternatives"]:

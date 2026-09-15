@@ -21,8 +21,8 @@ from .storage import connect, init_db
 STAGES: dict[str, tuple[str, ...]] = {
     "attention": ("impression", "video_start", "hook_view", "engagement"),
     "traffic": ("click", "landing_page_view"),
-    "outreach": ("message_sent", "message_bounced", "invitation_sent", "invitation_accepted",
-                 "reply_received", "reply_meaningful"),
+    "outreach": ("message_sent", "message_bounced", "invitation_sent", "invitation_undeliverable",
+                 "invitation_accepted", "reply_received", "reply_meaningful"),
     "lead": ("lead_created", "lead_qualified", "lead_disqualified"),
     "sales": ("meeting_booked", "meeting_held", "proposal_sent", "proposal_accepted",
               "proposal_rejected"),
@@ -45,6 +45,8 @@ AGGREGATE_STAGES = frozenset({"attention", "traffic"})
 # Stages that describe a buyer must name one, or nothing downstream can be traced to them.
 ENTITY_STAGES = frozenset({"outreach", "lead", "sales", "customer", "revenue"})
 PROVENANCES = ("platform_export", "system_import", "operator_recorded", "synthetic_fixture")
+# Invitation outcomes where nothing reached the buyer: an attempt, never an exposure.
+BLOCKED_OUTCOMES = frozenset({"undeliverable", "restricted"})
 TEXT_FIELDS = ("person_id", "company", "campaign_id", "creative_id", "audience_id", "channel",
                "experiment_id", "arm")
 
@@ -265,6 +267,16 @@ def import_invitations(db_path: str, cohort_id: str, *, experiment_id: str = "",
                 "experiment_id": experiment_id or cohort_id, "creative_id": member["treatment"],
                 "source": "invitations", "source_record_id": record_id,
                 "provenance": "system_import", "metadata": {"outcome": member["outcome"]}}
+        sent_id = event_id_for("invitations", record_id, "invitation_sent")
+        if member["outcome"] in BLOCKED_OUTCOMES:
+            if _is_effective(db_path, sent_id):
+                correct_event(db_path, sent_id,
+                              f"invitations now reads {member['outcome']!r}: it never reached the buyer, "
+                              "so it is an attempt, not an exposure", recorded_by="import_invitations")
+                corrected += 1
+            inserted += record_event(db_path, dict(base, event_type="invitation_undeliverable",
+                                                   occurred_at=member["submitted_at"]))["inserted"]
+            continue
         inserted += record_event(db_path, dict(base, event_type="invitation_sent",
                                                occurred_at=member["submitted_at"]))["inserted"]
         accepted_id = event_id_for("invitations", record_id, "invitation_accepted")

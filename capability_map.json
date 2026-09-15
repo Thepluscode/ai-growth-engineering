@@ -237,7 +237,8 @@
         "evidence_governed_revenue_intelligence": "IMPLEMENTED",
         "single_variable_experiment_contract": "IMPLEMENTED",
         "next_experiment_recommender": "IMPLEMENTED",
-        "marketing_engineer_status": "IMPLEMENTED"
+        "marketing_engineer_status": "IMPLEMENTED",
+        "commercial_funnel_diagnosis": "IMPLEMENTED"
       }
     }
   }

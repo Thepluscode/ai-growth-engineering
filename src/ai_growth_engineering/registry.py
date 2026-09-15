@@ -122,6 +122,25 @@ def record_experiment_result(
         return decision
 
 
+EXECUTION_MODES = ("PREREGISTERED", "DESCRIPTIVE_FROZEN_COHORT")
+
+
+def set_execution_mode(db_path: str, experiment_id: str, mode: str, reason: str) -> None:
+    """Record how a frozen experiment is being run. The hypothesis, thresholds and sample stay
+    exactly as preregistered; a descriptive execution only stops them being claimed."""
+    if mode not in EXECUTION_MODES:
+        raise ValueError(f"execution mode must be one of {EXECUTION_MODES}")
+    if not reason.strip():
+        raise ValueError("an execution mode needs the reason it was chosen")
+    init_db(db_path)
+    with connect(db_path) as con:
+        updated = con.execute(
+            "UPDATE experiments SET execution_mode = ?, execution_mode_reason = ? WHERE experiment_id = ?",
+            (mode, reason.strip(), experiment_id))
+        if updated.rowcount == 0:
+            raise ValueError(f"experiment {experiment_id} not found")
+
+
 def seed_prospects(db_path: str, csv_path: str) -> int:
     count = 0
     with open(csv_path, newline="", encoding="utf-8") as handle, connect(db_path) as con:

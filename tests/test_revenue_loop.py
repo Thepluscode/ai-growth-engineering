@@ -17,9 +17,9 @@ from ai_growth_engineering.marketing_engineer import (
     RECOMMENDATION_FIELDS, evaluate, recommend_next_experiment, render_status, status_report,
 )
 from ai_growth_engineering.models import ExperimentSpec
-from ai_growth_engineering.registry import add_experiment
+from ai_growth_engineering.registry import add_experiment, set_execution_mode
 from ai_growth_engineering.revenue_loop import (
-    attribute, compute_metrics, funnel, money_graph_for_campaign, money_graph_for_entity,
+    attribute, compute_metrics, diagnose_funnel, funnel, money_graph_for_campaign, money_graph_for_entity,
 )
 from ai_growth_engineering.signal_intelligence import add_identity
 from ai_growth_engineering.storage import connect, init_db
@@ -315,6 +315,89 @@ class AdapterTests(StoreCase):
         record_invitation(self.db, "EXP-ACQ-0009", 1, {"outcome": "withdrawn", "submitted_at": "2026-09-15"})
         self.assertEqual(import_invitations(self.db, "EXP-ACQ-0009")["corrected"], 1)
         self.assertEqual([e["event_type"] for e in effective_events(self.db)], ["invitation_sent"])
+
+
+    def test_an_undeliverable_invitation_is_an_attempt_never_an_exposure(self):
+        self.freeze_supply("EXP-ACQ-0009")
+        record_invitation(self.db, "EXP-ACQ-0009", 1, {"outcome": "pending", "submitted_at": "2026-09-15"})
+        import_invitations(self.db, "EXP-ACQ-0009")
+        record_invitation(self.db, "EXP-ACQ-0009", 1, {"outcome": "undeliverable", "submitted_at": "2026-09-15"})
+        self.assertEqual(import_invitations(self.db, "EXP-ACQ-0009")["corrected"], 1)
+        events = effective_events(self.db)
+        self.assertEqual([e["event_type"] for e in events], ["invitation_undeliverable"])
+        diag = diagnose_funnel(events, "invitation", as_of="2026-10-30")
+        self.assertEqual((diag["stages"][0]["count"], diag["attempts_not_exposure"]), (0, 1))
+
+
+class DiagnosisTests(StoreCase):
+    def invitations(self, count, occurred_at, prefix="c"):
+        for i in range(count):
+            self.ev("invitation_sent", company=f"{prefix}{i}", occurred_at=occurred_at)
+
+    def transition(self, diag, stage):
+        return next(s["transition"] for s in diag["stages"] if s["stage"] == stage)
+
+    def test_a_later_stage_implies_the_earlier_ones_and_an_orphan_is_never_counted(self):
+        self.invitations(40, "2026-08-01")
+        for i in range(10):
+            self.ev("invitation_accepted", company=f"c{i}", occurred_at="2026-08-03")
+        for company in ("c0", "c1"):
+            self.ev("reply_received", company=company, occurred_at="2026-08-04")
+        self.ev("meeting_booked", company="c5", occurred_at="2026-08-06")  # no reply logged
+        self.ev("meeting_booked", company="stranger", occurred_at="2026-08-06")
+        diag = diagnose_funnel(effective_events(self.db), "invitation", as_of="2026-09-15")
+        self.assertEqual([s["count"] for s in diag["stages"]], [40, 10, 3, 1, 1, 0, 0, 0])
+        self.assertEqual(diag["unlinked_events"], 1)
+        accept = self.transition(diag, "invitation_accepted")
+        self.assertEqual((accept["numerator"], accept["denominator"], accept["status"]), (10, 40, "MEASURED"))
+        self.assertEqual(self.transition(diag, "reply_received")["status"], "INSUFFICIENT_DATA")
+        self.assertEqual(self.transition(diag, "customer_won")["status"], "NOT_REACHED")
+        self.assertIsNone(self.transition(diag, "customer_won")["rate"])
+        # 0 of 1 meeting is a lower rate, but only acceptance is measurable: it is the constraint.
+        c = diag["constraint"]
+        self.assertEqual((c["to"], c["rate"], c["confidence"], c["is_leak"]),
+                         ("invitation_accepted", 0.25, "MEDIUM", True))
+        self.assertEqual(c["reason"], "40 delivered observed")
+
+    def test_exposures_inside_the_response_window_are_in_flight_not_declined(self):
+        self.invitations(7, "2026-08-20", prefix="old")
+        self.invitations(27, "2026-09-15", prefix="new")
+        self.ev("invitation_accepted", company="new0", occurred_at="2026-09-15")
+        diag = diagnose_funnel(effective_events(self.db), "invitation", as_of="2026-09-16")
+        accept = self.transition(diag, "invitation_accepted")
+        self.assertEqual((accept["numerator"], accept["denominator"], accept["in_flight"], accept["early_responses"]),
+                         (0, 7, 27, 1))
+        self.assertEqual(accept["status"], "INSUFFICIENT_DATA")
+        self.assertEqual(diag["constraint"]["reason"], "only 7 delivered observed")
+        self.assertEqual(self.transition(diagnose_funnel(effective_events(self.db), "invitation", as_of="2026-08-21"),
+                                         "invitation_accepted")["status"], "IN_FLIGHT")
+
+    def test_a_leak_needs_the_minimum_matured_sample(self):
+        self.invitations(29, "2026-08-01")
+        events = effective_events(self.db)
+        below = diagnose_funnel(events, "invitation", as_of="2026-09-15")["constraint"]
+        self.assertEqual((below["is_leak"], below["confidence"]), (False, "LOW"))
+        self.ev("invitation_sent", company="c29", occurred_at="2026-08-01")
+        at = diagnose_funnel(effective_events(self.db), "invitation", as_of="2026-09-15")["constraint"]
+        self.assertEqual((at["is_leak"], at["confidence"], at["denominator"]), (True, "MEDIUM", 30))
+
+    def test_a_descriptive_execution_never_claims_its_preregistered_threshold(self):
+        self.experiment("EXP-ACQ-0009", channel="linkedin")
+        for bad in (("EXP-ACQ-0009", "EXPLORATORY", "why"), ("EXP-ACQ-0009", "DESCRIPTIVE_FROZEN_COHORT", " "),
+                    ("EXP-ACQ-0404", "DESCRIPTIVE_FROZEN_COHORT", "why")):
+            with self.assertRaises(ValueError):
+                set_execution_mode(self.db, *bad)
+        set_execution_mode(self.db, "EXP-ACQ-0009", "DESCRIPTIVE_FROZEN_COHORT", "cohort frozen below minimum")
+        self.freeze_supply("EXP-ACQ-0009")
+        for c in ("c0", "c1", "c2"):
+            self.ev("invitation_sent", company=c, occurred_at="2026-09-01", experiment_id="EXP-ACQ-0009",
+                    source_record_id=f"x-{c}")
+        report = status_report(self.db, as_of="2026-09-20")
+        rule = report["recommendation"]["preferred"]["sample_and_stopping_rule"]
+        self.assertIn("is not claimed", rule)
+        text = render_status(report)
+        self.assertIn("DESCRIPTIVE_FROZEN_COHORT", text)
+        self.assertIn("Verdict: DESCRIPTIVE_INCONCLUSIVE", text)
 
 
 class ExperimentVariableTests(unittest.TestCase):

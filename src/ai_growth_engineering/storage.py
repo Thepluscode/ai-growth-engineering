@@ -289,6 +289,9 @@ EXPERIMENT_CONTRACT_COLUMNS = (
     ("end_date", "TEXT NOT NULL DEFAULT ''"),
     ("learning", "TEXT NOT NULL DEFAULT ''"),
     ("variable", "TEXT NOT NULL DEFAULT ''"),
+    # How the frozen contract is being executed. Annotates the contract; never rewrites it.
+    ("execution_mode", "TEXT NOT NULL DEFAULT ''"),
+    ("execution_mode_reason", "TEXT NOT NULL DEFAULT ''"),
 )
 
 EVIDENCE_CONTRACT_COLUMNS = (

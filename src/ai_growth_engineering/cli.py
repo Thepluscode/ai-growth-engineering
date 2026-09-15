@@ -19,7 +19,7 @@ from .funnel_events import (
     PROVENANCES, EventError, correct_event, effective_events, import_invitations,
     import_outreach_csv, record_event,
 )
-from .marketing_engineer import recommend_next_experiment, render_status, status_report
+from .marketing_engineer import recommend_next_experiment, render_diagnosis, render_status, status_report
 from .models import ExperimentSpec
 from .revenue_loop import money_graph_for_campaign, money_graph_for_entity
 from .registry import (
@@ -356,7 +356,7 @@ def cmd_events_import_outreach(args: argparse.Namespace) -> None:
 def cmd_events_import_invitations(args: argparse.Namespace) -> None:
     result = import_invitations(args.db, args.cohort_id, experiment_id=args.experiment_id)
     print(f"{result['members']} cohort members: {result['inserted']} events appended, "
-          f"{result['corrected']} acceptances corrected")
+          f"{result['corrected']} events corrected")
 
 
 def cmd_event_record(args: argparse.Namespace) -> None:
@@ -386,8 +386,21 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
     import json
 
     if args.action == "status":
-        report = status_report(args.db)
+        report = status_report(args.db, as_of=args.as_of or None)
         print(json.dumps(report, indent=2, default=str) if args.json else render_status(report))
+    elif args.action == "diagnose":
+        report = status_report(args.db, as_of=args.as_of or None)
+        diagnoses = {k: v for k, v in report["diagnoses"].items()
+                     if not args.experiment_id or k == args.experiment_id}
+        if not diagnoses:
+            raise SystemExit(f"no funnel events for {args.experiment_id or 'any experiment'}")
+        if args.json:
+            print(json.dumps(diagnoses, indent=2, default=str))
+            return
+        modes = {e["experiment_id"]: e.get("execution_mode") or "" for e in report["recommendation"]["experiments"]}
+        for experiment_id, paths in sorted(diagnoses.items()):
+            for diag in paths.values():
+                print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
     elif args.action == "next-experiment":
         rec = recommend_next_experiment(args.db)
         print(json.dumps({k: rec[k] for k in ("preferred", "alternatives", "findings")}, indent=2, default=str))
@@ -398,6 +411,16 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         graph = (money_graph_for_entity(events, args.company) if args.company
                  else money_graph_for_campaign(events, args.campaign_id))
         print(json.dumps(graph, indent=2, default=str))
+
+
+def cmd_experiment_execution_mode(args: argparse.Namespace) -> None:
+    from .registry import set_execution_mode
+
+    try:
+        set_execution_mode(args.db, args.experiment_id, args.mode, args.reason)
+    except ValueError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(f"{args.experiment_id}: {args.mode}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -560,11 +583,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_event_correct)
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
-    p.add_argument("action", choices=["status", "next-experiment", "money-graph"])
+    p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph"])
     p.add_argument("--company", default="")
     p.add_argument("--campaign-id", default="")
+    p.add_argument("--experiment-id", default="")
+    p.add_argument("--as-of", default="", help="YYYY-MM-DD; defaults to today")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_marketing_engineer)
+
+    p = sub.add_parser("experiment-execution-mode"); dbarg(p)
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--mode", required=True, choices=["PREREGISTERED", "DESCRIPTIVE_FROZEN_COHORT"])
+    p.add_argument("--reason", required=True)
+    p.set_defaults(func=cmd_experiment_execution_mode)
     return parser
 
 

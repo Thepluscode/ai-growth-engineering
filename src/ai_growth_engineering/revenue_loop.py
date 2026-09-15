@@ -10,8 +10,10 @@ is not free acquisition.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from datetime import date, timedelta
 from typing import Any, Iterable
 
+from .execution import wilson
 from .funnel_events import STAGE_OF
 
 # name, numerator, denominator, multiplier, unit, definition — stored beside every value.
@@ -29,6 +31,9 @@ METRICS: tuple[tuple[str, str, str, int, str, str], ...] = (
      "accepted invitations / invitations sent"),
     ("meaningful_reply_rate", "reply_meaningful", "message_sent", 1, "rate",
      "meaningful replies / delivered messages (bounces are not sends)"),
+    ("reply_rate", "reply_received", "message_sent", 1, "rate", "replies / delivered messages"),
+    ("qualified_reply_rate", "reply_meaningful", "reply_received", 1, "rate",
+     "qualified conversations / replies"),
     ("meeting_rate", "meeting_booked", "lead_qualified", 1, "rate", "meetings / qualified_leads"),
     ("reply_to_meeting_rate", "meeting_booked", "reply_meaningful", 1, "rate",
      "meetings / meaningful replies"),
@@ -136,6 +141,134 @@ def funnel(events: Iterable[dict], path: str) -> list[dict]:
         })
         previous = event_type
     return steps
+
+
+# --- funnel diagnosis ----------------------------------------------------------------
+
+# Every stage a buyer passes on the way to money, in order, per acquisition path.
+LADDERS: dict[str, tuple[str, ...]] = {
+    "invitation": ("invitation_sent", "invitation_accepted", "reply_received", "reply_meaningful",
+                   "meeting_booked", "proposal_sent", "customer_won", "payment_received"),
+    "outbound": ("message_sent", "reply_received", "reply_meaningful", "meeting_booked",
+                 "proposal_sent", "customer_won", "payment_received"),
+    "paid": ("impression", "click", "lead_created", "lead_qualified", "meeting_booked",
+             "proposal_sent", "customer_won", "payment_received"),
+}
+STAGE_LABELS = {
+    "invitation_sent": "Delivered", "message_sent": "Delivered", "invitation_accepted": "Accepted",
+    "reply_received": "Replies", "reply_meaningful": "Qualified", "meeting_booked": "Meetings",
+    "proposal_sent": "Proposals", "customer_won": "Customers", "payment_received": "Paid",
+    "impression": "Impressions", "click": "Clicks", "lead_created": "Leads",
+    "lead_qualified": "Qualified leads",
+}
+ATTEMPT_TYPES = frozenset({"invitation_undeliverable", "message_bounced"})
+AGGREGATE_TYPES = frozenset({"impression", "click"})
+# Outreach answers arrive days later, so a fresh exposure is not yet a refusal. Paid clicks and
+# leads are immediate and carry no window.
+WINDOWED_PATHS = frozenset({"invitation", "outbound"})
+DEFAULT_RESPONSE_WINDOW_DAYS = 14
+MIN_TRANSITION_SAMPLE = 30
+
+
+def diagnose_funnel(events: Iterable[dict], path: str, *, as_of: str,
+                    response_window_days: int = DEFAULT_RESPONSE_WINDOW_DAYS,
+                    min_sample: int = MIN_TRANSITION_SAMPLE) -> dict:
+    """Stage-by-stage commercial state of one acquisition path.
+
+    A buyer counts at a stage when they reached it or any later one (a meeting implies a reply),
+    but only if their exposure event exists: a downstream event with no exposure on this path is
+    reported as unlinked and never counted. The first response transition uses only exposures
+    older than the response window — an invitation sent yesterday is in flight, not declined.
+
+    Transition status: NOT_REACHED (nothing upstream) · IN_FLIGHT (every exposure still inside
+    the window) · INSUFFICIENT_DATA (denominator below min_sample) · MEASURED. Only a MEASURED
+    transition may be called a leak; the largest constraint is still named, with its confidence.
+    """
+    events = list(events)
+    ladder = LADDERS[path]
+    position = {stage: i for i, stage in enumerate(ladder)}
+    base = next(i for i, stage in enumerate(ladder) if stage not in AGGREGATE_TYPES)
+    exposed_at: dict[str, str] = {}
+    for e in events:
+        if e["event_type"] == ladder[base] and entity(e):
+            key = entity(e)
+            exposed_at[key] = min(exposed_at.get(key, e["occurred_at"]), e["occurred_at"])
+    furthest: dict[str, int] = {}
+    observed_at_stage: dict[int, set[str]] = defaultdict(set)
+    unlinked = 0
+    for e in events:
+        i = position.get(e["event_type"])
+        if i is None or i <= base:
+            continue
+        key = entity(e)
+        if key not in exposed_at:
+            unlinked += 1
+            continue
+        furthest[key] = max(furthest.get(key, base), i)
+        observed_at_stage[i].add(key)
+    t = totals(events)
+    windowed = path in WINDOWED_PATHS
+    cutoff = (date.fromisoformat(as_of[:10]) - timedelta(days=response_window_days)).isoformat()
+    matured = {k for k, at in exposed_at.items() if not windowed or at[:10] <= cutoff}
+
+    def reached(i: int, pool: Iterable[str] | None = None) -> int:
+        if ladder[i] in AGGREGATE_TYPES:
+            return t.get(ladder[i], 0)
+        return sum(1 for k in (exposed_at if pool is None else pool) if furthest.get(k, base) >= i)
+
+    stages = []
+    for i, stage in enumerate(ladder):
+        count = reached(i)
+        observed = (t.get(stage, 0) if stage in AGGREGATE_TYPES
+                    else len(exposed_at) if i == base else len(observed_at_stage[i]))
+        row: dict[str, Any] = {"stage": stage, "label": STAGE_LABELS[stage], "count": count,
+                               "observed": observed, "transition": None}
+        if i:
+            response_step = windowed and i == base + 1
+            numerator, denominator = ((reached(i, matured), len(matured)) if response_step
+                                      else (count, reached(i - 1)))
+            in_flight = len(exposed_at) - len(matured) if response_step else 0
+            if denominator == 0:
+                status = "IN_FLIGHT" if in_flight else "NOT_REACHED"
+            elif denominator < min_sample:
+                status = "INSUFFICIENT_DATA"
+            else:
+                status = "MEASURED"
+            row["transition"] = {
+                "from": ladder[i - 1], "to": stage, "numerator": numerator,
+                "denominator": denominator, "rate": None if not denominator else numerator / denominator,
+                "ci95": None if not denominator else wilson(numerator, denominator),
+                "status": status, "in_flight": in_flight,
+                "early_responses": count - numerator if response_step else 0,
+            }
+        stages.append(row)
+
+    observed_transitions = [s for s in stages if s["transition"] and s["transition"]["denominator"]]
+    constraint = None
+    if observed_transitions:
+        # The biggest MEASURABLE drop-off: a measured transition outranks an unmeasured one, then
+        # the lowest rate, and a tie goes to the larger denominator (more evidence behind it).
+        # ponytail: only the first response step is windowed; add per-stage windows once later
+        # stages (acceptance -> reply, meeting -> proposal) carry enough volume to be misread.
+        worst = min(observed_transitions,
+                    key=lambda s: (s["transition"]["status"] != "MEASURED", s["transition"]["rate"],
+                                   -s["transition"]["denominator"]))["transition"]
+        n = worst["denominator"]
+        confidence = "LOW" if n < min_sample else "MEDIUM" if n < 100 else "HIGH"
+        upstream = STAGE_LABELS[worst["from"]].lower()
+        constraint = {"from": worst["from"], "to": worst["to"], "rate": worst["rate"], "denominator": n,
+                      "confidence": confidence, "is_leak": worst["status"] == "MEASURED",
+                      "reason": (f"only {n} {upstream} observed" if confidence == "LOW"
+                                 else f"{n} {upstream} observed")}
+    return {
+        "path": path, "as_of": as_of[:10],
+        "response_window_days": response_window_days if windowed else None,
+        "min_sample": min_sample, "stages": stages, "constraint": constraint,
+        "insufficient": [s["stage"] for s in stages if s["transition"]
+                         and s["transition"]["status"] in ("INSUFFICIENT_DATA", "IN_FLIGHT")],
+        "attempts_not_exposure": sum(1 for e in events if e["event_type"] in ATTEMPT_TYPES),
+        "unlinked_events": unlinked, "revenue_pence": t["revenue_pence"],
+    }
 
 
 # --- attribution ---------------------------------------------------------------------
