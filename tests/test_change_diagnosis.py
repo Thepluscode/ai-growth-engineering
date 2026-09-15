@@ -90,6 +90,11 @@ class DiagnosisCaseTests(ChangeCase):
         self.assertIn("mix shift in icp (Founders 80%, Ops leads 20% → Ops leads 70%, Founders 30%)",
                       d["supported_interpretation"])
         self.assertEqual(d["next_test"]["variable"], "audience")
+        # The mix shift is disclosed before the message is blamed, even when the creative also changed.
+        self.cohort("h", 18, "2026-08-16", replies=9, campaign="CMP-F", creative="CR-B")
+        self.cohort("q", 42, "2026-08-16", replies=4, campaign="CMP-O", creative="CR-B")
+        both = self.diagnose(BASELINE, {"start": "2026-08-15", "end": "2026-08-21"})
+        self.assertEqual((both["classification"], both["comparison_state"]), ("MIX_SHIFT", "PARTIALLY_CONFOUNDED"))
 
     def test_c_revenue_falls_while_ctr_improves_so_the_diagnosis_stays_near_revenue(self):
         for prefix, at, payments, clicks in (("a", "2026-08-02", 5, 200), ("b", "2026-08-09", 2, 320)):
