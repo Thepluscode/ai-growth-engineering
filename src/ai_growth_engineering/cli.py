@@ -20,8 +20,8 @@ from .funnel_events import (
     import_outreach_csv, record_event,
 )
 from .marketing_engineer import (
-    campaign_graph, customer_graph, next_experiment_card, recommend_next_experiment, render_card,
-    render_diagnosis, render_status, status_report,
+    campaign_graph, customer_graph, linked_events, next_experiment_card, recommend_next_experiment, render_card,
+    render_customer, render_diagnosis, render_problems, render_status, status_report,
 )
 from .models import ExperimentSpec
 from .registry import (
@@ -403,6 +403,16 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         for experiment_id, paths in sorted(diagnoses.items()):
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
+    elif args.action == "customer":
+        if not args.company:
+            raise SystemExit("customer needs --company")
+        graph = customer_graph(args.db, args.company)
+        print(json.dumps(graph, indent=2, default=str) if args.json else render_customer(graph))
+    elif args.action == "problems":
+        from .buyer_truth import buyer_evidence, problem_revenue
+
+        views = problem_revenue(buyer_evidence(args.db), linked_events(args.db))
+        print(json.dumps(views, indent=2, default=str) if args.json else render_problems(views))
     elif args.action == "next-experiment":
         card = next_experiment_card(args.db, as_of=args.as_of or None)
         if args.json:
@@ -420,6 +430,34 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         except ValueError as exc:
             raise SystemExit(f"REFUSED: {exc}")
         print(json.dumps(graph, indent=2, default=str))
+
+
+def cmd_evidence_record(args: argparse.Namespace) -> None:
+    import json
+
+    from .buyer_truth import BuyerTruthError, record_commercial_evidence
+
+    try:
+        result = record_commercial_evidence(
+            args.db, statement=args.statement, categories=args.category, source=args.source,
+            source_record_id=args.source_record_id, occurred_at=args.occurred_at, provenance=args.provenance,
+            company=args.company, person_id=args.person_id, source_event_id=args.source_event_id,
+            experiment_id=args.experiment_id, campaign_id=args.campaign_id, offer_id=args.offer_id,
+            verbatim=not args.paraphrase)
+    except BuyerTruthError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(json.dumps(result, indent=2))
+
+
+def cmd_evidence_interpret(args: argparse.Namespace) -> None:
+    from .buyer_truth import BuyerTruthError, interpret
+
+    try:
+        result = interpret(args.db, args.link_id, theme=args.theme, interpretation=args.interpretation,
+                           confidence=args.confidence, interpreted_by=args.by)
+    except BuyerTruthError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(f"{result['interpretation_id']} reads {result['link_id']} as {result['theme']}")
 
 
 def cmd_experiment_backfill_variable(args: argparse.Namespace) -> None:
@@ -622,7 +660,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_event_correct)
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
-    p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph"])
+    p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems"])
     p.add_argument("--company", default="")
     p.add_argument("--campaign-id", default="")
     p.add_argument("--experiment-id", default="")
@@ -646,6 +684,26 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("events-import-stripe"); dbarg(p); p.add_argument("json_path")
     p.set_defaults(func=cmd_events_import_stripe)
+
+    p = sub.add_parser("evidence-record"); dbarg(p)
+    p.add_argument("--statement", required=True, help="the buyer's words, verbatim unless --paraphrase")
+    p.add_argument("--category", action="append", required=True, help="repeat for each category it establishes")
+    p.add_argument("--source", required=True)
+    p.add_argument("--source-record-id", required=True)
+    p.add_argument("--occurred-at", required=True)
+    p.add_argument("--provenance", default="operator_recorded", choices=PROVENANCES)
+    for name in ("company", "person-id", "source-event-id", "experiment-id", "campaign-id", "offer-id"):
+        p.add_argument(f"--{name}", default="")
+    p.add_argument("--paraphrase", action="store_true", help="a source-backed paraphrase, not the buyer's words")
+    p.set_defaults(func=cmd_evidence_record)
+
+    p = sub.add_parser("evidence-interpret"); dbarg(p)
+    p.add_argument("--link-id", required=True)
+    p.add_argument("--theme", required=True)
+    p.add_argument("--interpretation", required=True)
+    p.add_argument("--confidence", type=float, required=True)
+    p.add_argument("--by", required=True)
+    p.set_defaults(func=cmd_evidence_interpret)
 
     p = sub.add_parser("adapter-specs")
     p.add_argument("--platform", default="")

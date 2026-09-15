@@ -253,6 +253,54 @@ BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction ins
 
 CREATE TRIGGER IF NOT EXISTS funnel_events_no_delete BEFORE DELETE ON funnel_events
 BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction instead'); END;
+
+-- What a buyer said, related to who said it and the commercial event it arrived through. The
+-- observation itself is an ordinary `evidence` row; this table only links it. Append-only.
+CREATE TABLE IF NOT EXISTS commercial_evidence (
+    link_id TEXT PRIMARY KEY,
+    evidence_id TEXT NOT NULL REFERENCES evidence(evidence_id),
+    category TEXT NOT NULL,
+    person_id TEXT NOT NULL DEFAULT '',
+    company TEXT NOT NULL DEFAULT '',
+    occurred_at TEXT NOT NULL,
+    source TEXT NOT NULL,
+    source_record_id TEXT NOT NULL,
+    source_event_id TEXT REFERENCES funnel_events(event_id),
+    experiment_id TEXT NOT NULL DEFAULT '',
+    campaign_id TEXT NOT NULL DEFAULT '',
+    offer_id TEXT NOT NULL DEFAULT '',
+    provenance TEXT NOT NULL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(evidence_id, category)
+);
+
+-- A reading of one linked observation. A new reading is appended; the latest one is current.
+CREATE TABLE IF NOT EXISTS evidence_interpretations (
+    interpretation_id TEXT PRIMARY KEY,
+    link_id TEXT NOT NULL REFERENCES commercial_evidence(link_id),
+    theme TEXT NOT NULL,
+    interpretation TEXT NOT NULL,
+    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+    interpreted_by TEXT NOT NULL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TRIGGER IF NOT EXISTS commercial_evidence_no_update BEFORE UPDATE ON commercial_evidence
+BEGIN SELECT RAISE(ABORT, 'commercial_evidence is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS commercial_evidence_no_delete BEFORE DELETE ON commercial_evidence
+BEGIN SELECT RAISE(ABORT, 'commercial_evidence is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS evidence_interpretations_no_update BEFORE UPDATE ON evidence_interpretations
+BEGIN SELECT RAISE(ABORT, 'interpretations are append-only: append a new reading'); END;
+
+CREATE TRIGGER IF NOT EXISTS evidence_interpretations_no_delete BEFORE DELETE ON evidence_interpretations
+BEGIN SELECT RAISE(ABORT, 'interpretations are append-only: append a new reading'); END;
+
+CREATE TRIGGER IF NOT EXISTS linked_observation_frozen
+BEFORE UPDATE OF statement, source, observed_at, kind ON evidence
+WHEN EXISTS (SELECT 1 FROM commercial_evidence WHERE evidence_id = OLD.evidence_id)
+BEGIN SELECT RAISE(ABORT, 'a linked buyer observation is never rewritten: record a new evidence row'); END;
 """
 
 

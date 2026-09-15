@@ -169,6 +169,41 @@ def backfill_variable(db_path: str, experiment_id: str, variable: str, source: s
     return {"experiment_id": experiment_id, "variable": variable, "variable_metadata_source": source}
 
 
+def _seed_experiment(db_path: str, record: dict) -> bool:
+    """Restore a frozen experiment and the metadata recorded about it. Fills only what is missing:
+    an existing contract is never rewritten, and metadata never overwrites a value already set."""
+    from dataclasses import fields as dataclass_fields
+
+    names = {f.name for f in dataclass_fields(ExperimentSpec)}
+    experiment_id = record["experiment_id"]
+    read = "SELECT * FROM experiments WHERE experiment_id = ?"
+    with connect(db_path) as con:
+        exists = con.execute(read, (experiment_id,)).fetchone() is not None
+    if not exists:
+        add_experiment(db_path, ExperimentSpec(**{k: tuple(v) if isinstance(v, list) else v
+                                                   for k, v in record.items() if k in names}))
+    changed = not exists
+    with connect(db_path) as con:
+        row = con.execute(read, (experiment_id,)).fetchone()
+        if record.get("execution_mode") and not row["execution_mode"]:
+            if record["execution_mode"] not in EXECUTION_MODES:
+                raise ValueError(f"{experiment_id}: unknown execution mode {record['execution_mode']!r}")
+            con.execute("UPDATE experiments SET execution_mode = ?, execution_mode_reason = ? WHERE experiment_id = ?",
+                        (record["execution_mode"], record.get("execution_mode_reason", ""), experiment_id))
+            changed = True
+        if record.get("variable_metadata_source") and not row["variable_metadata_source"]:
+            if record["variable_metadata_source"] not in VARIABLE_METADATA_SOURCES:
+                raise ValueError(f"{experiment_id}: unknown variable metadata source")
+            if row["variable"] != record.get("variable"):
+                raise ValueError(f"{experiment_id}: stored variable {row['variable']!r} does not match the seed's "
+                                 f"{record.get('variable')!r}; a declared variable is never overwritten")
+            con.execute("UPDATE experiments SET variable_metadata_source = ?, variable_metadata_note = ? "
+                        "WHERE experiment_id = ?",
+                        (record["variable_metadata_source"], record.get("variable_metadata_note", ""), experiment_id))
+            changed = True
+    return changed
+
+
 def seed_prospects(db_path: str, csv_path: str) -> int:
     count = 0
     with open(csv_path, newline="", encoding="utf-8") as handle, connect(db_path) as con:
@@ -465,6 +500,12 @@ def seed_registries(db_path: str, seeds_path: str) -> dict[str, int]:
             observed=bool(record.get("observed", True)),
         ))
         loaded["evidence"] = loaded.get("evidence", 0) + 1
+
+    # Experiments live only in the rebuildable store unless they are seeded, and a frozen
+    # contract lost on rebuild takes its retrospective metadata with it.
+    for record in data.get("experiments", []):
+        if _seed_experiment(db_path, record):
+            loaded["experiments"] = loaded.get("experiments", 0) + 1
 
     for name in _registries.REGISTRIES:
         rows = data.get(name)

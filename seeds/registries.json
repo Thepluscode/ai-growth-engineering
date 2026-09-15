@@ -626,6 +626,29 @@
       "reviewed_at": "2026-08-20"
     }
   ],
+  "experiments": [
+    {
+      "experiment_id": "EXP-ACQ-0003",
+      "hypothesis": "A standard LinkedIn invitation with no note, sent to a named commercial decision-maker at a qualified UK MSP, is accepted often enough for the unchanged EXP-ACQ-0001 message to be delivered as a direct message. Primary question is the accept rate; the reply rate is under-powered at this account count and is reported, never decisive.",
+      "primary_metric": "invite_accept_rate",
+      "success_threshold": 0.569,
+      "review_threshold": 0.193,
+      "minimum_sample": 51,
+      "market": "UK cybersecurity consultancies and MSPs",
+      "buyer": "Named director evidenced as commercial decision-maker on their own LinkedIn profile",
+      "problem": "Acquisition activity is not reliably becoming qualified pipeline",
+      "channel": "linkedin/named_buyer",
+      "control": "email/role_inbox 0/48; email/named_buyer 0/2",
+      "variant": "standard invitation, no note, message sent after acceptance",
+      "secondary_metrics": ["meaningful_reply_rate"],
+      "start_date": "2026-09-08",
+      "variable": "recipient_route",
+      "variable_metadata_source": "retrospective_from_preregistration",
+      "variable_metadata_note": "Retrospective metadata only (founder decision 2026-09-15). PREREGISTRATION.md changes the route used to reach the named buyer (email role inbox / named mailbox -> LinkedIn connection path) while holding the EXP-ACQ-0001 message constant; channel=linkedin stays execution metadata. Hypothesis, frozen cohort, thresholds, outcomes, exposure history and sample rules unchanged.",
+      "execution_mode": "DESCRIPTIVE_FROZEN_COHORT",
+      "execution_mode_reason": "Founder decision 2026-09-15 (first recorded with the mislabelled date 2026-09-16): frozen cohort of 39 is below the preregistered 51; run descriptively, no rerandomisation, see experiments/EXP-ACQ-0003/EXECUTION-MODE.md"
+    }
+  ],
   "audiences": [
     {
       "audience_id": "AUD-ACQ-0001-TEARDOWN-QUEUES",

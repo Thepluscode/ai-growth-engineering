@@ -11,6 +11,7 @@ from datetime import date
 from typing import Any
 
 from . import registries
+from .buyer_truth import buyer_evidence, buyer_truth, problem_revenue, stalled_objections, truth_summary
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
     LADDERS, STAGE_LABELS, attribute, compute_metrics, diagnose_funnel, entity, group_by,
@@ -253,6 +254,37 @@ def _proposal_from_leak(leak: dict, history: list[dict], min_sample: int) -> dic
     }
 
 
+def _proposal_from_objection(objection: dict, evidence: list[dict], history: list[dict]) -> dict:
+    theme = objection["theme"]
+    items = [i for i in evidence if i["category"] == "OBJECTION" and i["evidence_id"] in objection["evidence_ids"]]
+    experiments = sorted({i["experiment_id"] for i in items if i["experiment_id"]})
+    return {
+        "status": "PROPOSED_NEEDS_CONTRACT",
+        "experiment_id": None,
+        "based_on_experiment_id": experiments[0] if len(experiments) == 1 else None,
+        "hypothesis": f"Changing only the offer so it answers the '{theme}' objection raises the close rate "
+                      "of buyers who reach a proposal.",
+        "single_variable": "offer",
+        "control": "the offer exactly as proposed to the buyers who raised the objection",
+        "variant": f"not written: the operator writes one offer change that answers '{theme}'; the engine "
+                   "does not invent terms, prices or guarantees",
+        "icp": "carried over from the stalled proposals",
+        "offer": "carried over, except the one part that answers the objection",
+        "channel": "carried over from the stalled proposals",
+        "primary_metric": "close_rate",
+        "guardrails": ["declare before exposure (experiment_trust_guardrails)"],
+        "sample_and_stopping_rule": "declare the number of proposals per arm before the first is sent; proposals "
+                                    "are low-volume, so the sample is counted in proposals, never sends",
+        "why_highest_value": f"{objection['organisations']} organisations reached a proposal, did not buy and raised "
+                             f"'{theme}'. That is the last observed step before money, so it outranks any earlier "
+                             "funnel leak.",
+        "evidence": [f"{i['evidence_id']}: \"{i['observation']}\"" for i in items],
+        "previous_experiments": history,
+        "stop_condition": f"If the close rate does not move after the declared proposals, '{theme}' was not what "
+                          "stopped the purchase: stop and read the rejection reasons again.",
+    }
+
+
 def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE, as_of: str | None = None) -> dict:
     """Exactly one preferred experiment, plus alternatives with the reason each was not preferred."""
     init_db(db_path)
@@ -280,13 +312,18 @@ def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE, as_
             "not_preferred_because": ("another runnable preregistered experiment is earlier" if runnable_now
                                       else "no frozen execution supply: it cannot run as written"),
         })
-    for leak in (f for f in findings if f["kind"] == "leak"):
-        proposal = _proposal_from_leak(leak, history, min_sample)
+    # Proposal-stage objections before funnel leaks: they sit nearer the money.
+    evidence = buyer_evidence(db_path)
+    candidates = ([_proposal_from_objection(o, evidence, history) for o in stalled_objections(evidence, events)]
+                  + [_proposal_from_leak(leak, history, min_sample) for leak in findings if leak["kind"] == "leak"])
+    for proposal in candidates:
         if preferred is None:
             preferred = proposal
         else:
             alternatives.append(dict(proposal, not_preferred_because=(
-                "a frozen experiment already exists; propose new tests after it has run")))
+                "a frozen experiment already exists; propose new tests after it has run"
+                if preferred["status"] == "PREREGISTERED_UNRUN" else
+                "one test at a time: an earlier-ranked proposal is nearer the money or raised by more buyers")))
     if preferred is None:
         preferred = {name: None for name in RECOMMENDATION_FIELDS}
         preferred.update(status="NO_BASIS", evidence=[f["observation"] for f in findings],
@@ -400,8 +437,10 @@ def campaign_graph(db_path: str, campaign_id: str) -> dict:
 
 
 def customer_graph(db_path: str, name: str) -> dict:
-    """From one buyer back to the ICP, offer, campaign, creative, experiment and channel that reached them."""
-    graph = money_graph_for_entity(linked_events(db_path), name)
+    """From one buyer back to the ICP, offer, campaign, creative, experiment and channel that reached them,
+    and to what they actually said: problems, objections, criteria, each with its evidence id."""
+    events = linked_events(db_path)
+    graph = money_graph_for_entity(events, name)
     campaigns = {c: _row(db_path, "campaigns", c) for c in graph["campaigns"]}
     known = [c for c in campaigns.values() if c]
     offers = (_row(db_path, "offers", c["offer_id"]) for c in known)
@@ -413,7 +452,66 @@ def customer_graph(db_path: str, name: str) -> dict:
         "channels": sorted({e["channel"] for e in graph["chain"] if e["channel"]}),
         "creatives": [_row(db_path, "creatives", i) or {"creative_id": i, "registered": False} for i in creative_ids],
         "unregistered_campaigns": sorted(c for c, row in campaigns.items() if row is None),
+        "buyer_truth": buyer_truth(buyer_evidence(db_path), events, graph["entity"]),
     }
+
+
+CUSTOMER_SECTIONS = {"PROBLEM_STATED": "OBSERVED PROBLEM", "OBJECTION": "OBJECTION",
+                     "BUYING_CRITERION": "BUYING CRITERION", "REASON_FOR_PURCHASE": "REASON FOR PURCHASE"}
+
+
+def _quote(item: dict) -> str:
+    return (f"\"{item['observation']}\"  Evidence: {item['evidence_id']}"
+            + ("" if item["observed_as"] == "verbatim" else " (source-backed, not verbatim)"))
+
+
+def render_customer(graph: dict) -> str:
+    truth = graph["buyer_truth"]
+    lines = ["CUSTOMER TRUTH  [OBSERVED statements · DERIVED categories · INTERPRETED themes]"]
+
+    def section(title: str, body: list[str] | None) -> None:
+        lines.extend(["", title] + [f"  {line}" for line in (body or ["NOT OBSERVED"])])
+
+    payments = [c for c in graph["chain"] if c["event_type"] == "payment_received"]
+    section("PAYMENT", [f"{_money(graph['revenue_pence'])} from {len(payments)} payment(s)"] if payments else None)
+    section("CUSTOMER", [graph["entity"]])
+    section("OFFER", [f"{o['offer_id']} — {o['outcome']}" for o in graph["offers"]] or ["not recorded"])
+    section("ATTRIBUTION", [
+        f"channel: {', '.join(graph['channels']) or 'not recorded'}",
+        f"campaign: {', '.join(graph['campaigns']) or 'not recorded'}",
+        f"creative: {', '.join(c['creative_id'] for c in graph['creatives']) or 'not recorded'}",
+        f"experiment: {', '.join(e for e, _ in graph['experiments']) or 'not recorded'}",
+        f"ICP: {'; '.join(graph['icp']) or 'not recorded'}",
+    ] + [f"linear attribution: {_money(r['attributed_amount_pence'])} of {_money(r['amount_pence'])}"
+         for r in graph["attribution"]["linear"]])
+    for category, title in CUSTOMER_SECTIONS.items():
+        section(title, [_quote(i) for i in truth["observed"].get(category, [])])
+    for category, items in sorted(truth["observed"].items()):
+        if category not in CUSTOMER_SECTIONS:
+            section(category.replace("_", " "), [_quote(i) for i in items])
+    wtp = truth["willingness_to_pay"]
+    section("WILLINGNESS TO PAY", [f"strongest observed: {wtp['strongest']}"]
+            + [f"{r['rung']}: {', '.join(r['ids'])}" for r in wtp["rungs"] if r["observed"]] if wtp["strongest"] else None)
+    section("INTERPRETATION", [
+        f"{p['theme']}: {' / '.join(p['interpretations'])} · confidence {p['scope']['confidence']} — "
+        f"{p['scope']['reason']} · evidence {', '.join(p['evidence_ids'])}"
+        for p in truth["interpreted_problems"]] or ["none recorded"])
+    return "\n".join(lines)
+
+
+def render_problems(views: list[dict]) -> str:
+    lines = ["PROBLEM → REVENUE  [INTERPRETED themes · OBSERVED stages and money]"]
+    if not views:
+        return "\n".join(lines + ["  no observation has been interpreted to a problem theme yet"])
+    for v in views:
+        lines += ["", f"Problem: {v['theme']}",
+                  f"  Independent organisations stating it: {v['scope']['organisations']} ({v['buyers_stating']} buyers)"
+                  f" · scope {v['scope']['level']}, confidence {v['scope']['confidence']}",
+                  f"  Qualified conversations: {v['qualified_conversations']}", f"  Meetings: {v['meetings']}",
+                  f"  Proposals: {v['proposals']}", f"  Customers: {v['customers']}",
+                  f"  Observed revenue: {_money(v['observed_revenue_pence'])}",
+                  f"  Evidence: {', '.join(v['evidence_ids'])}"]
+    return "\n".join(lines)
 
 
 def _constraint_summary(diag: dict | None, preferred: dict) -> tuple[str, list[str]]:
@@ -505,6 +603,7 @@ def status_report(db_path: str, *, as_of: str | None = None) -> dict:
     payments = [e for e in events if e["event_type"] == "payment_received"]
     return {
         "as_of": as_of, "events": len(events), "synthetic_excluded": synthetic_count(db_path),
+        "buyer_truth": truth_summary(buyer_evidence(db_path), events),
         "totals": metrics["totals"], "metrics": metrics["metrics"], "diagnoses": diagnoses,
         "by_channel": {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()},
         "campaigns": campaigns,
@@ -566,6 +665,20 @@ def render_status(report: dict) -> str:
     lines += [f"   {h['experiment_id']}: {h['decision'].upper()} at n={h['sample_size']}, "
               f"{h['primary_metric']}={h['observed_value']}" for h in rec["preferred"]["previous_experiments"] or []] \
         or ["   no experiment has concluded"]
+    truth = report.get("buyer_truth")
+    if truth:
+        lines.append("BUYER TRUTH  [OBSERVED statements · INTERPRETED themes]")
+        lines.append(f"   observations linked: {truth['observations']} ({truth['uninterpreted']} uninterpreted)")
+        if best := truth.get("best_evidenced_problem"):
+            lines.append(f"   best evidenced problem: {best['theme']} — {best['scope']['organisations']} independent "
+                         f"organisations, confidence {best['scope']['confidence']}")
+        if strong := truth.get("strongest_commercial_problem"):
+            lines.append(f"   strongest commercial problem: {strong['theme']} — {strong['proposals']} proposals, "
+                         f"{strong['customers']} customers, {_money(strong['observed_revenue_pence'])} revenue")
+        for key, label in (("common_objection", "common objection"), ("buying_criterion", "buying criterion")):
+            if found := truth.get(key):
+                lines.append(f"   {label}: {found['theme']} — {found['organisations']} organisations")
+        lines.append(f"   current uncertainty: {truth['current_uncertainty']}")
     p = rec["preferred"]
     lines.append("8. What should we test next?  [RECOMMENDATION — requires human approval]")
     lines.append(f"   {p['status']}: {p['experiment_id'] or '(new contract needed)'}")

@@ -2,7 +2,7 @@
 
 # operator
 
-**AI Growth Engineering — the method layer** — 22 of 33 capabilities implemented.
+**AI Growth Engineering — the method layer** — 25 of 36 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -19,11 +19,13 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | --- | --- |
 | `action_risk_classes` | IMPLEMENTED |
 | `budget_authority_controls` | IMPLEMENTED |
+| `buyer_truth_evidence_link` | IMPLEMENTED |
 | `campaign_creative_audience_model` | IMPLEMENTED |
 | `claim_publication_gate` | IMPLEMENTED |
 | `commercial_funnel_diagnosis` | IMPLEMENTED |
 | `evidence_governed_revenue_intelligence` | IMPLEMENTED |
 | `evidence_lineage` | IMPLEMENTED |
+| `experiment_contract_seeding` | IMPLEMENTED |
 | `experiment_namespace_enforcement` | IMPLEMENTED |
 | `experiment_preregistration` | IMPLEMENTED |
 | `experiment_registry` | IMPLEMENTED |
@@ -36,6 +38,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `next_experiment_card` | IMPLEMENTED |
 | `next_experiment_recommender` | IMPLEMENTED |
 | `observed_inferred_unknown_separation` | IMPLEMENTED |
+| `problem_to_revenue_view` | IMPLEMENTED |
 | `signal_prospect_message_lineage` | IMPLEMENTED |
 | `single_variable_experiment_contract` | IMPLEMENTED |
 | `stripe_revenue_adapter` | IMPLEMENTED |
