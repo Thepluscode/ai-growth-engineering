@@ -9,3 +9,7 @@ __pycache__/
 # Playwright MCP artefacts from visual review — regenerate, do not commit
 .playwright-mcp/
 *.png
+
+# Local-only imports of other repositories. They hold personal data and this
+# repository is public. Kept out of .age/ because `make clean` deletes .age/.
+imports/
