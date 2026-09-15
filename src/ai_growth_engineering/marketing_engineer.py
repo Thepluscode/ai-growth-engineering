@@ -12,6 +12,7 @@ from typing import Any
 
 from . import registries
 from .buyer_truth import buyer_evidence, buyer_truth, problem_revenue, stalled_objections, truth_summary
+from .segments import NOT_RECORDED, UNRESOLVED, decision_summary, segment_proposal
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
     LADDERS, STAGE_LABELS, attribute, compute_metrics, diagnose_funnel, entity, group_by,
@@ -312,9 +313,13 @@ def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE, as_
             "not_preferred_because": ("another runnable preregistered experiment is earlier" if runnable_now
                                       else "no frozen execution supply: it cannot run as written"),
         })
-    # Proposal-stage objections before funnel leaks: they sit nearer the money.
+    # Nearest the money first: proposal-stage objections, then segment evidence, then funnel leaks.
     evidence = buyer_evidence(db_path)
+    decisions = decision_summary(db_path, as_of=as_of or date.today().isoformat(), events=linked_events(db_path),
+                                 evidence=evidence)
+    segment_test = segment_proposal(decisions, history) if decisions else None
     candidates = ([_proposal_from_objection(o, evidence, history) for o in stalled_objections(evidence, events)]
+                  + ([segment_test] if segment_test else [])
                   + [_proposal_from_leak(leak, history, min_sample) for leak in findings if leak["kind"] == "leak"])
     for proposal in candidates:
         if preferred is None:
@@ -604,6 +609,7 @@ def status_report(db_path: str, *, as_of: str | None = None) -> dict:
     return {
         "as_of": as_of, "events": len(events), "synthetic_excluded": synthetic_count(db_path),
         "buyer_truth": truth_summary(buyer_evidence(db_path), events),
+        "decisions": decision_summary(db_path, as_of=as_of, events=events, evidence=buyer_evidence(db_path)),
         "totals": metrics["totals"], "metrics": metrics["metrics"], "diagnoses": diagnoses,
         "by_channel": {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()},
         "campaigns": campaigns,
@@ -679,6 +685,21 @@ def render_status(report: dict) -> str:
             if found := truth.get(key):
                 lines.append(f"   {label}: {found['theme']} — {found['organisations']} organisations")
         lines.append(f"   current uncertainty: {truth['current_uncertainty']}")
+    decisions = report.get("decisions")
+    if decisions:
+        lines.append("TARGET / OFFER / ROUTE  [DERIVED comparisons · RECOMMENDATION — requires human approval]")
+        for label, key in (("who to target", "target"), ("best offer", "offer"), ("best route", "route")):
+            d = decisions[key]
+            lines.append(f"   {label}: {d['recommended']} — {d['reason']}" if d["recommended"] in UNRESOLVED else
+                         f"   {label}: {d['recommended']} ({d['evidence_strength']}) — {d['why']}")
+        early = decisions["target"].get("best_early_signal")
+        if early and decisions["target"]["recommended"] in UNRESOLVED:
+            lines.append(f"   best early signal: {early['value']} [{early['state']}] — {early['qualified_replies']} qualified "
+                         f"conversations, {early['meetings']} meetings, {early['proposals']} proposals")
+        lines += [f"   no reply at a measured sample: {line}" for line in decisions["route"].get("no_reply_at_measured_sample", [])]
+        if contradiction := decisions["route"].get("access_vs_downstream"):
+            lines.append(f"   {contradiction}")
+        lines.append(f"   not recorded, so never compared: {', '.join(NOT_RECORDED)}")
     p = rec["preferred"]
     lines.append("8. What should we test next?  [RECOMMENDATION — requires human approval]")
     lines.append(f"   {p['status']}: {p['experiment_id'] or '(new contract needed)'}")

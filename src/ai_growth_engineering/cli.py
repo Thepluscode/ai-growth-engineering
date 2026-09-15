@@ -403,6 +403,21 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         for experiment_id, paths in sorted(diagnoses.items()):
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
+    elif args.action in ("segments", "target", "offer", "route"):
+        from . import segments
+
+        as_of = args.as_of or None
+        if args.action == "segments":
+            evidence = segments.buyer_evidence(args.db)
+            result = segments.compare_segments(segments.segment_performance(
+                linked_events(args.db), evidence, args.dimension, as_of=as_of or segments.date.today().isoformat(),
+                registry=segments.load_registry(args.db), experiment_id=args.experiment_id or None))
+            print(json.dumps(result, indent=2, default=str) if args.json else segments.render_segments(result))
+            return
+        recommend = {"target": segments.recommend_target_segment, "offer": segments.recommend_offer,
+                     "route": segments.recommend_acquisition_route}[args.action]
+        result = recommend(args.db, as_of=as_of)
+        print(json.dumps(result, indent=2, default=str) if args.json else segments.render_decision(args.action, result))
     elif args.action == "customer":
         if not args.company:
             raise SystemExit("customer needs --company")
@@ -660,7 +675,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_event_correct)
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
-    p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems"])
+    p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems",
+                                      "segments", "target", "offer", "route"])
+    p.add_argument("--dimension", default="acquisition_route",
+                   help="icp, buyer_role, audience_type, offer, price, campaign, experiment, channel, "
+                        "recipient_route, acquisition_route")
     p.add_argument("--company", default="")
     p.add_argument("--campaign-id", default="")
     p.add_argument("--experiment-id", default="")

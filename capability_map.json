@@ -246,7 +246,9 @@
         "ad_analytics_crm_adapters": "SPECIFIED",
         "buyer_truth_evidence_link": "IMPLEMENTED",
         "problem_to_revenue_view": "IMPLEMENTED",
-        "experiment_contract_seeding": "IMPLEMENTED"
+        "experiment_contract_seeding": "IMPLEMENTED",
+        "segment_performance_comparison": "IMPLEMENTED",
+        "target_offer_route_decisioning": "IMPLEMENTED"
       }
     }
   }
