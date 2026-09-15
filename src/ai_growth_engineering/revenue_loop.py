@@ -320,7 +320,9 @@ def money_graph_for_campaign(events: Iterable[dict], campaign_id: str) -> dict:
     scoped = [e for e in events if e["campaign_id"] == campaign_id]
     t = totals(scoped)
     touched = {entity(e) for e in scoped if entity(e)}
-    customers = sorted({entity(e) for e in events if e["event_type"] == "customer_won" and entity(e) in touched})
+    # A buyer who paid is a customer whether or not anyone logged the win.
+    customers = sorted({entity(e) for e in events if e["event_type"] in ("customer_won", "payment_received")
+                        and entity(e) in touched})
     pipeline = sum(e["value_pence"] for e in events if e["event_type"] == "proposal_sent" and entity(e) in touched)
     attributed = {model: sum(share for record in attribute(events, model)
                              for touch, share in zip(record["touchpoints"], record["attributed_pence"])

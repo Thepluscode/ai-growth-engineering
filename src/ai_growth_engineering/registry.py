@@ -141,6 +141,34 @@ def set_execution_mode(db_path: str, experiment_id: str, mode: str, reason: str)
             raise ValueError(f"experiment {experiment_id} not found")
 
 
+VARIABLE_METADATA_SOURCES = ("declared_at_registration", "retrospective_from_preregistration")
+
+
+def backfill_variable(db_path: str, experiment_id: str, variable: str, source: str, note: str) -> dict:
+    """Make an already-declared design explicit. Writes only the variable and where it came from:
+    never over a variable already declared, never the hypothesis, thresholds, cohort or outcomes."""
+    from .models import TEST_VARIABLES
+
+    if variable not in TEST_VARIABLES:
+        raise ValueError(f"variable must be one of {sorted(TEST_VARIABLES)}")
+    if source not in VARIABLE_METADATA_SOURCES:
+        raise ValueError(f"source must be one of {VARIABLE_METADATA_SOURCES}")
+    if not note.strip():
+        raise ValueError("a backfilled variable needs a note saying what it was derived from")
+    init_db(db_path)
+    with connect(db_path) as con:
+        row = con.execute("SELECT variable FROM experiments WHERE experiment_id = ?", (experiment_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"experiment {experiment_id} not found")
+        if row["variable"]:
+            raise ValueError(f"{experiment_id} already declares {row['variable']!r}; a declared variable is never overwritten")
+        con.execute(
+            """UPDATE experiments SET variable = ?, variable_metadata_source = ?, variable_metadata_note = ?
+               WHERE experiment_id = ? AND variable = ''""",
+            (variable, source, note.strip(), experiment_id))
+    return {"experiment_id": experiment_id, "variable": variable, "variable_metadata_source": source}
+
+
 def seed_prospects(db_path: str, csv_path: str) -> int:
     count = 0
     with open(csv_path, newline="", encoding="utf-8") as handle, connect(db_path) as con:

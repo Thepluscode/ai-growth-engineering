@@ -38,14 +38,44 @@ exactly as frozen; nothing in them is rewritten.
   and optimise in the order revenue, customers, proposals, meetings, qualified conversations,
   replies, acceptance, sends.
 
-## Known reporting gap (not fixed; engineering is paused)
+## Reporting gap (fixed 2026-09-15)
 
-`age marketing-engineer status` still prints the preregistered `minimum sample 51` and its KEEP
-threshold, and the event log counts an `undeliverable` invitation as `invitation_sent`. Reports
-for this experiment are therefore stated by hand from `age access-result` with the real
-denominators above.
+`age marketing-engineer diagnose` now reports this experiment on delivered exposure, with a
+generic 30 minimum. It no longer claims the preregistered 51, and an `undeliverable` invitation is
+logged as `invitation_undeliverable`, never as exposure.
 
-## Verification rules (founder, 2026-09-16)
+## Test variable — retrospective metadata (founder, 2026-09-15)
+
+```
+EXP-ACQ-0003.variable = recipient_route
+variable_metadata_source = retrospective_from_preregistration
+```
+
+The preregistration changes the route used to reach the named buyer: from email to a role inbox
+or named mailbox, to the LinkedIn connection path. The EXP-ACQ-0001 message is held constant.
+`channel = linkedin` remains execution metadata. This makes the declared design explicit; it is
+not a new experimental decision.
+
+Written with `age experiment-backfill-variable`, which refuses to overwrite a declared variable.
+Before and after the write, SHA-256 fingerprints matched for:
+- the experiment's other contract columns (hypothesis, thresholds, minimum sample, execution mode)
+- the frozen cohort
+- the invitations
+- the whole event log
+
+## Date correction (2026-09-15)
+
+Records written during the 2026-09-15 session were dated 2026-09-16: 30 invitations (27 pending,
+3 undeliverable). The OS clock and every `recorded_at` timestamp in the store read 2026-09-15, so
+those dates could not have been observed and were errors, not intended future dates.
+- They were re-dated to 2026-09-15 through `record_invitation`.
+- `events-import-invitations` then appended corrections: 31 events voided and re-recorded. The
+  originals stay readable.
+- No effective event is now dated after 2026-09-15.
+- Acora's estimated date moves from 2026-09-10 to **2026-09-09**. LinkedIn's "6 days" reading was
+  taken on 2026-09-15, not 2026-09-16. It is still an estimate.
+
+## Verification rules (founder, 2026-09-15)
 
 - Examples are never observations. An outcome is recorded only after LinkedIn read-only
   verification or an explicitly identified real-world event.
@@ -59,7 +89,7 @@ denominators above.
 |---|---|
 | Six invitations recorded 2026-09-15 | delivered, counted |
 | One invitation recorded 2026-09-15 as `undeliverable` | attempted submission; **not** exposure |
-| Acora (one frozen buyer), invited about 6 days before 2026-09-16 | **pre-batch, protocol-conforming exposure**: sent after the freeze, standard invitation, no note, verified pending on LinkedIn. Counted in the primary denominator. Send date **estimated** as 2026-09-10 from LinkedIn's relative-time display; sender unknown |
+| Acora (one frozen buyer), invited about 6 days before 2026-09-15 | **pre-batch, protocol-conforming exposure**: sent after the freeze, standard invitation, no note, verified pending on LinkedIn. Counted in the primary denominator. Send date **estimated** as 2026-09-09 from LinkedIn's relative-time display (first recorded as 2026-09-10 from a mis-anchored date); sender unknown |
 
 **Primary descriptive denominator:** delivered exposures including the pre-batch exposure.
 **Sensitivity check only:** the same rate excluding it. Never the headline.
@@ -73,7 +103,7 @@ metric, expected learning and the result that would kill it.
 
 ## State when recorded
 
-| | 2026-09-15 | 2026-09-16 (LinkedIn-verified) |
+| | 2026-09-15, first batch | 2026-09-15, after Acora was verified (first labelled 2026-09-16) |
 |---|---|---|
 | Invitations submitted | 7 / 39 | 8 / 39 |
 | Delivered (pending) | 6 | 7, including the Acora pre-batch exposure |

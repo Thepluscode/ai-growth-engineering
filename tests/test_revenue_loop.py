@@ -3,15 +3,19 @@ evaluation and the next experiment. Every expected number is hard-coded, never r
 from the code under test."""
 from __future__ import annotations
 
+import copy
 import csv
+import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
 from ai_growth_engineering.execution import freeze_execution_cohort, record_invitation
+from ai_growth_engineering.adapters import SPECS, ContractViolation, StripeAdapter, ingest
 from ai_growth_engineering.funnel_events import (
-    EventError, correct_event, effective_events, import_invitations, import_outreach_csv, record_event,
+    PROVENANCES, STAGE_OF, EventError, correct_event, effective_events, import_invitations, import_outreach_csv,
+    record_event, synthetic_count,
 )
 from ai_growth_engineering import registries
 from ai_growth_engineering.marketing_engineer import (
@@ -19,7 +23,7 @@ from ai_growth_engineering.marketing_engineer import (
     recommend_next_experiment, render_card, render_status, status_report,
 )
 from ai_growth_engineering.models import ExperimentSpec
-from ai_growth_engineering.registry import add_experiment, set_execution_mode
+from ai_growth_engineering.registry import add_experiment, backfill_variable, set_execution_mode
 from ai_growth_engineering.revenue_loop import (
     attribute, compute_metrics, diagnose_funnel, funnel, money_graph_for_campaign, money_graph_for_entity,
 )
@@ -491,6 +495,147 @@ class CommercialModelTests(StoreCase):
         card = next_experiment_card(self.db, as_of="2026-09-15")
         self.assertEqual(card["status"], "NO_BASIS")
         self.assertIn("KILL CONDITION", render_card(card))
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "stripe_events.json"
+
+
+class AdapterContractTests(unittest.TestCase):
+    def test_one_specification_per_platform_and_only_stripe_is_implemented(self):
+        self.assertEqual(set(SPECS), {"meta_ads", "google_ads", "linkedin_ads", "ga4", "stripe", "highlevel"})
+        self.assertEqual({p for p, s in SPECS.items() for m in s.mappings if m.implemented}, {"stripe"})
+        for platform, spec in SPECS.items():
+            self.assertTrue(any(m.canonical_event is None for m in spec.mappings), f"{platform} refuses nothing")
+            for m in spec.mappings:
+                self.assertTrue(m.unsupported.strip(), m.external_record)
+                if m.canonical_event:
+                    self.assertIn(m.canonical_event, STAGE_OF, m.external_record)
+                    self.assertTrue(any(p in m.provenance for p in PROVENANCES), m.external_record)
+                    for text in (m.identity_fields, m.idempotency_key, m.value_semantics):
+                        self.assertNotIn(text.strip(), ("", "-"), m.external_record)
+
+
+class StripeAdapterTests(StoreCase):
+    def records(self, live=True):
+        records = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        for record in records:
+            record["livemode"] = live
+        return records
+
+    def lineage(self):
+        registries.add(self.db, "offers", {"offer_id": "OFF-1", "buyer": "Founder", "problem": "no pipeline",
+                                           "outcome": "a diagnosed leak"})
+        registries.add(self.db, "creatives", {"creative_id": "CR-1", "buyer": "Founder", "problem": "p",
+                                              "hook": "h", "campaign_id": "CMP-1"})
+        registries.add(self.db, "campaigns", {"campaign_id": "CMP-1", "channel": "email", "icp": "Founders",
+                                              "objective": "meeting_rate", "status": "active", "offer_id": "OFF-1",
+                                              "experiment_id": "EXP-ACQ-0009"})
+        self.ev("message_sent", company="Acme Ltd", creative_id="CR-1", channel="email",
+                experiment_id="EXP-ACQ-0009", occurred_at="2026-08-01")
+
+    def test_the_fixture_as_shipped_is_test_mode_and_never_counts_as_revenue(self):
+        result = ingest(self.db, StripeAdapter(), json.loads(FIXTURE.read_text(encoding="utf-8")))
+        self.assertEqual((result["inserted"], result["already_present"]), (2, 1))
+        self.assertEqual(sorted(r["code"] for r in result["rejected"]), ["currency_exponent_unsupported", "duplicate_view"])
+        self.assertEqual((effective_events(self.db), synthetic_count(self.db)), ([], 2))
+
+    def test_a_payment_traces_to_customer_campaign_offer_creative_and_experiment(self):
+        self.lineage()
+        ingest(self.db, StripeAdapter(), self.records())
+        payment = next(e for e in effective_events(self.db) if e["source_record_id"] == "pi_fixture_0001")
+        self.assertEqual((payment["event_type"], payment["value_pence"], payment["currency"], payment["provenance"],
+                          payment["occurred_at"], payment["metadata"]["stripe_event_id"]),
+                         ("payment_received", 150_000, "GBP", "platform_export", "2026-09-15T12:00:00+00:00",
+                          "evt_fixture_0001"))
+        customer = customer_graph(self.db, "Acme Ltd")
+        self.assertEqual((customer["campaigns"], customer["icp"], customer["channels"]), (["CMP-1"], ["Founders"], ["email"]))
+        self.assertEqual(([o["offer_id"] for o in customer["offers"]], [c["creative_id"] for c in customer["creatives"]]),
+                         (["OFF-1"], ["CR-1"]))
+        self.assertEqual((customer["experiments"], customer["revenue_pence"]), ([("EXP-ACQ-0009", "")], 150_000))
+        campaign = campaign_graph(self.db, "CMP-1")
+        self.assertEqual((campaign["customers"], campaign["attributed_revenue_pence"]["linear"]), (["acme ltd"], 150_000))
+        self.assertEqual((campaign["spend_pence"], campaign["cac_pence"], campaign["roas"]["linear"]), (None, None, None))
+
+    def test_conflicting_company_lineage_stays_unknown(self):
+        self.lineage()
+        ingest(self.db, StripeAdapter(), self.records())
+        events = effective_events(self.db)
+        payment = next(e for e in events if e["source_record_id"] == "pi_fixture_0005")
+        self.assertEqual((payment["company"], payment["person_id"]), ("", "cus_fixture_0005"))
+        self.assertTrue(payment["metadata"]["company_lineage"].startswith("ambiguous"))
+        [record] = [r for r in attribute(events, "linear") if r["entity"] == "cus_fixture_0005"]
+        self.assertEqual((record["touchpoints"], record["unattributed_pence"]), ([], 90_000))
+
+    def test_malformed_payments_are_rejected_with_a_reason(self):
+        good = self.records()[0]
+
+        def variant(change):
+            record = copy.deepcopy(good)
+            change(record, record["data"]["object"])
+            return record
+
+        records = [
+            {"object": "charge", "id": "ch_x"},
+            variant(lambda r, o: o.update(amount_received=0)),
+            variant(lambda r, o: r.pop("created")),
+            variant(lambda r, o: r.update(type="customer.subscription.created")),
+            variant(lambda r, o: o.update(currency="")),
+            variant(lambda r, o: o.update(id="")),
+        ]
+        result = ingest(self.db, StripeAdapter(), records)
+        self.assertEqual(result["inserted"], 0)
+        self.assertEqual([r["code"] for r in result["rejected"]],
+                         ["not_a_stripe_event", "amount_not_received", "created_missing", "not_implemented",
+                          "currency_missing", "payment_intent_missing"])
+
+    def test_an_event_outside_the_specification_stops_the_run(self):
+        class Rogue:
+            spec = SPECS["stripe"]
+
+            def map_record(self, record):
+                return [{"event_type": "click", "occurred_at": "2026-09-15", "source": "stripe",
+                         "source_record_id": "x", "provenance": "platform_export"}]
+
+        with self.assertRaises(ContractViolation):
+            ingest(self.db, Rogue(), [{}])
+
+
+class RetrospectiveMetadataTests(StoreCase):
+    def test_a_backfilled_variable_changes_only_the_variable_and_its_source(self):
+        self.experiment("EXP-ACQ-0009", channel="linkedin/named_buyer")
+        read = "SELECT * FROM experiments WHERE experiment_id = 'EXP-ACQ-0009'"
+        with connect(self.db) as con:
+            before = dict(con.execute(read).fetchone())
+        backfill_variable(self.db, "EXP-ACQ-0009", "recipient_route", "retrospective_from_preregistration",
+                          "derived from the preregistration")
+        with connect(self.db) as con:
+            after = dict(con.execute(read).fetchone())
+        self.assertEqual({k for k in before if before[k] != after[k]},
+                         {"variable", "variable_metadata_source", "variable_metadata_note"})
+        self.experiment("EXP-ACQ-0008")
+        for bad in (("EXP-ACQ-0009", "channel", "retrospective_from_preregistration", "n"),
+                    ("EXP-ACQ-0008", "tone", "retrospective_from_preregistration", "n"),
+                    ("EXP-ACQ-0008", "channel", "hindsight", "n"),
+                    ("EXP-ACQ-0008", "channel", "retrospective_from_preregistration", " "),
+                    ("EXP-ACQ-0404", "channel", "retrospective_from_preregistration", "n")):
+            with self.assertRaises(ValueError):
+                backfill_variable(self.db, *bad)
+        self.freeze_supply("EXP-ACQ-0009")
+        self.assertEqual(recommend_next_experiment(self.db)["preferred"]["single_variable"],
+                         "recipient_route (retrospective_from_preregistration)")
+
+    def test_a_corrected_invitation_date_voids_the_old_event_and_keeps_it_readable(self):
+        self.freeze_supply("EXP-ACQ-0009")
+        record_invitation(self.db, "EXP-ACQ-0009", 1, {"outcome": "pending", "submitted_at": "2026-09-16"})
+        import_invitations(self.db, "EXP-ACQ-0009")
+        record_invitation(self.db, "EXP-ACQ-0009", 1, {"outcome": "pending", "submitted_at": "2026-09-15"})
+        self.assertEqual(import_invitations(self.db, "EXP-ACQ-0009"), {"members": 1, "inserted": 1, "corrected": 1})
+        self.assertEqual([(e["event_type"], e["occurred_at"]) for e in effective_events(self.db)],
+                         [("invitation_sent", "2026-09-15")])
+        self.assertEqual(import_invitations(self.db, "EXP-ACQ-0009"), {"members": 1, "inserted": 0, "corrected": 0})
+        with connect(self.db) as con:
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM funnel_events WHERE event_type = 'invitation_sent'")
+                             .fetchone()[0], 2)
 
 
 class ExperimentVariableTests(unittest.TestCase):

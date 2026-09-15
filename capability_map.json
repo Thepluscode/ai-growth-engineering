@@ -240,7 +240,10 @@
         "marketing_engineer_status": "IMPLEMENTED",
         "commercial_funnel_diagnosis": "IMPLEMENTED",
         "campaign_creative_audience_model": "IMPLEMENTED",
-        "next_experiment_card": "IMPLEMENTED"
+        "next_experiment_card": "IMPLEMENTED",
+        "marketing_adapter_contract": "IMPLEMENTED",
+        "stripe_revenue_adapter": "IMPLEMENTED",
+        "ad_analytics_crm_adapters": "SPECIFIED"
       }
     }
   }

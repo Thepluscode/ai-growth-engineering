@@ -1,0 +1,52 @@
+[
+  {
+    "id": "evt_fixture_0001",
+    "object": "event",
+    "type": "payment_intent.succeeded",
+    "livemode": false,
+    "created": 1789473600,
+    "data": {"object": {"id": "pi_fixture_0001", "object": "payment_intent", "amount": 150000,
+                        "amount_received": 150000, "currency": "gbp", "customer": "cus_fixture_0001",
+                        "metadata": {"company": "Acme Ltd"}}}
+  },
+  {
+    "id": "evt_fixture_0002",
+    "object": "event",
+    "type": "payment_intent.succeeded",
+    "livemode": false,
+    "created": 1789473600,
+    "data": {"object": {"id": "pi_fixture_0001", "object": "payment_intent", "amount": 150000,
+                        "amount_received": 150000, "currency": "gbp", "customer": "cus_fixture_0001",
+                        "metadata": {"company": "Acme Ltd"}}}
+  },
+  {
+    "id": "evt_fixture_0003",
+    "object": "event",
+    "type": "charge.succeeded",
+    "livemode": false,
+    "created": 1789473600,
+    "data": {"object": {"id": "ch_fixture_0001", "object": "charge", "amount": 150000, "currency": "gbp",
+                        "payment_intent": "pi_fixture_0001"}}
+  },
+  {
+    "id": "evt_fixture_0004",
+    "object": "event",
+    "type": "payment_intent.succeeded",
+    "livemode": false,
+    "created": 1789473600,
+    "data": {"object": {"id": "pi_fixture_0004", "object": "payment_intent", "amount": 5000,
+                        "amount_received": 5000, "currency": "jpy", "customer": "cus_fixture_0004",
+                        "metadata": {}}}
+  },
+  {
+    "id": "evt_fixture_0005",
+    "object": "event",
+    "type": "payment_intent.succeeded",
+    "livemode": false,
+    "created": 1789473600,
+    "data": {"object": {"id": "pi_fixture_0005", "object": "payment_intent", "amount": 90000,
+                        "amount_received": 90000, "currency": "gbp",
+                        "customer": {"id": "cus_fixture_0005", "object": "customer", "metadata": {"company": "Beta Ltd"}},
+                        "metadata": {"company": "Acme Ltd"}}}
+  }
+]

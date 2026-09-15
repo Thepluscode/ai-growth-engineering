@@ -422,6 +422,36 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         print(json.dumps(graph, indent=2, default=str))
 
 
+def cmd_experiment_backfill_variable(args: argparse.Namespace) -> None:
+    from .registry import backfill_variable
+
+    try:
+        result = backfill_variable(args.db, args.experiment_id, args.variable, args.source, args.note)
+    except ValueError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(f"{result['experiment_id']}: variable = {result['variable']} ({result['variable_metadata_source']})")
+
+
+def cmd_events_import_stripe(args: argparse.Namespace) -> None:
+    import json
+
+    from .adapters import StripeAdapter, ingest
+
+    with open(args.json_path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    if isinstance(data, dict):
+        records = data["data"] if data.get("object") == "list" else [data]
+    else:
+        records = data
+    print(json.dumps(ingest(args.db, StripeAdapter(), records), indent=2))
+
+
+def cmd_adapter_specs(args: argparse.Namespace) -> None:
+    from .adapters import render_specs
+
+    print(render_specs(args.platform))
+
+
 def cmd_experiment_execution_mode(args: argparse.Namespace) -> None:
     from .registry import set_execution_mode
 
@@ -605,6 +635,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--mode", required=True, choices=["PREREGISTERED", "DESCRIPTIVE_FROZEN_COHORT"])
     p.add_argument("--reason", required=True)
     p.set_defaults(func=cmd_experiment_execution_mode)
+
+    p = sub.add_parser("experiment-backfill-variable"); dbarg(p)
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--variable", required=True)
+    p.add_argument("--source", required=True,
+                   choices=["declared_at_registration", "retrospective_from_preregistration"])
+    p.add_argument("--note", required=True)
+    p.set_defaults(func=cmd_experiment_backfill_variable)
+
+    p = sub.add_parser("events-import-stripe"); dbarg(p); p.add_argument("json_path")
+    p.set_defaults(func=cmd_events_import_stripe)
+
+    p = sub.add_parser("adapter-specs")
+    p.add_argument("--platform", default="")
+    p.set_defaults(func=cmd_adapter_specs)
     return parser
 
 

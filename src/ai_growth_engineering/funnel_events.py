@@ -233,12 +233,39 @@ def import_outreach_csv(db_path: str, csv_path: str, *, experiment_id: str,
     return {"inserted": inserted, "already_present": already_present, "incomplete_rows": incomplete}
 
 
-def _is_effective(db_path: str, event_id: str) -> bool:
+def _effective_record(db_path: str, record_id: str, event_type: str):
+    """The live event for one invitation fact, under its original or a date-corrected record id."""
+    prefix = f"{record_id}#"
     with connect(db_path) as con:
         return con.execute(
-            """SELECT 1 FROM funnel_events e WHERE e.event_id = ?
+            """SELECT e.event_id, e.occurred_at FROM funnel_events e
+               WHERE e.source = 'invitations' AND e.event_type = ?
+                 AND (e.source_record_id = ? OR substr(e.source_record_id, 1, ?) = ?)
                  AND NOT EXISTS (SELECT 1 FROM funnel_events c WHERE c.corrects_event_id = e.event_id)""",
-            (event_id,)).fetchone() is not None
+            (event_type, record_id, len(prefix), prefix)).fetchone()
+
+
+def _record_dated(db_path: str, values: dict) -> tuple[int, int]:
+    """Record one dated invitation fact. When the store's date for it has changed, the old event
+    is corrected (it stays readable) and the fact is recorded again under a dated record id."""
+    record_id, event_type = values["source_record_id"], values["event_type"]
+    current = _effective_record(db_path, record_id, event_type)
+    if current is not None and current["occurred_at"] == _occurred_at(values["occurred_at"]):
+        return 0, 0
+    corrected = 0
+    if current is not None:
+        correct_event(db_path, current["event_id"],
+                      f"invitations now dates this {values['occurred_at']} (was {current['occurred_at']})",
+                      recorded_by="import_invitations")
+        corrected = 1
+    with connect(db_path) as con:
+        base_used = con.execute("SELECT 1 FROM funnel_events WHERE event_id = ?",
+                                (event_id_for("invitations", record_id, event_type),)).fetchone()
+    if base_used:
+        # ponytail: a date changed back to one already corrected away raises voided_event_reused;
+        # add a revision counter to the record id if that ever happens.
+        values = dict(values, source_record_id=f"{record_id}#{values['occurred_at']}")
+    return record_event(db_path, values)["inserted"], corrected
 
 
 def import_invitations(db_path: str, cohort_id: str, *, experiment_id: str = "",
@@ -267,25 +294,23 @@ def import_invitations(db_path: str, cohort_id: str, *, experiment_id: str = "",
                 "experiment_id": experiment_id or cohort_id, "creative_id": member["treatment"],
                 "source": "invitations", "source_record_id": record_id,
                 "provenance": "system_import", "metadata": {"outcome": member["outcome"]}}
-        sent_id = event_id_for("invitations", record_id, "invitation_sent")
-        if member["outcome"] in BLOCKED_OUTCOMES:
-            if _is_effective(db_path, sent_id):
-                correct_event(db_path, sent_id,
-                              f"invitations now reads {member['outcome']!r}: it never reached the buyer, "
-                              "so it is an attempt, not an exposure", recorded_by="import_invitations")
+        outcome = member["outcome"]
+        blocked = outcome in BLOCKED_OUTCOMES
+        stale = [("invitation_sent" if blocked else "invitation_undeliverable",
+                  f"invitations now reads {outcome!r}: " + ("it never reached the buyer, so it is an attempt, "
+                                                            "not an exposure" if blocked else "it was delivered"))]
+        if outcome != "accepted":
+            stale.append(("invitation_accepted", f"invitations now reads {outcome!r}; the acceptance no longer holds"))
+        for event_type, reason in stale:
+            live = _effective_record(db_path, record_id, event_type)
+            if live is not None:
+                correct_event(db_path, live["event_id"], reason, recorded_by="import_invitations")
                 corrected += 1
-            inserted += record_event(db_path, dict(base, event_type="invitation_undeliverable",
-                                                   occurred_at=member["submitted_at"]))["inserted"]
-            continue
-        inserted += record_event(db_path, dict(base, event_type="invitation_sent",
-                                               occurred_at=member["submitted_at"]))["inserted"]
-        accepted_id = event_id_for("invitations", record_id, "invitation_accepted")
-        if member["outcome"] == "accepted":
-            inserted += record_event(db_path, dict(base, event_type="invitation_accepted",
-                                                   occurred_at=member["accepted_at"]))["inserted"]
-        elif _is_effective(db_path, accepted_id):
-            correct_event(db_path, accepted_id,
-                          f"invitations now reads {member['outcome']!r}; the acceptance no longer holds",
-                          recorded_by="import_invitations")
-            corrected += 1
+        dated = [("invitation_undeliverable" if blocked else "invitation_sent", member["submitted_at"])]
+        if outcome == "accepted":
+            dated.append(("invitation_accepted", member["accepted_at"]))
+        for event_type, occurred_at in dated:
+            added, fixed = _record_dated(db_path, dict(base, event_type=event_type, occurred_at=occurred_at))
+            inserted += added
+            corrected += fixed
     return {"members": len(members), "inserted": inserted, "corrected": corrected}

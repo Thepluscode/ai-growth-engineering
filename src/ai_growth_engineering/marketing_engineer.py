@@ -196,7 +196,9 @@ def _run_preregistered(e: dict, supply: int, exposed: int, guardrails: list[dict
         "experiment_id": e["experiment_id"],
         "based_on_experiment_id": e["experiment_id"],
         "hypothesis": e["hypothesis"],
-        "single_variable": e.get("variable") or "not declared in the contract (it predates the variable field)",
+        "single_variable": (f"{e['variable']} ({e['variable_metadata_source']})"
+                            if e.get("variable") and e.get("variable_metadata_source") else
+                            e.get("variable") or "not declared in the contract (it predates the variable field)"),
         "control": e["control"] or "not declared in the contract",
         "variant": e["variant"] or "not declared in the contract",
         "icp": e["buyer"] or e["market"] or "not declared in the experiment contract",

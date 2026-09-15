@@ -292,6 +292,9 @@ EXPERIMENT_CONTRACT_COLUMNS = (
     # How the frozen contract is being executed. Annotates the contract; never rewrites it.
     ("execution_mode", "TEXT NOT NULL DEFAULT ''"),
     ("execution_mode_reason", "TEXT NOT NULL DEFAULT ''"),
+    # Where `variable` came from. A retrospective value makes an already-declared design explicit.
+    ("variable_metadata_source", "TEXT NOT NULL DEFAULT ''"),
+    ("variable_metadata_note", "TEXT NOT NULL DEFAULT ''"),
 )
 
 EVIDENCE_CONTRACT_COLUMNS = (
