@@ -133,8 +133,22 @@ baseline has no upstream approval to lapse.
 
 **The revocation signal only reaches the file it replaces.** The Intelligent Machine's `make
 external-skills-publish` writes a revocation or withdrawal notice over `contracts/exports/<skill_id>.json`.
-Import therefore refuses any path that is not that published file (`not_the_published_export`): a
-copy kept elsewhere could never learn it was revoked.
+Import refuses any path not shaped `…/contracts/exports/<skill_id>.json` (`not_the_published_export`).
+That is a path-shape guard, not origin enforcement: a copy kept under the same shape somewhere else
+imports, never receives the notice, and stays bindable after revocation. The test
+`test_known_limit_p2_a_copy_under_the_published_shape_outlives_revocation` holds that limit in view.
+
+**P2: MANAGED_EXPORT_ORIGIN_ENFORCEMENT** (recorded 2026-09-15, not built). Before external procedures
+become executable rather than analytical, require experiment-bound procedures to retain a verifiable
+governed export origin, or an equivalent signed, revocation-aware authority token. Not built now
+because no procedure executor exists (AGE analyses and declares procedures and runs none of them),
+D1 holds for the governed path, and signing or revocation infrastructure would widen a targeted fix.
+
+**Result validation is version-selected.** `validate_result` reads the document's own `contract`:
+`skill-evaluation-result.v1` against the v1 pin, `.v2` against the v2 pin, anything else unsupported.
+AGE emits v2 only. A v1 document may carry an offline or descriptive result; it can never carry a
+causal class, market validation or KEEP, because v1 does not record competing variables or synthetic
+exposure and nothing absent is inferred.
 
 **Pinned contracts.** `SCHEMA_PINS` in `procedures.py` holds the sha256 of all four shared contracts:
 - export v1 `f6665386…`

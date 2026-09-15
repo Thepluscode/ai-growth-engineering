@@ -409,7 +409,7 @@ class EvaluationTests(ProcedureCase):
         self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "ASSOCIATED_ONLY"})))
         self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "made up"})))
         self.assertTrue(pr.validate_result(dict(doc, contract="skill-evaluation-result.v1", contract_version="1")),
-                        "this repository emits and validates v2 only")
+                        "a v1 label does not make v2 fields valid under the v1 schema")
         self.assertTrue(pr.validate_result(dict(doc, result_class="CONTROLLED_EFFECT")))
         self.assertTrue(pr.validate_result(dict(doc, authority="EXECUTE")))
 
@@ -568,7 +568,7 @@ class UpstreamApprovalTests(ProcedureCase):
         path.write_text(json.dumps(dict(notice, status="PAUSED")), encoding="utf-8")
         self.refused("upstream_approval_not_current")
 
-    def test_a_copy_is_refused_because_no_revocation_can_reach_it(self):
+    def test_an_export_outside_a_published_exports_path_is_refused(self):
         elsewhere = Path(self.tmp.name) / "downloads" / "export.json"
         elsewhere.parent.mkdir()
         elsewhere.write_text(json.dumps(dict(EXPORT, skill_version="3.0.0")), encoding="utf-8")
@@ -576,6 +576,21 @@ class UpstreamApprovalTests(ProcedureCase):
             pr.import_export(self.db, str(elsewhere), today="2026-09-15")
         self.assertEqual(caught.exception.code, "not_the_published_export")
         self.assertNotIn(f"{EXPORT['skill_id']}@3.0.0", pr.procedure_rows(self.db))
+
+    def test_known_limit_p2_a_copy_under_the_published_shape_outlives_revocation(self):
+        """P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT, recorded rather than hidden. The import guard checks the path's
+        SHAPE; a copy kept at …/contracts/exports/<skill_id>.json elsewhere imports and never receives the
+        notice. When origin enforcement lands, this test must fail — and be rewritten on purpose."""
+        doc = dict(EXPORT, skill_version="7.0.0", content_hash="7" * 64)
+        governed = Path(self.tmp.name) / "governed" / "contracts" / "exports" / f"{EXPORT['skill_id']}.json"
+        copy_path = Path(self.tmp.name) / "operator-backup" / "contracts" / "exports" / f"{EXPORT['skill_id']}.json"
+        for path in (governed, copy_path):
+            path.parent.mkdir(parents=True)
+            path.write_text(json.dumps(doc), encoding="utf-8")
+        pr.import_export(self.db, str(copy_path), today="2026-09-15")
+        governed.write_text(json.dumps(dict(json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8")),
+                                            skill_version="7.0.0", content_hash="7" * 64)), encoding="utf-8")
+        self.assertTrue(pr.bind(self.db, "EXP-ACQ-0011", f"{EXPORT['skill_id']}@7.0.0", "COMMON_INPUT")["inserted"])
 
 
 def _im_committed(path: str) -> bytes | None:
@@ -597,7 +612,7 @@ class ContractPinTests(unittest.TestCase):
 
     def test_a_changed_contract_validates_nothing(self):
         with mock.patch.dict(pr.SCHEMA_PINS, {pr.RESULT_CONTRACT: "0" * 64}):
-            self.assertIn("not its pinned", pr.validate_result({})[0])
+            self.assertIn("not its pinned", pr.validate_result({"contract": pr.RESULT_CONTRACT})[0])
         with mock.patch.dict(pr.SCHEMA_PINS, {pr.EXPORT_CONTRACT: "0" * 64}):
             with self.assertRaises(pr.ProcedureError) as caught:
                 pr.export_refusal(EXPORT)
@@ -610,6 +625,35 @@ class ContractPinTests(unittest.TestCase):
             theirs = _im_committed(f"agentic-os/external-skills/contracts/{contract}.schema.json")
             self.assertIsNotNone(theirs, f"the Intelligent Machine has not published {contract}")
             self.assertEqual(hashlib.sha256(theirs).hexdigest(), pin, contract)
+
+
+class ResultContractVersionTests(unittest.TestCase):
+    """A result is validated against the contract it declares, never against the newest one."""
+    # The committed example exactly as published under v1 at e749c9b: a genuine historical result.
+    HISTORICAL_V1 = json.loads((ROOT / "tests" / "fixtures" / "historical_result.v1.json").read_text(encoding="utf-8"))
+
+    def test_a_genuine_historical_v1_result_is_valid_against_v1(self):
+        self.assertEqual(self.HISTORICAL_V1["contract"], "skill-evaluation-result.v1")
+        self.assertNotIn("competing_variables", self.HISTORICAL_V1)
+        self.assertEqual(pr.validate_result(self.HISTORICAL_V1), [])
+
+    def test_v1_cannot_carry_a_causal_class_market_validation_or_keep(self):
+        for changes, fragment in (({"result_class": "CONTROLLED_EFFECT"}, "cannot be shown"),
+                                  ({"result_class": "REGRESSION"}, "cannot be shown"),
+                                  ({"market_validation": True}, "does not record whether synthetic"),
+                                  ({"result_class": "DESCRIPTIVE_DIFFERENCE", "decision": "KEEP"}, "KEEP needs")):
+            errors = pr.validate_result(dict(copy.deepcopy(self.HISTORICAL_V1), **changes))
+            self.assertTrue(any(fragment in e for e in errors), (changes, errors))
+
+    def test_an_unsupported_or_missing_contract_is_refused(self):
+        for contract in ("skill-evaluation-result.v3", None, 7):
+            doc = dict(copy.deepcopy(self.HISTORICAL_V1), contract=contract)
+            self.assertIn("is not supported", pr.validate_result(doc)[0])
+        self.assertIn("is not supported", pr.validate_result([])[0])
+
+    def test_each_version_is_checked_by_its_own_pin(self):
+        with mock.patch.dict(pr.SCHEMA_PINS, {pr.RESULT_CONTRACT_V1: "0" * 64}):
+            self.assertIn("not its pinned", pr.validate_result(self.HISTORICAL_V1)[0])
 
 
 class ResultGateTests(ProcedureCase):

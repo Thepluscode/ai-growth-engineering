@@ -33,12 +33,16 @@ EXPORT_CONTRACT = "approved-skill-export.v1"
 # changes in place, and the Intelligent Machine still reads v1 files.
 RESULT_CONTRACT = "skill-evaluation-result.v2"
 RESULT_CONTRACT_VERSION = "2"
+RESULT_CONTRACT_V1 = "skill-evaluation-result.v1"
+# Result contracts this repository VALIDATES. A document's own `contract` selects its pinned schema;
+# nothing is validated against "the latest", and anything else is unsupported.
+READABLE_RESULT_CONTRACTS = (RESULT_CONTRACT_V1, RESULT_CONTRACT)
 REVOCATION_CONTRACT = "skill-revocation.v1"
 # The exact bytes of every contract shared with the Intelligent Machine (export and revocation originate
 # there, results here). A schema whose bytes changed is not that version, and validates nothing.
 SCHEMA_PINS = {
     EXPORT_CONTRACT: "f6665386e89fc55ae53e292a202bc91c6619f1358b7244c6e1e53b4e75659907",
-    "skill-evaluation-result.v1": "9880e22b3611ce24e9e1ac6422eda54c9ad3e794c83300dfe121a9b92e8dd4d4",
+    RESULT_CONTRACT_V1: "9880e22b3611ce24e9e1ac6422eda54c9ad3e794c83300dfe121a9b92e8dd4d4",
     RESULT_CONTRACT: "0ee7e90fe96168cadc024b4d5816985a05ebf3f2a799100ca5b7febc1fab4c28",
     REVOCATION_CONTRACT: "fe5a5ea92f2154b1fdf9fe263c9aeda68daa5fd513b15ab7456362390a155e8a",
 }
@@ -219,15 +223,16 @@ def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
     refusal = export_refusal(doc, today=today)
     if refusal:
         raise ProcedureError(*refusal)
-    # The revocation signal is a notice the Intelligent Machine writes over this exact file. A copy
-    # kept anywhere else would never receive it, so only the published file itself is imported.
+    # A PATH-SHAPE guard, not origin enforcement. The Intelligent Machine writes its revocation notice over
+    # contracts/exports/<skill_id>.json, so a file not named that way can never receive one and is refused.
+    # It cannot tell the governed directory from a copy kept under the same shape elsewhere; that copy
+    # outlives revocation. Known limit, recorded as P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT.
     published = Path(path).resolve()
     if (published.name, published.parent.name, published.parent.parent.name) != (
             f"{doc['skill_id']}.json", "exports", "contracts"):
         raise ProcedureError("not_the_published_export",
                              f"{path} is not …/contracts/exports/{doc['skill_id']}.json; import the Intelligent "
-                             "Machine's published file itself — a copy never receives the revocation notice that "
-                             "replaces it")
+                             "Machine's published export, the path its revocation notice is written over")
     source = doc["source"]
     return _register(db_path, {
         "procedure_ref": f"{doc['skill_id']}@{doc['skill_version']}",
@@ -679,13 +684,23 @@ def result_document(r: dict, *, generated_at: str | None = None) -> dict:
 
 
 def validate_result(doc) -> list[str]:
-    """Schema, then the claims a result may not make whatever its fields say."""
+    """The document's own contract selects its pinned schema, then the claims a result may not make
+    whatever its fields say.
+
+    v1 records neither competing variables nor synthetic exposure, and its revenue is an open object.
+    Nothing absent is inferred: a v1 document can still carry a descriptive or offline result, but
+    never a causal class, market validation or KEEP, because the evidence those need is not in it."""
+    contract = doc.get("contract") if isinstance(doc, dict) else None
+    if contract not in READABLE_RESULT_CONTRACTS:
+        return [f"contract {contract!r} is not supported; this repository validates "
+                f"{' and '.join(READABLE_RESULT_CONTRACTS)}"]
     try:
-        errors = validate_schema(doc, load_schema(RESULT_CONTRACT))
+        errors = validate_schema(doc, load_schema(contract))
     except ProcedureError as exc:
         return [str(exc)]
-    if errors or not isinstance(doc, dict):
-        return errors or ["$: expected an object"]
+    if errors:
+        return errors
+    v1 = contract == RESULT_CONTRACT_V1
     offline = doc["evaluation_type"] == "OFFLINE_EVAL"
     if offline != (doc["evidence_class"] == "OFFLINE_EVAL"):
         errors.append("evaluation_type and evidence_class disagree about whether this was offline")
@@ -693,17 +708,23 @@ def validate_result(doc) -> list[str]:
         errors.append("content_hash must be a sha256 hex digest")
     controlled = doc["evidence_class"] == "CONTROLLED_MARKET_EXPERIMENT"
     if doc["result_class"] in ("CONTROLLED_EFFECT", "REGRESSION"):
-        errors += [f"{doc['result_class']}: {gap}" for gap in _controlled_evidence_gaps(doc)]
-    claim = doc["revenue"]["claim"]
+        if v1:
+            errors.append(f"{doc['result_class']}: {RESULT_CONTRACT_V1} records neither competing variables nor "
+                          f"synthetic exposure, so a causal class cannot be shown from it; publish {RESULT_CONTRACT}")
+        else:
+            errors += [f"{doc['result_class']}: {gap}" for gap in _controlled_evidence_gaps(doc)]
+    claim = (doc.get("revenue") or {}).get("claim")  # v1's revenue is open: no claim is not NONE_OBSERVED
     if claim == "CAUSAL_SUPPORTED":
         if doc["result_class"] != "CONTROLLED_EFFECT":
             errors.append(f"revenue CAUSAL_SUPPORTED needs a CONTROLLED_EFFECT, not {doc['result_class']}")
         if doc["metrics"].get("primary_metric") not in REVENUE_METRICS:
             errors.append("revenue CAUSAL_SUPPORTED needs a paid outcome as the primary metric")
-    if claim != "NONE_OBSERVED" and offline:
+    if claim not in (None, "NONE_OBSERVED") and offline:
         errors.append(f"revenue {claim}: an offline evaluation observes no revenue")
     if doc["market_validation"]:
-        if offline or doc["includes_synthetic"]:
+        if v1:
+            errors.append(f"market_validation: {RESULT_CONTRACT_V1} does not record whether synthetic data was included")
+        elif offline or doc["includes_synthetic"]:
             errors.append("market_validation: offline benchmarks and synthetic fixtures never validate the market")
         if not (controlled and doc["result_class"] == "CONTROLLED_EFFECT"):
             errors.append("market_validation needs a controlled market effect; offline or observational evidence never validates demand")

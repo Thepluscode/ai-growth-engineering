@@ -1,0 +1,47 @@
+{
+  "contract_version": "1",
+  "contract": "skill-evaluation-result.v1",
+  "skill_id": "coreyhaines31/marketingskills:ab-testing",
+  "skill_version": "2.0.0",
+  "content_hash": "1fd229160f6014f3f2d7c92cc7d2f991fbf8dc9ed68aac9793c71b408a6d1144",
+  "evaluation_type": "OFFLINE_EVAL",
+  "evidence_class": "OFFLINE_EVAL",
+  "result_class": "DESCRIPTIVE_DIFFERENCE",
+  "use_case": "experiment_design",
+  "baseline": {
+    "procedure_ref": "theplus.experiment-design@1.0.0",
+    "content_hash": "25aa2fb46e0fd32c051e8cc77a6c9ee6f8c55ed6e7720a55eed86ce826e0cda5",
+    "source_ref": "skills/experiment-design/SKILL.md"
+  },
+  "experiment_id": null,
+  "metrics": {
+    "corpus": "10 governed experiment decisions, each tied to the code that enforces it: docs/PROCEDURE_GAP_REVIEW.md, section 'Candidate comparison 1'",
+    "agreement_with_governed_decisions": {"baseline": 1, "candidate": 6, "of": 10},
+    "missed_guardrails": {"baseline": 9, "candidate": 2},
+    "unsupported_recommendations": {"baseline": 0, "candidate": 2},
+    "false_causal_claims": {"baseline": 0, "candidate": 1}
+  },
+  "sample": {"governed_cases": 10},
+  "maturity": {},
+  "confounders": [
+    "one reviewer, and the reviewer is a model: not an independent verifier",
+    "the candidate is written for web-traffic A/B tests, not low-volume B2B outreach",
+    "most of the baseline's governed rules live in engine code, not in its skill text, so the text comparison understates the baseline system"
+  ],
+  "unsupported_claims": [
+    "The candidate procedure designs better experiments in the market.",
+    "This offline comparison shows demand, pipeline or revenue impact.",
+    "Admission or public popularity shows the candidate is effective."
+  ],
+  "market_validation": false,
+  "decision": "REJECT",
+  "authority": "RECOMMENDATION_ONLY",
+  "reviewer": "Claude Code session (model), 2026-09-15; not an independent verifier",
+  "limitations": "A structural reading of two procedure texts against governed decisions. No experiment was run, no buyer was involved, and the candidate was never admitted by the Intelligent Machine, so it cannot be imported or declared into an experiment here. REJECT means not adopted as the ThePlus experiment-design procedure; five of its rules were restated in ThePlus's own words as theplus.experiment-design@1.1.0, whose agreement with the governed decisions is by construction and is not evidence.",
+  "evidence_refs": [
+    "https://github.com/coreyhaines31/marketingskills/blob/5b2c0007766c6a1cf1d53fd8fc73e979e0821022/skills/ab-testing/SKILL.md",
+    "docs/PROCEDURE_GAP_REVIEW.md"
+  ],
+  "generated_at": "2026-09-15",
+  "generated_by": "ai-growth-engineering (manual structural review)"
+}
