@@ -45,6 +45,25 @@ threshold, and the event log counts an `undeliverable` invitation as `invitation
 for this experiment are therefore stated by hand from `age access-result` with the real
 denominators above.
 
+## Verification rules (founder, 2026-09-16)
+
+- Examples are never observations. An outcome is recorded only after LinkedIn read-only
+  verification or an explicitly identified real-world event.
+- An acceptance is recorded only when LinkedIn shows it (the person has left the Sent invitations
+  list and ordinary messaging is available). The frozen follow-up is sent only then.
+- Sales Navigator InMail is never used. If it is the only messaging path, nothing is sent.
+
+## Exposure accounting
+
+| Exposure | Treatment |
+|---|---|
+| Six invitations recorded 2026-09-15 | delivered, counted |
+| One invitation recorded 2026-09-15 as `undeliverable` | attempted submission; **not** exposure |
+| Acora (one frozen buyer), invited about 6 days before 2026-09-16 | **pre-batch, protocol-conforming exposure**: sent after the freeze, standard invitation, no note, verified pending on LinkedIn. Counted in the primary denominator. Send date **estimated** as 2026-09-10 from LinkedIn's relative-time display; sender unknown |
+
+**Primary descriptive denominator:** delivered exposures including the pre-batch exposure.
+**Sensitivity check only:** the same rate excluding it. Never the headline.
+
 ## Next experiment
 
 Proposed only when (A) the frozen exposure is complete, (B) downstream evidence identifies the
@@ -54,10 +73,12 @@ metric, expected learning and the result that would kill it.
 
 ## State when recorded
 
-| | |
-|---|---|
-| Invitations submitted | 7 / 39 |
-| Delivered (pending) | 6 |
-| Undeliverable | 1 |
-| Accepted / replies / meetings / proposals / customers / revenue | 0 / 0 / 0 / 0 / 0 / £0 |
-| Not yet submitted | 32 |
+| | 2026-09-15 | 2026-09-16 (LinkedIn-verified) |
+|---|---|---|
+| Invitations submitted | 7 / 39 | 8 / 39 |
+| Delivered (pending) | 6 | 7, including the Acora pre-batch exposure |
+| Undeliverable | 1 | 1 |
+| Accepted / replies / meetings / proposals / customers | 0 / 0 / 0 / 0 / 0 | 0 / 0 / 0 / 0 / 0 |
+| Revenue | none observed | none observed |
+| Not yet submitted | 32 | 31 |
+| Acceptance rate | 0 / 6 | **0 / 7** (sensitivity: 0 / 6 excluding Acora) |
