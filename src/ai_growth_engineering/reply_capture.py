@@ -360,6 +360,116 @@ def capture(db_path: str, messages: Iterable[dict], *, mailbox: str) -> dict:
     return dict(counts)
 
 
+# --- governed reply check -----------------------------------------------------------------
+
+CANONICAL_TABLES = ("funnel_events", "evidence", "commercial_evidence", "suppression")
+
+
+def _canonical_counts(db_path: str) -> dict[str, int]:
+    with connect(db_path) as con:
+        return {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in CANONICAL_TABLES}
+
+
+def _lineage(db_path: str, experiment_id: str) -> tuple[list[dict], set[str]]:
+    init_db(db_path)
+    with connect(db_path) as con:
+        rows = [dict(r) for r in con.execute("SELECT * FROM outbound_messages WHERE experiment_id = ? ORDER BY sent_at",
+                                             (experiment_id,))]
+        foreign = {r["thread_id"] for r in con.execute("SELECT thread_id FROM outbound_messages WHERE experiment_id != ?",
+                                                       (experiment_id,))}
+    if not rows:
+        raise ReplyCaptureError("no_linked_sends", f"no governed outbound message is linked for {experiment_id}")
+    return rows, foreign
+
+
+def check_plan(db_path: str, experiment_id: str, *, since: str = "", until: str = "") -> dict:
+    """The bounded retrieval for one experiment, derived only from its recorded outbound lineage.
+    The Gmail connector runs these; nothing here reaches the mailbox."""
+    rows, _ = _lineage(db_path, experiment_id)
+    after = (since or rows[0]["sent_at"][:10]).replace("-", "/")
+    before = f" before:{until.replace('-', '/')}" if until else ""
+    recipients = sorted({r["recipient"] for r in rows})
+    return {
+        "experiment_id": experiment_id, "governed_threads": sorted({r["thread_id"] for r in rows}),
+        "recipients": len(recipients),
+        "searches": [
+            {"purpose": "replies from governed recipients, including new threads", "include_trash": True,
+             "query": f"in:anywhere after:{after}{before} -in:sent (" + " OR ".join(f"from:{a}" for a in recipients) + ")"},
+            {"purpose": "governed threads with every message in them, bounces included", "include_trash": True,
+             "query": f"in:sent after:{after}{before} (" + " OR ".join(f"to:{a}" for a in recipients) + ")"},
+        ],
+        "then": "fetch the full body (get_message, PLAIN_TEXT) of any inbound message that only has a snippet, "
+                "save everything as one JSON payload, and run: age replies check PAYLOAD --experiment "
+                f"{experiment_id} --mailbox <sending address>",
+    }
+
+
+def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str = "", until: str = "") -> dict:
+    """Capture review candidates for one experiment's governed outreach only. Out-of-scope mail is
+    dropped, an inbound message known only by its snippet is held back until its body is fetched,
+    and the run is refused if anything canonical changes: a check writes candidates, never facts."""
+    rows, foreign = _lineage(db_path, experiment_id)
+    threads, recipients = {r["thread_id"] for r in rows}, {r["recipient"] for r in rows}
+    start, mailbox = since or rows[0]["sent_at"][:10], _address(mailbox)
+    in_scope, held, out_of_scope, own = [], [], 0, 0
+    for message in gmail_messages(payload):
+        day = message["occurred_at"][:10]
+        governed = message["source_thread_id"] in threads or (
+            message["sender"] in recipients and message["source_thread_id"] not in foreign)
+        if not governed or day < start or (until and day > until):
+            out_of_scope += 1
+            continue
+        if message["sender"] == mailbox or "SENT" in message["labels"]:
+            own += 1
+            continue
+        if message["body_is_snippet"] and not BOUNCE_SENDER.match(message["sender"]):
+            held.append(message["source_record_id"])  # captured once, a snippet could never be read in full
+            continue
+        in_scope.append(message)
+    before = _canonical_counts(db_path)
+    counts = capture(db_path, in_scope, mailbox=mailbox)
+    writes = {t: _canonical_counts(db_path)[t] - n for t, n in before.items()}
+    if any(writes.values()):
+        raise ReplyCaptureError("canonical_write_during_check", f"a check must not change canonical stores: {writes}")
+    with connect(db_path) as con:
+        ledger = [dict(r) for r in con.execute("SELECT candidate_id, kind, match_state FROM reply_candidates "
+                                               f"WHERE source_thread_id IN ({','.join('?' * len(threads))}) "
+                                               f"OR sender IN ({','.join('?' * len(recipients))})",
+                                               (*threads, *recipients))]
+    new = {k: v for k, v in counts.items() if k not in ("already_captured", "own_messages")}
+    return {
+        "experiment_id": experiment_id, "window": [start, until or "open"],
+        "threads_checked": len(threads), "recipients_checked": len(recipients),
+        "out_of_scope_dropped": out_of_scope, "own_messages": own,
+        "inbound_found": len(in_scope) + len(held), "already_processed": counts.get("already_captured", 0),
+        "needs_full_body": held, "new_candidates": new,
+        "automated": sum(v for k, v in new.items() if k.startswith(("automated", "out_of_office"))),
+        "bounces": sum(v for k, v in new.items() if k.startswith("bounce")),
+        "buyer_reply_candidates": sum(v for k, v in new.items() if k.startswith(("buyer_reply", "unsubscribe"))),
+        "ambiguous_or_unmatched": sum(v for k, v in new.items() if not k.endswith("_matched")),
+        "pending_review": sum(1 for c in (_candidate(db_path, r["candidate_id"]) for r in ledger) if c["pending"]),
+        "real_buyer_replies": sum(1 for r in ledger if r["kind"] == "BUYER_REPLY" and r["match_state"] == "MATCHED"),
+        "canonical_writes": sum(writes.values()),
+    }
+
+
+def render_check(s: dict) -> str:
+    lines = [f"{s['experiment_id']} REPLY CHECK  [review candidates only · window {s['window'][0]}..{s['window'][1]}]",
+             f"Threads checked: {s['threads_checked']} (recipients {s['recipients_checked']})",
+             f"Out-of-scope mail dropped: {s['out_of_scope_dropped']}",
+             f"Inbound messages found: {s['inbound_found']}",
+             f"Already processed: {s['already_processed']}",
+             f"Automated: {s['automated']}", f"Bounces: {s['bounces']}",
+             f"Buyer reply candidates: {s['buyer_reply_candidates']}",
+             f"Ambiguous/unmatched: {s['ambiguous_or_unmatched']}",
+             f"Pending human review: {s['pending_review']}",
+             f"Canonical writes by this check: {s['canonical_writes']}"]
+    if s["needs_full_body"]:
+        lines.append(f"Held back, snippet only (fetch the full body, then re-run): {len(s['needs_full_body'])}")
+    lines.append(f"REAL BUYER REPLIES FOUND: {s['real_buyer_replies']}")
+    return "\n".join(lines)
+
+
 # --- review and approval ------------------------------------------------------------------
 
 def candidate(db_path: str, candidate_id: str) -> dict:

@@ -512,6 +512,15 @@ def cmd_replies(args: argparse.Namespace) -> None:
         if args.action == "link-outbound":
             with open(args.target, encoding="utf-8") as handle:
                 result = rc.link_outbound(args.db, json.load(handle))
+        elif args.action == "check":
+            if not args.target:
+                result = rc.check_plan(args.db, args.experiment, since=args.since, until=args.until)
+            else:
+                with open(args.target, encoding="utf-8") as handle:
+                    result = rc.check(args.db, args.experiment, json.load(handle), mailbox=args.mailbox,
+                                      since=args.since, until=args.until)
+                print(json.dumps(result, indent=2) if args.json else rc.render_check(result))
+                return
         elif args.action == "import-sends":
             result = rc.import_outbound_sends(args.db, args.target)
         elif args.action == "capture":
@@ -786,7 +795,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_evidence_interpret)
 
     p = sub.add_parser("replies"); dbarg(p)
-    p.add_argument("action", choices=["link-outbound", "import-sends", "capture", "review", "approve", "reject"])
+    p.add_argument("action", choices=["check", "link-outbound", "import-sends", "capture", "review", "approve", "reject"])
+    p.add_argument("--experiment", default="", help="check: the experiment whose governed outreach is checked")
+    p.add_argument("--since", default="", help="check: YYYY-MM-DD (default: the first governed send)")
+    p.add_argument("--until", default="", help="check: YYYY-MM-DD (default: open)")
     p.add_argument("target", nargs="?", default="",
                    help="JSON file for link-outbound and capture; experiment id for import-sends; candidate id for "
                         "approve and reject")

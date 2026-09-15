@@ -11,8 +11,8 @@ from ai_growth_engineering.buyer_truth import buyer_evidence
 from ai_growth_engineering.funnel_events import effective_events, event_id_for, record_event
 from ai_growth_engineering.marketing_engineer import render_status, status_report
 from ai_growth_engineering.reply_capture import (
-    ReplyCaptureError, approve, candidate, candidate_id_for, capture, gmail_messages, import_outbound_sends, link_outbound,
-    reject, review,
+    ReplyCaptureError, approve, candidate, candidate_id_for, capture, check, check_plan, gmail_messages,
+    import_outbound_sends, link_outbound, reject, review,
 )
 from ai_growth_engineering.revenue_loop import compute_metrics, diagnose_funnel, money_graph_for_entity, totals
 from ai_growth_engineering.storage import connect, init_db
@@ -274,6 +274,66 @@ class SendLineageTests(ReplyCaptureCase):
         self.assertEqual((result["linked"], result["inserted"], [r["code"] for r in result["refused"]]),
                          (3, 2, ["recorded_from_other_source"]))
         self.assertEqual(sorted(e["company"] for e in self.sends()), ["Acme Ltd", "Beta Ltd", "Gamma Ltd"])
+
+
+class ReplyCheckTests(ReplyCaptureCase):
+    def setUp(self):
+        super().setUp()
+        import_outbound_sends(self.db, "EXP-ACQ-0006")
+        self.payload = {"threads": [
+            {"id": "t-acme", "messages": [message("r1", "t-acme", "buyer@acme.test", INTERESTED)]},
+            {"id": "t-beta", "messages": [message("r2", "t-beta", "mailer-daemon@googlemail.com", "Address not found.",
+                                                   subject="Delivery Status Notification (Failure)", labels=("TRASH",))]},
+            {"id": "t-gamma-1", "messages": [message("r3", "t-gamma-1", "shared@gamma.test", "I am out of the office until Monday.",
+                                                      subject="Automatic reply", labels=("TRASH",))]},
+            {"id": "t-news", "messages": [message("r4", "t-news", "newsletter@shop.test", "Our autumn sale starts now.")]},
+            {"id": "t-gamma-2", "messages": [message("r5", "t-gamma-2", "shared@gamma.test", INTERESTED)]},
+            {"id": "t-early", "messages": [message("r6", "t-early", "buyer@acme.test", INTERESTED, date="2026-09-01T09:00:00Z")]},
+            {"id": "t-snip", "messages": [message("r7", "t-snip", "info@beta.test", INTERESTED, snippet_only=True)]},
+        ]}
+
+    def run_check(self):
+        return check(self.db, "EXP-ACQ-0006", self.payload, mailbox=MAILBOX)
+
+    def test_only_governed_mail_in_the_window_is_checked_and_trash_counts(self):
+        plan = check_plan(self.db, "EXP-ACQ-0006")
+        self.assertEqual((plan["governed_threads"], plan["recipients"]), (["t-acme", "t-beta", "t-gamma-1"], 3))
+        self.assertTrue(all(s["include_trash"] and "after:2026/09/08" in s["query"] for s in plan["searches"]))
+        summary = self.run_check()
+        self.assertEqual((summary["threads_checked"], summary["out_of_scope_dropped"], summary["needs_full_body"]),
+                         (3, 3, ["r7"]))
+        self.assertEqual((summary["bounces"], summary["automated"], summary["buyer_reply_candidates"]), (1, 1, 1))
+        self.assertEqual({c["kind"] for c in (self.get("r2"), self.get("r3"))}, {"BOUNCE", "OUT_OF_OFFICE"})
+        with self.assertRaises(ReplyCaptureError):
+            self.get("r5")
+
+    def test_a_check_writes_candidates_only_and_a_rerun_adds_nothing(self):
+        before = self.sends()
+        summary = self.run_check()
+        self.assertEqual((summary["canonical_writes"], summary["pending_review"], summary["real_buyer_replies"]), (0, 2, 1))
+        self.assertEqual((self.sends(), self.outcomes(), buyer_evidence(self.db)), (before, [], []))
+        approve(self.db, self.get("r1")["candidate_id"], items=["event"])
+        reject(self.db, self.get("r2")["candidate_id"], reason="checked in the review")
+        again = self.run_check()
+        self.assertEqual((again["already_processed"], again["new_candidates"], review(self.db)["captured"]), (3, {}, 3))
+        self.assertEqual([e["event_type"] for e in self.outcomes()], ["reply_received"])
+
+    def test_a_check_that_would_change_canonical_stores_is_refused(self):
+        from ai_growth_engineering import reply_capture
+
+        original = reply_capture.capture
+
+        def writing_capture(db_path, messages, *, mailbox):
+            record_event(db_path, {"event_type": "reply_received", "company": "Acme Ltd", "experiment_id": "EXP-ACQ-0006",
+                                   "source": "gmail", "source_record_id": "sneaky", "occurred_at": "2026-09-10",
+                                   "provenance": "platform_export"})
+            return original(db_path, messages, mailbox=mailbox)
+
+        reply_capture.capture = writing_capture
+        self.addCleanup(setattr, reply_capture, "capture", original)
+        with self.assertRaises(ReplyCaptureError) as caught:
+            self.run_check()
+        self.assertEqual(caught.exception.code, "canonical_write_during_check")
 
 
 if __name__ == "__main__":
