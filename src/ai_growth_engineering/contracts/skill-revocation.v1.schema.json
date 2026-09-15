@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "skill-revocation.v1",
+  "description": "Written by the Intelligent Machine over a published approved-skill-export.v1, at the same path, once that exact version may no longer be used. A consumer that imported the export re-reads that path before any new use and finds this instead. File only: no runtime coupling, no database, no HTTP. Nothing is deleted.",
+  "type": "object",
+  "required": ["contract_version", "contract", "skill_id", "skill_version", "content_hash", "status", "effective_status", "reason", "decided_by", "decided_at", "supersedes"],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {"type": "string", "const": "1"},
+    "contract": {"type": "string", "const": "skill-revocation.v1"},
+    "skill_id": {"type": "string"},
+    "skill_version": {"type": "string"},
+    "content_hash": {"type": "string"},
+    "status": {"type": "string", "enum": ["REVOKED", "WITHDRAWN"]},
+    "effective_status": {"type": "string"},
+    "reason": {"type": "string"},
+    "decided_by": {"type": "string"},
+    "decided_at": {"type": "string"},
+    "supersedes": {"type": "string", "const": "approved-skill-export.v1"}
+  }
+}

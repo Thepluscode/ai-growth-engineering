@@ -6,9 +6,12 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 import io
 import json
+import os
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -33,6 +36,9 @@ FROZEN = "2026-07-01T00:00:00+00:00"
 # 0cddae4, and schema-valid there, so every permission section has the nested shape the IM really emits.
 # Only review_after moves: the fixture must describe a CURRENT approval whenever the suite runs.
 FIXTURE = ROOT / "tests" / "fixtures" / "im_approved_skill_export.v1.json"
+# Written by the Intelligent Machine's own revocation_notice() for that same published identity.
+REVOCATION_FIXTURE = ROOT / "tests" / "fixtures" / "im_skill_revocation.v1.json"
+IM_REPO = Path(os.environ.get("IM_REPO", str(ROOT.parent / "theplus-intelligent-machine")))
 EXPORT = dict(json.loads(FIXTURE.read_text(encoding="utf-8")),
               review_after=(date.today() + timedelta(days=90)).isoformat())
 CANDIDATE_HASH = EXPORT["content_hash"]
@@ -69,8 +75,12 @@ class ProcedureCase(unittest.TestCase):
             primary_metric=primary_metric, success_threshold=0.2, review_threshold=0.05, minimum_sample=minimum_sample,
             variable=variable, control="baseline procedure" if variable else "", variant="candidate" if variable else ""))
 
-    def import_export(self, doc, name="export.json"):
-        path = Path(self.tmp.name) / name
+    def import_export(self, doc, name="published"):
+        """Write the export where the Intelligent Machine publishes it — contracts/exports/<skill_id>.json,
+        under a separate publication root per name — and import that file itself."""
+        folder = Path(self.tmp.name) / name / "contracts" / "exports"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{doc.get('skill_id')}.json"
         path.write_text(json.dumps(doc), encoding="utf-8")
         return pr.import_export(self.db, str(path), today="2026-09-15")
 
@@ -386,7 +396,7 @@ class EvaluationTests(ProcedureCase):
                       self.evaluate(experiment_id="EXP-ACQ-0014", use_case="experiment_analysis")["reason"])
 
     def test_an_offline_result_can_never_claim_market_validation(self):
-        doc = {"contract_version": "1", "contract": "skill-evaluation-result.v1", "skill_id": "x", "skill_version": "1",
+        doc = {"contract_version": "2", "contract": "skill-evaluation-result.v2", "skill_id": "x", "skill_version": "1",
                "content_hash": "d" * 64, "evaluation_type": "OFFLINE_EVAL", "evidence_class": "OFFLINE_EVAL",
                "result_class": "DESCRIPTIVE_DIFFERENCE", "use_case": "experiment_design",
                "baseline": {"procedure_ref": BASELINE_REF, "content_hash": "e" * 64}, "experiment_id": None,
@@ -398,6 +408,8 @@ class EvaluationTests(ProcedureCase):
         self.assertTrue(pr.validate_result(dict(doc, market_validation=True)))
         self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "ASSOCIATED_ONLY"})))
         self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "made up"})))
+        self.assertTrue(pr.validate_result(dict(doc, contract="skill-evaluation-result.v1", contract_version="1")),
+                        "this repository emits and validates v2 only")
         self.assertTrue(pr.validate_result(dict(doc, result_class="CONTROLLED_EFFECT")))
         self.assertTrue(pr.validate_result(dict(doc, authority="EXECUTE")))
 
@@ -464,7 +476,7 @@ class UpstreamApprovalTests(ProcedureCase):
     closed; declarations already made stay exactly as they were."""
 
     def upstream(self, **changes):
-        path = Path(self.tmp.name) / "export.json"
+        path = Path(self.tmp.name) / "published" / "contracts" / "exports" / f"{EXPORT['skill_id']}.json"
         path.write_text(json.dumps(dict(copy.deepcopy(EXPORT), **changes)), encoding="utf-8")
         return path
 
@@ -538,6 +550,66 @@ class UpstreamApprovalTests(ProcedureCase):
     def test_a_theplus_baseline_has_no_upstream_to_lapse(self):
         with mock.patch("ai_growth_engineering.procedures._utc_now", return_value="2099-01-01T00:00:00+00:00"):
             self.assertTrue(pr.bind(self.db, "EXP-ACQ-0011", BASELINE_REF, "COMMON_INPUT")["inserted"])
+
+
+    def test_the_intelligent_machine_revocation_notice_refuses_a_new_binding_and_keeps_history(self):
+        with frozen_clock():
+            pr.bind(self.db, "EXP-ACQ-0010", CANDIDATE_REF, "VARIABLE", arm="candidate")
+        history = pr.bindings(self.db)
+        notice = json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual((notice["skill_id"], notice["skill_version"], notice["content_hash"]),
+                         (EXPORT["skill_id"], EXPORT["skill_version"], CANDIDATE_HASH))
+        path = self.upstream()
+        path.write_text(json.dumps(notice), encoding="utf-8")
+        self.refused("upstream_revoked")
+        self.assertEqual(pr.bindings(self.db), history)
+        path.write_text(json.dumps(dict(notice, skill_version="1.9.0")), encoding="utf-8")
+        self.refused("upstream_approval_not_current")
+        path.write_text(json.dumps(dict(notice, status="PAUSED")), encoding="utf-8")
+        self.refused("upstream_approval_not_current")
+
+    def test_a_copy_is_refused_because_no_revocation_can_reach_it(self):
+        elsewhere = Path(self.tmp.name) / "downloads" / "export.json"
+        elsewhere.parent.mkdir()
+        elsewhere.write_text(json.dumps(dict(EXPORT, skill_version="3.0.0")), encoding="utf-8")
+        with self.assertRaises(pr.ProcedureError) as caught:
+            pr.import_export(self.db, str(elsewhere), today="2026-09-15")
+        self.assertEqual(caught.exception.code, "not_the_published_export")
+        self.assertNotIn(f"{EXPORT['skill_id']}@3.0.0", pr.procedure_rows(self.db))
+
+
+def _im_committed(path: str) -> bytes | None:
+    """The Intelligent Machine's COMMITTED bytes at HEAD: git objects only, no runtime coupling."""
+    out = subprocess.run(["git", "-C", str(IM_REPO), "show", f"HEAD:{path}"], capture_output=True)
+    return out.stdout if out.returncode == 0 else None
+
+
+class ContractPinTests(unittest.TestCase):
+    CONTRACTS = ROOT / "src" / "ai_growth_engineering" / "contracts"
+
+    def test_every_shared_contract_is_its_pinned_bytes(self):
+        self.assertEqual(set(pr.SCHEMA_PINS), {p.name.removesuffix(".schema.json")
+                                               for p in self.CONTRACTS.glob("*.schema.json")})
+        self.assertEqual(len(pr.SCHEMA_PINS), 4)
+        for contract, pin in pr.SCHEMA_PINS.items():
+            self.assertEqual(hashlib.sha256((self.CONTRACTS / f"{contract}.schema.json").read_bytes()).hexdigest(),
+                             pin, contract)
+
+    def test_a_changed_contract_validates_nothing(self):
+        with mock.patch.dict(pr.SCHEMA_PINS, {pr.RESULT_CONTRACT: "0" * 64}):
+            self.assertIn("not its pinned", pr.validate_result({})[0])
+        with mock.patch.dict(pr.SCHEMA_PINS, {pr.EXPORT_CONTRACT: "0" * 64}):
+            with self.assertRaises(pr.ProcedureError) as caught:
+                pr.export_refusal(EXPORT)
+            self.assertEqual(caught.exception.code, "schema_drift")
+
+    @unittest.skipIf(_im_committed("agentic-os/external-skills/contracts/approved-skill-export.v1.schema.json") is None,
+                     "theplus-intelligent-machine git checkout not present beside this repository (set IM_REPO)")
+    def test_the_intelligent_machine_publishes_the_same_pinned_contracts(self):
+        for contract, pin in pr.SCHEMA_PINS.items():
+            theirs = _im_committed(f"agentic-os/external-skills/contracts/{contract}.schema.json")
+            self.assertIsNotNone(theirs, f"the Intelligent Machine has not published {contract}")
+            self.assertEqual(hashlib.sha256(theirs).hexdigest(), pin, contract)
 
 
 class ResultGateTests(ProcedureCase):

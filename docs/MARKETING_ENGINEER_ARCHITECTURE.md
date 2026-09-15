@@ -90,7 +90,10 @@ experiment_procedures (frozen before first exposure)           = VARIABLE of one
    ▼
 canonical funnel events (unchanged) → segment unit model → change_diagnosis window resolution
    ▼
-procedure evaluator (on read) → report + skill-evaluation-result.v1 → back to the Intelligent Machine as evidence
+procedure evaluator (on read) → report + skill-evaluation-result.v2 → back to the Intelligent Machine as evidence
+
+Intelligent Machine revokes / withdraws → `make external-skills-publish` replaces contracts/exports/<id>.json
+with skill-revocation.v1 → AGE re-reads that path before every NEW declaration
 ```
 
 | Truth | Owner | Never |
@@ -118,6 +121,7 @@ any time: a new version is a new experiment.
 
 **Upstream approval at declaration (fail closed).** An import is a snapshot. Before every NEW
 declaration of an approved external procedure, `upstream_refusal` refuses when:
+- the file now holds the Intelligent Machine's `skill-revocation.v1` notice for that exact identity (`upstream_revoked`); a notice for another identity, or an invalid one, is `upstream_approval_not_current`;
 - the stored `review_after` has passed (`review_expired`), even if the upstream export was re-reviewed since, because nothing is silently refreshed;
 - the export file it was imported from is gone (`upstream_export_missing`);
 - that file no longer passes import (`upstream_approval_not_current`), for example no longer APPROVED, revoked, or its marketing use case removed;
@@ -126,6 +130,21 @@ declaration of an approved external procedure, `upstream_refusal` refuses when:
 
 Declarations already made are history: they are never re-judged, rewritten or deleted. A ThePlus
 baseline has no upstream approval to lapse.
+
+**The revocation signal only reaches the file it replaces.** The Intelligent Machine's `make
+external-skills-publish` writes a revocation or withdrawal notice over `contracts/exports/<skill_id>.json`.
+Import therefore refuses any path that is not that published file (`not_the_published_export`): a
+copy kept elsewhere could never learn it was revoked.
+
+**Pinned contracts.** `SCHEMA_PINS` in `procedures.py` holds the sha256 of all four shared contracts:
+- export v1 `f6665386…`
+- result v1 `9880e22b…`, kept byte-for-byte and no longer emitted
+- result v2 `0ee7e90f…`, emitted
+- revocation v1 `fe5a5ea9…`
+
+A schema whose bytes differ from its pin validates nothing (`schema_drift`). A test compares the pins
+with the Intelligent Machine's committed copies. A contract change is a new version, never an
+in-place edit.
 
 **Lineage.** An event runs under a procedure only through its own experiment's declaration for its
 arm (or every arm) made on or before the day it happened. Exposures dated before the declaration, and
@@ -146,7 +165,7 @@ confounded; NEED_MORE_DATA otherwise. Revenue is reported per side through the s
 the money-graph campaigns to open, and is ASSOCIATED_ONLY unless a controlled experiment's primary
 metric was paid rate.
 
-**Result export** (`--export FILE`, `age procedures validate-result FILE`). `skill-evaluation-result.v1`
+**Result export** (`--export FILE`, `age procedures validate-result FILE`). `skill-evaluation-result.v2`
 re-checks the evaluator's own controlled-effect requirements on the document itself, so a hand-edited
 or foreign result cannot carry a claim its evidence does not support.
 - **CONTROLLED_EFFECT or REGRESSION** requires:

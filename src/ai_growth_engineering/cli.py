@@ -820,7 +820,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--use-case", default="", help="procedure: the marketing job being evaluated")
     p.add_argument("--candidate-arm", default="", help="procedure: arm running the candidate ('' = the experiment's common input)")
     p.add_argument("--baseline-experiment-id", default="", help="procedure: baseline in another experiment (observational)")
-    p.add_argument("--export", default="", help="procedure: write a validated skill-evaluation-result.v1 file")
+    p.add_argument("--export", default="", help="procedure: write a validated skill-evaluation-result.v2 file")
     p.add_argument("--baseline", default="", help="change: START:END (ISO dates)")
     p.add_argument("--comparison", default="", help="change: START:END (ISO dates)")
     p.add_argument("--baseline-arm", default="")

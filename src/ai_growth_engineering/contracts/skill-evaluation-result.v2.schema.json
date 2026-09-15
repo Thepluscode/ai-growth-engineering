@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "skill-evaluation-result.v1",
-  "description": "What AI Growth Engineering measured about one exact procedure version, returned to the Intelligent Machine as a file. Evidence for a human promotion or review decision; never an approval, never an instruction to act.",
+  "title": "skill-evaluation-result.v2",
+  "description": "What AI Growth Engineering measured about one exact procedure version, returned to the Intelligent Machine as a file. v2 adds a closed revenue claim, competing_variables and includes_synthetic, and its claim rules re-check a causal class against the evidence in the file. Evidence for a human promotion or review decision; never an approval, never an instruction to act.",
   "type": "object",
-  "required": ["contract_version", "contract", "skill_id", "skill_version", "content_hash", "evaluation_type", "evidence_class", "result_class", "use_case", "baseline", "experiment_id", "metrics", "sample", "maturity", "confounders", "unsupported_claims", "market_validation", "decision", "authority", "generated_at", "generated_by"],
+  "required": ["contract_version", "contract", "skill_id", "skill_version", "content_hash", "evaluation_type", "evidence_class", "result_class", "use_case", "baseline", "experiment_id", "metrics", "sample", "maturity", "revenue", "confounders", "competing_variables", "includes_synthetic", "unsupported_claims", "market_validation", "decision", "authority", "generated_at", "generated_by"],
   "additionalProperties": false,
   "properties": {
-    "contract_version": {"type": "string", "const": "1"},
-    "contract": {"type": "string", "const": "skill-evaluation-result.v1"},
+    "contract_version": {"type": "string", "const": "2"},
+    "contract": {"type": "string", "const": "skill-evaluation-result.v2"},
     "skill_id": {"type": "string"},
     "skill_version": {"type": "string"},
     "content_hash": {"type": "string"},
@@ -28,8 +28,16 @@
     "metrics": {"type": "object"},
     "sample": {"type": "object"},
     "maturity": {"type": "object"},
-    "revenue": {"type": "object"},
+    "revenue": {
+      "type": "object",
+      "required": ["claim"],
+      "properties": {
+        "claim": {"type": "string", "enum": ["NONE_OBSERVED", "ASSOCIATED_ONLY", "ATTRIBUTED", "CAUSAL_SUPPORTED"]}
+      }
+    },
     "confounders": {"type": "array", "items": {"type": "string"}},
+    "competing_variables": {"type": "array", "items": {"type": "string"}},
+    "includes_synthetic": {"type": "boolean"},
     "unsupported_claims": {"type": "array", "items": {"type": "string"}},
     "market_validation": {"type": "boolean"},
     "decision": {"type": "string", "enum": ["KEEP", "ITERATE", "REJECT", "NEED_MORE_DATA"]},

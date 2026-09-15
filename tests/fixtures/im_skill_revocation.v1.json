@@ -1,0 +1,13 @@
+{
+  "contract_version": "1",
+  "contract": "skill-revocation.v1",
+  "skill_id": "vendor_outbound_writer",
+  "skill_version": "2.0.0",
+  "content_hash": "b2eca77ac59f910ecffc525b50fc879f25975598b5422d3c4e1e4f2c26aa3b0d",
+  "status": "REVOKED",
+  "effective_status": "REVOKED",
+  "reason": "upstream source compromised; approval withdrawn",
+  "decided_by": "founder",
+  "decided_at": "2026-09-20",
+  "supersedes": "approved-skill-export.v1"
+}

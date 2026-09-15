@@ -1,6 +1,6 @@
 {
-  "contract_version": "1",
-  "contract": "skill-evaluation-result.v1",
+  "contract_version": "2",
+  "contract": "skill-evaluation-result.v2",
   "skill_id": "coreyhaines31/marketingskills:ab-testing",
   "skill_version": "2.0.0",
   "content_hash": "1fd229160f6014f3f2d7c92cc7d2f991fbf8dc9ed68aac9793c71b408a6d1144",

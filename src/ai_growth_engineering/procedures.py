@@ -29,7 +29,19 @@ from .storage import connect, init_db
 
 CONTRACTS = Path(__file__).parent / "contracts"
 EXPORT_CONTRACT = "approved-skill-export.v1"
-RESULT_CONTRACT = "skill-evaluation-result.v1"
+# v2 is the result this repository emits. v1 stays published byte-for-byte: a contract version never
+# changes in place, and the Intelligent Machine still reads v1 files.
+RESULT_CONTRACT = "skill-evaluation-result.v2"
+RESULT_CONTRACT_VERSION = "2"
+REVOCATION_CONTRACT = "skill-revocation.v1"
+# The exact bytes of every contract shared with the Intelligent Machine (export and revocation originate
+# there, results here). A schema whose bytes changed is not that version, and validates nothing.
+SCHEMA_PINS = {
+    EXPORT_CONTRACT: "f6665386e89fc55ae53e292a202bc91c6619f1358b7244c6e1e53b4e75659907",
+    "skill-evaluation-result.v1": "9880e22b3611ce24e9e1ac6422eda54c9ad3e794c83300dfe121a9b92e8dd4d4",
+    RESULT_CONTRACT: "0ee7e90fe96168cadc024b4d5816985a05ebf3f2a799100ca5b7febc1fab4c28",
+    REVOCATION_CONTRACT: "fe5a5ea92f2154b1fdf9fe263c9aeda68daa5fd513b15ab7456362390a155e8a",
+}
 ROLES = ("VARIABLE", "COMMON_INPUT")
 
 # The marketing jobs a procedure may be approved for. An export must permit at least one of them,
@@ -101,7 +113,12 @@ def _known(value) -> bool:
 
 
 def load_schema(contract: str) -> dict:
-    return json.loads((CONTRACTS / f"{contract}.schema.json").read_text(encoding="utf-8"))
+    raw = (CONTRACTS / f"{contract}.schema.json").read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != SCHEMA_PINS[contract]:
+        raise ProcedureError("schema_drift", f"{contract} schema is {digest[:16]}…, not its pinned "
+                             f"{SCHEMA_PINS[contract][:16]}…; nothing validates against a changed contract")
+    return json.loads(raw)
 
 
 _TYPES = {"object": dict, "array": list, "string": str, "boolean": bool, "null": type(None),
@@ -202,6 +219,15 @@ def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
     refusal = export_refusal(doc, today=today)
     if refusal:
         raise ProcedureError(*refusal)
+    # The revocation signal is a notice the Intelligent Machine writes over this exact file. A copy
+    # kept anywhere else would never receive it, so only the published file itself is imported.
+    published = Path(path).resolve()
+    if (published.name, published.parent.name, published.parent.parent.name) != (
+            f"{doc['skill_id']}.json", "exports", "contracts"):
+        raise ProcedureError("not_the_published_export",
+                             f"{path} is not …/contracts/exports/{doc['skill_id']}.json; import the Intelligent "
+                             "Machine's published file itself — a copy never receives the revocation notice that "
+                             "replaces it")
     source = doc["source"]
     return _register(db_path, {
         "procedure_ref": f"{doc['skill_id']}@{doc['skill_version']}",
@@ -216,7 +242,7 @@ def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
         "evaluation_refs": json.dumps(doc["evaluation_refs"]),
         "approved_by": doc["approved_by"], "approved_at": str(doc["approved_at"]),
         "review_after": str(doc.get("review_after") or ""), "introduced_at": _utc_now(),
-        "import_sha256": hashlib.sha256(raw).hexdigest(), "imported_from": str(Path(path).resolve()),
+        "import_sha256": hashlib.sha256(raw).hexdigest(), "imported_from": str(published),
     })
 
 
@@ -288,6 +314,19 @@ def upstream_refusal(procedure: dict, *, today: str) -> tuple[str, str] | None:
         doc = json.loads(path.read_bytes())
     except (OSError, json.JSONDecodeError) as exc:
         return "upstream_approval_not_current", f"{ref}: {source} can no longer be read as an export: {exc}"
+    if isinstance(doc, dict) and doc.get("contract") == REVOCATION_CONTRACT:
+        try:
+            errors = validate_schema(doc, load_schema(REVOCATION_CONTRACT))
+        except ProcedureError as exc:
+            errors = [str(exc)]
+        if errors:
+            return ("upstream_approval_not_current", f"{ref}: {source} holds an invalid {REVOCATION_CONTRACT} notice "
+                    f"({'; '.join(errors)}), which is not an approval")
+        if (doc["skill_id"], doc["skill_version"], doc["content_hash"]) == (
+                procedure["procedure_id"], procedure["procedure_version"], procedure["content_hash"]):
+            return "upstream_revoked", f"{ref} was {doc['status']} by the Intelligent Machine: {doc['reason']}"
+        return ("upstream_approval_not_current", f"{source} now holds a {doc['status']} notice for "
+                f"{doc['skill_id']}@{doc['skill_version']}; nothing there approves {ref}")
     refusal = export_refusal(doc, today=today)
     if refusal:
         code = "review_expired" if refusal[0] == "review_expired" else "upstream_approval_not_current"
@@ -622,7 +661,7 @@ def result_document(r: dict, *, generated_at: str | None = None) -> dict:
     if cand is None or base is None:
         raise ProcedureError("no_procedure_identity", "nothing to return: the evaluation named no declared procedure")
     return {
-        "contract_version": "1", "contract": RESULT_CONTRACT, "skill_id": cand["procedure_id"],
+        "contract_version": RESULT_CONTRACT_VERSION, "contract": RESULT_CONTRACT, "skill_id": cand["procedure_id"],
         "skill_version": cand["procedure_version"], "content_hash": cand["content_hash"],
         "evaluation_type": "MARKET_EVALUATION", "evidence_class": r["evidence_class"], "result_class": r["result_class"],
         "use_case": r["use_case"],
@@ -641,7 +680,10 @@ def result_document(r: dict, *, generated_at: str | None = None) -> dict:
 
 def validate_result(doc) -> list[str]:
     """Schema, then the claims a result may not make whatever its fields say."""
-    errors = validate_schema(doc, load_schema(RESULT_CONTRACT))
+    try:
+        errors = validate_schema(doc, load_schema(RESULT_CONTRACT))
+    except ProcedureError as exc:
+        return [str(exc)]
     if errors or not isinstance(doc, dict):
         return errors or ["$: expected an object"]
     offline = doc["evaluation_type"] == "OFFLINE_EVAL"
