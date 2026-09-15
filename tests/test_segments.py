@@ -157,9 +157,12 @@ class ComparisonTests(SegmentCase):
         self.buyers("both", 2, route="role_inbox", experiment="EXP-ACQ-0001", at="2026-08-01")
         self.buyers("both", 2, channel="linkedin", kind="invitation_sent", experiment="EXP-ACQ-0003", at="2026-08-20")
         self.ev("payment_received", "both0", occurred_at="2026-09-01", value_pence=150_000, currency="GBP")
+        # A late reply to the email experiment stays with the email exposure, even after the invitation.
+        self.ev("reply_received", "both1", occurred_at="2026-09-02", experiment_id="EXP-ACQ-0001")
         performance = self.perf("acquisition_route")
-        counts = {s["value"]: (s["counts"]["delivered"], s["counts"]["observed_revenue_pence"]) for s in performance["segments"]}
-        self.assertEqual(counts, {"email/role_inbox": (2, 0), "linkedin/named_buyer_connection": (2, 150_000)})
+        counts = {s["value"]: (s["counts"]["delivered"], s["counts"]["replies"], s["counts"]["observed_revenue_pence"])
+                  for s in performance["segments"]}
+        self.assertEqual(counts, {"email/role_inbox": (2, 1, 0), "linkedin/named_buyer_connection": (2, 0, 150_000)})
         self.assertEqual(performance["overlapping_buyers"], 2)
         self.assertIn("overlap", {c["attribute"] for c in compare_segments(performance)["confounds"]})
 
