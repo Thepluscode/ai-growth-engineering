@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -46,6 +47,13 @@ SCHEMA_PINS = {
     RESULT_CONTRACT: "0ee7e90fe96168cadc024b4d5816985a05ebf3f2a799100ca5b7febc1fab4c28",
     REVOCATION_CONTRACT: "fe5a5ea92f2154b1fdf9fe263c9aeda68daa5fd513b15ab7456362390a155e8a",
 }
+# The ONE directory an approved export may be imported from: the Intelligent Machine's published exports,
+# where its revocation notices are written. Anything else — including a copy under the same path shape — is
+# a detached copy no revocation can reach. The default is the sibling checkout, the layout both
+# repositories' pin tests already assume; set AGE_SKILL_EXPORTS_DIR when the exports live elsewhere.
+EXPORTS_DIR_ENV = "AGE_SKILL_EXPORTS_DIR"
+DEFAULT_EXPORTS_DIR = (Path(__file__).resolve().parents[3] / "theplus-intelligent-machine" / "agentic-os"
+                       / "external-skills" / "contracts" / "exports")
 ROLES = ("VARIABLE", "COMMON_INPUT")
 
 # The marketing jobs a procedure may be approved for. An export must permit at least one of them,
@@ -212,6 +220,12 @@ def _register(db_path: str, record: dict) -> dict:
     return {"procedure_ref": ref, "inserted": True, "evidence_status": "KNOWN"}
 
 
+def governed_export_path(skill_id: str) -> Path:
+    """Where the Intelligent Machine publishes this skill's export and, later, its revocation notice. The
+    directory is resolved; the file is not, so a symlink planted at this name does not count as it."""
+    return Path(os.environ.get(EXPORTS_DIR_ENV) or DEFAULT_EXPORTS_DIR).resolve() / f"{skill_id}.json"
+
+
 def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
     """Register one approved skill from its export file. Deterministic: the same file lands on the
     same row, and a re-import changes nothing."""
@@ -223,16 +237,16 @@ def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
     refusal = export_refusal(doc, today=today)
     if refusal:
         raise ProcedureError(*refusal)
-    # A PATH-SHAPE guard, not origin enforcement. The Intelligent Machine writes its revocation notice over
-    # contracts/exports/<skill_id>.json, so a file not named that way can never receive one and is refused.
-    # It cannot tell the governed directory from a copy kept under the same shape elsewhere; that copy
-    # outlives revocation. Known limit, recorded as P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT.
+    # ORIGIN enforcement (closes P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT). The Intelligent Machine writes its
+    # revocation notice over exactly one file; only that file imports. A copy anywhere else — even under the
+    # same …/contracts/exports/<skill_id>.json shape, or a symlink to one — never receives it and is refused.
     published = Path(path).resolve()
-    if (published.name, published.parent.name, published.parent.parent.name) != (
-            f"{doc['skill_id']}.json", "exports", "contracts"):
+    governed = governed_export_path(doc["skill_id"])
+    if published != governed:
         raise ProcedureError("not_the_published_export",
-                             f"{path} is not …/contracts/exports/{doc['skill_id']}.json; import the Intelligent "
-                             "Machine's published export, the path its revocation notice is written over")
+                             f"{path} is not the governed export {governed}; import the Intelligent Machine's "
+                             f"published file itself (set {EXPORTS_DIR_ENV} if its exports live elsewhere) — a copy "
+                             "never receives the revocation notice written over the original")
     source = doc["source"]
     return _register(db_path, {
         "procedure_ref": f"{doc['skill_id']}@{doc['skill_version']}",
@@ -311,6 +325,10 @@ def upstream_refusal(procedure: dict, *, today: str) -> tuple[str, str] | None:
     if stored_review and stored_review[:10] < today:
         return "review_expired", f"{ref}'s approval was due for review on {stored_review[:10]}; import a re-reviewed export"
     source = str(procedure["imported_from"] or "")
+    governed = governed_export_path(procedure["procedure_id"])
+    if source and Path(source).resolve() != governed:
+        return ("untrusted_export_origin", f"{ref} was imported from {source}, not the governed export {governed}; "
+                "only that file can carry a revocation, so no new declaration is made — re-import from it")
     path = Path(source)
     if not source or not path.is_file():
         return ("upstream_export_missing", f"{ref} was imported from {source or 'an unrecorded file'}, which no longer "

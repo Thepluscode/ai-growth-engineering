@@ -133,16 +133,18 @@ baseline has no upstream approval to lapse.
 
 **The revocation signal only reaches the file it replaces.** The Intelligent Machine's `make
 external-skills-publish` writes a revocation or withdrawal notice over `contracts/exports/<skill_id>.json`.
-Import refuses any path not shaped `…/contracts/exports/<skill_id>.json` (`not_the_published_export`).
-That is a path-shape guard, not origin enforcement: a copy kept under the same shape somewhere else
-imports, never receives the notice, and stays bindable after revocation. The test
-`test_known_limit_p2_a_copy_under_the_published_shape_outlives_revocation` holds that limit in view.
+Import therefore accepts only that governed file: `governed_export_path(skill_id)` is the resolved
+`AGE_SKILL_EXPORTS_DIR` (default: the sibling Intelligent Machine checkout's
+`agentic-os/external-skills/contracts/exports`) plus `<skill_id>.json`. Anything else is refused
+(`not_the_published_export`). That includes a copy kept under the same `…/contracts/exports/` shape
+somewhere else, and a symlink planted at the governed name.
 
-**P2: MANAGED_EXPORT_ORIGIN_ENFORCEMENT** (recorded 2026-09-15, not built). Before external procedures
-become executable rather than analytical, require experiment-bound procedures to retain a verifiable
-governed export origin, or an equivalent signed, revocation-aware authority token. Not built now
-because no procedure executor exists (AGE analyses and declares procedures and runs none of them),
-D1 holds for the governed path, and signing or revocation infrastructure would widen a targeted fix.
+A new declaration re-checks the stored origin against the governed path. A procedure imported
+anywhere else, or whose governed directory has since moved, is refused (`untrusted_export_origin`).
+
+**P2: MANAGED_EXPORT_ORIGIN_ENFORCEMENT — closed (2026-09-15).** The origin is enforced by a configured
+trust anchor: no signing, no server, and no runtime coupling. Only the local file path is read, as
+before. Existing declarations are never re-judged.
 
 **Result validation is version-selected.** `validate_result` reads the document's own `contract`:
 `skill-evaluation-result.v1` against the v1 pin, `.v2` against the v2 pin, anything else unsupported.

@@ -54,6 +54,11 @@ class ProcedureCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
+        # This test's governed exports directory — the one origin import accepts.
+        self.exports = Path(self.tmp.name) / "published" / "contracts" / "exports"
+        env = mock.patch.dict(os.environ, {pr.EXPORTS_DIR_ENV: str(self.exports)})
+        env.start()
+        self.addCleanup(env.stop)
         self.db = str(Path(self.tmp.name) / "growth.db")
         init_db(self.db)
         self.n = 0
@@ -75,12 +80,11 @@ class ProcedureCase(unittest.TestCase):
             primary_metric=primary_metric, success_threshold=0.2, review_threshold=0.05, minimum_sample=minimum_sample,
             variable=variable, control="baseline procedure" if variable else "", variant="candidate" if variable else ""))
 
-    def import_export(self, doc, name="published"):
-        """Write the export where the Intelligent Machine publishes it — contracts/exports/<skill_id>.json,
-        under a separate publication root per name — and import that file itself."""
-        folder = Path(self.tmp.name) / name / "contracts" / "exports"
-        folder.mkdir(parents=True, exist_ok=True)
-        path = folder / f"{doc.get('skill_id')}.json"
+    def import_export(self, doc):
+        """Write the export where the Intelligent Machine publishes it — this test's governed exports
+        directory, one file per skill — and import that file itself."""
+        self.exports.mkdir(parents=True, exist_ok=True)
+        path = self.exports / f"{doc.get('skill_id')}.json"
         path.write_text(json.dumps(doc), encoding="utf-8")
         return pr.import_export(self.db, str(path), today="2026-09-15")
 
@@ -121,7 +125,7 @@ class ProcedureCase(unittest.TestCase):
 class ImportContractTests(ProcedureCase):
     def refused(self, doc):
         with self.assertRaises(pr.ProcedureError) as caught:
-            self.import_export(doc, name="bad.json")
+            self.import_export(doc)
         return caught.exception.code
 
     def mutate(self, **changes):
@@ -194,7 +198,7 @@ class DeclarationTests(ProcedureCase):
         self.declare_controlled()
         self.assertFalse(pr.bind(self.db, "EXP-ACQ-0010", CANDIDATE_REF, "VARIABLE", arm="candidate")["inserted"])
         self.cohort("c", 2, arm="candidate")
-        self.import_export(dict(copy.deepcopy(EXPORT), skill_version="2.1.0", content_hash="c" * 64), name="v21.json")
+        self.import_export(dict(copy.deepcopy(EXPORT), skill_version="2.1.0", content_hash="c" * 64))
         for arm, code in (("candidate", "frozen_binding"), ("challenger", "exposure_started")):
             with self.assertRaises(pr.ProcedureError) as caught:
                 pr.bind(self.db, "EXP-ACQ-0010", "vendor_outbound_writer@2.1.0", "VARIABLE", arm=arm)
@@ -577,20 +581,32 @@ class UpstreamApprovalTests(ProcedureCase):
         self.assertEqual(caught.exception.code, "not_the_published_export")
         self.assertNotIn(f"{EXPORT['skill_id']}@3.0.0", pr.procedure_rows(self.db))
 
-    def test_known_limit_p2_a_copy_under_the_published_shape_outlives_revocation(self):
-        """P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT, recorded rather than hidden. The import guard checks the path's
-        SHAPE; a copy kept at …/contracts/exports/<skill_id>.json elsewhere imports and never receives the
-        notice. When origin enforcement lands, this test must fail — and be rewritten on purpose."""
+    def test_a_copy_under_the_published_shape_is_refused_so_it_cannot_outlive_revocation(self):
+        """P2 MANAGED_EXPORT_ORIGIN_ENFORCEMENT, closed on purpose: this test previously asserted that such a copy
+        imported and stayed bindable after revocation. Only the governed export imports now; a copy kept at
+        …/contracts/exports/<skill_id>.json anywhere else, or a symlink at the governed name, is refused."""
         doc = dict(EXPORT, skill_version="7.0.0", content_hash="7" * 64)
-        governed = Path(self.tmp.name) / "governed" / "contracts" / "exports" / f"{EXPORT['skill_id']}.json"
         copy_path = Path(self.tmp.name) / "operator-backup" / "contracts" / "exports" / f"{EXPORT['skill_id']}.json"
-        for path in (governed, copy_path):
-            path.parent.mkdir(parents=True)
-            path.write_text(json.dumps(doc), encoding="utf-8")
-        pr.import_export(self.db, str(copy_path), today="2026-09-15")
-        governed.write_text(json.dumps(dict(json.loads(REVOCATION_FIXTURE.read_text(encoding="utf-8")),
-                                            skill_version="7.0.0", content_hash="7" * 64)), encoding="utf-8")
-        self.assertTrue(pr.bind(self.db, "EXP-ACQ-0011", f"{EXPORT['skill_id']}@7.0.0", "COMMON_INPUT")["inserted"])
+        copy_path.parent.mkdir(parents=True)
+        copy_path.write_text(json.dumps(doc), encoding="utf-8")
+        with self.assertRaises(pr.ProcedureError) as caught:
+            pr.import_export(self.db, str(copy_path), today="2026-09-15")
+        self.assertEqual(caught.exception.code, "not_the_published_export")
+        link = self.exports / f"{EXPORT['skill_id']}.json"
+        link.unlink()
+        link.symlink_to(copy_path)
+        with self.assertRaises(pr.ProcedureError) as caught:
+            pr.import_export(self.db, str(link), today="2026-09-15")
+        self.assertEqual(caught.exception.code, "not_the_published_export")
+        self.assertNotIn(f"{EXPORT['skill_id']}@7.0.0", pr.procedure_rows(self.db))
+
+    def test_a_procedure_no_longer_at_the_governed_origin_cannot_be_declared_again(self):
+        with frozen_clock():
+            pr.bind(self.db, "EXP-ACQ-0010", CANDIDATE_REF, "VARIABLE", arm="candidate")
+        history = pr.bindings(self.db)
+        with mock.patch.dict(os.environ, {pr.EXPORTS_DIR_ENV: str(Path(self.tmp.name) / "moved" / "contracts" / "exports")}):
+            self.refused("untrusted_export_origin")
+        self.assertEqual(pr.bindings(self.db), history)
 
 
 def _im_committed(path: str) -> bytes | None:
