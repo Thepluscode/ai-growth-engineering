@@ -13,6 +13,7 @@ from typing import Any
 from . import registries
 from .buyer_truth import buyer_evidence, buyer_truth, problem_revenue, stalled_objections, truth_summary
 from .change_diagnosis import QUIET, change_summary, diagnosis_proposal
+from .reply_capture import pending_count
 from .segments import NOT_RECORDED, UNRESOLVED, decision_summary, segment_proposal
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
@@ -614,6 +615,7 @@ def status_report(db_path: str, *, as_of: str | None = None) -> dict:
         "buyer_truth": truth_summary(buyer_evidence(db_path), events),
         "decisions": decision_summary(db_path, as_of=as_of, events=events, evidence=buyer_evidence(db_path)),
         "change": change_summary(db_path, as_of=as_of, events=events),
+        "pending_reply_reviews": pending_count(db_path),
         "totals": metrics["totals"], "metrics": metrics["metrics"], "diagnoses": diagnoses,
         "by_channel": {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()},
         "campaigns": campaigns,
@@ -643,6 +645,9 @@ def render_status(report: dict) -> str:
         "",
         "1. What is happening?  [OBSERVED counts · DERIVED rates]",
     ]
+    if report.get("pending_reply_reviews"):
+        lines.insert(4, f"  [PENDING REVIEW] {report['pending_reply_reviews']} reply candidate(s) await approval; until "
+                        "approved they count as no reply, no buyer evidence and no qualified conversation")
     for channel, ct in sorted(report["by_channel"].items()):
         counts = ", ".join(f"{k} {v}" for k, v in sorted(ct.items())
                            if isinstance(v, int) and not isinstance(v, bool) and not k.endswith("_pence"))

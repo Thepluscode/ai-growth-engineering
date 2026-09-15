@@ -499,6 +499,36 @@ def cmd_evidence_interpret(args: argparse.Namespace) -> None:
     print(f"{result['interpretation_id']} reads {result['link_id']} as {result['theme']}")
 
 
+def cmd_replies(args: argparse.Namespace) -> None:
+    import json
+
+    from . import reply_capture as rc
+
+    def pairs(values: list[str]) -> dict:
+        return dict(value.split("=", 1) for value in values)
+
+    items = [i.strip() for i in args.items.split(",") if i.strip()] or None
+    try:
+        if args.action == "link-outbound":
+            with open(args.target, encoding="utf-8") as handle:
+                result = rc.link_outbound(args.db, json.load(handle))
+        elif args.action == "capture":
+            with open(args.target, encoding="utf-8") as handle:
+                result = rc.capture(args.db, rc.gmail_messages(json.load(handle)), mailbox=args.mailbox)
+        elif args.action == "review":
+            result = rc.review(args.db)
+            print(json.dumps(result, indent=2, default=str) if args.json else rc.render_review(result))
+            return
+        elif args.action == "approve":
+            result = rc.approve(args.db, args.target, items=items, categories=pairs(args.category),
+                                texts=pairs(args.text), decided_by=args.by)
+        else:
+            result = rc.reject(args.db, args.target, items=items, reason=args.reason, decided_by=args.by)
+    except rc.ReplyCaptureError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(json.dumps(result, indent=2, default=str))
+
+
 def cmd_experiment_backfill_variable(args: argparse.Namespace) -> None:
     from .registry import backfill_variable
 
@@ -752,6 +782,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--confidence", type=float, required=True)
     p.add_argument("--by", required=True)
     p.set_defaults(func=cmd_evidence_interpret)
+
+    p = sub.add_parser("replies"); dbarg(p)
+    p.add_argument("action", choices=["link-outbound", "capture", "review", "approve", "reject"])
+    p.add_argument("target", nargs="?", default="",
+                   help="JSON file for link-outbound and capture; candidate id for approve and reject")
+    p.add_argument("--mailbox", default="", help="capture: the address governed outreach was sent from")
+    p.add_argument("--items", default="", help="comma-separated items: event, meaningful, E1, bounce, suppress")
+    p.add_argument("--category", action="append", default=[], help="approve edit: E1=OBJECTION")
+    p.add_argument("--text", action="append", default=[], help="approve edit: E1=exact words from the reply")
+    p.add_argument("--reason", default="")
+    p.add_argument("--by", default="founder")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_replies)
 
     p = sub.add_parser("adapter-specs")
     p.add_argument("--platform", default="")

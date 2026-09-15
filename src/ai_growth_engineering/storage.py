@@ -297,6 +297,70 @@ BEGIN SELECT RAISE(ABORT, 'interpretations are append-only: append a new reading
 CREATE TRIGGER IF NOT EXISTS evidence_interpretations_no_delete BEFORE DELETE ON evidence_interpretations
 BEGIN SELECT RAISE(ABORT, 'interpretations are append-only: append a new reading'); END;
 
+-- Governed outbound messages: which buyer and experiment a sent message belongs to. Lineage for
+-- matching replies only; sends are counted by funnel events, never here.
+CREATE TABLE IF NOT EXISTS outbound_messages (
+    message_id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    company TEXT NOT NULL,
+    person_id TEXT NOT NULL DEFAULT '',
+    experiment_id TEXT NOT NULL,
+    campaign_id TEXT NOT NULL DEFAULT '',
+    sent_at TEXT NOT NULL,
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_outbound_messages_thread ON outbound_messages(source, thread_id);
+CREATE INDEX IF NOT EXISTS idx_outbound_messages_recipient ON outbound_messages(recipient);
+
+-- An inbound message and what it might establish. A proposal, never a fact: nothing reaches
+-- funnel_events or buyer evidence except through an approved decision.
+CREATE TABLE IF NOT EXISTS reply_candidates (
+    candidate_id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    source_record_id TEXT NOT NULL,
+    source_thread_id TEXT NOT NULL DEFAULT '',
+    sender TEXT NOT NULL,
+    subject TEXT NOT NULL DEFAULT '',
+    occurred_at TEXT NOT NULL,
+    body TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    match_state TEXT NOT NULL,
+    match_method TEXT NOT NULL DEFAULT '',
+    match_confidence TEXT NOT NULL DEFAULT '',
+    company TEXT NOT NULL DEFAULT '',
+    person_id TEXT NOT NULL DEFAULT '',
+    experiment_id TEXT NOT NULL DEFAULT '',
+    campaign_id TEXT NOT NULL DEFAULT '',
+    proposals_json TEXT NOT NULL,
+    captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source, source_record_id)
+);
+
+-- One human decision per proposed item. Append-only; a rejection is kept so the message is never
+-- proposed again, and it is never buyer evidence.
+CREATE TABLE IF NOT EXISTS reply_decisions (
+    candidate_id TEXT NOT NULL REFERENCES reply_candidates(candidate_id),
+    item TEXT NOT NULL,
+    decision TEXT NOT NULL CHECK(decision IN ('APPROVED', 'REJECTED')),
+    detail_json TEXT NOT NULL DEFAULT '{}',
+    result_ref TEXT NOT NULL DEFAULT '',
+    decided_by TEXT NOT NULL,
+    decided_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (candidate_id, item)
+);
+
+CREATE TRIGGER IF NOT EXISTS reply_candidates_no_update BEFORE UPDATE ON reply_candidates
+BEGIN SELECT RAISE(ABORT, 'reply candidates are captured once and never rewritten'); END;
+
+CREATE TRIGGER IF NOT EXISTS reply_decisions_no_update BEFORE UPDATE ON reply_decisions
+BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS reply_decisions_no_delete BEFORE DELETE ON reply_decisions
+BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
+
 CREATE TRIGGER IF NOT EXISTS linked_observation_frozen
 BEFORE UPDATE OF statement, source, observed_at, kind ON evidence
 WHEN EXISTS (SELECT 1 FROM commercial_evidence WHERE evidence_id = OLD.evidence_id)

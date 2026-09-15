@@ -2,7 +2,7 @@
 
 # operator
 
-**AI Growth Engineering — the method layer** — 28 of 39 capabilities implemented.
+**AI Growth Engineering — the method layer** — 29 of 40 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -40,6 +40,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `observed_inferred_unknown_separation` | IMPLEMENTED |
 | `performance_change_diagnosis` | IMPLEMENTED |
 | `problem_to_revenue_view` | IMPLEMENTED |
+| `reply_capture_with_human_approval` | IMPLEMENTED |
 | `segment_performance_comparison` | IMPLEMENTED |
 | `signal_prospect_message_lineage` | IMPLEMENTED |
 | `single_variable_experiment_contract` | IMPLEMENTED |
