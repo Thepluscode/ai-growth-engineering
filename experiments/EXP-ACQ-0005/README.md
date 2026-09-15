@@ -2,7 +2,7 @@
 
 **Imported:** 2026-09-15 from the separate `~/projects/ai-growth-engineering` repository, where it
 ran as `EXP-0003`. **Status: HELD** — `EXP-ACQ-0003` goes to market first (founder, 2026-09-15).
-**Nothing has been sent.** The Apollo lookup for the top-up is approved but has not been run.
+**Nothing has been sent.** The top-up Apollo lookup has run and been imported: 16 control / 18 variant.
 
 ## Why it is here
 
@@ -35,8 +35,9 @@ named buyers. The only variable is the final CTA.
 | Apollo rounds 1–2 | 90 identities looked up; **32 message-ready: control 14, variant 18**; all reserves used |
 | Off-domain addresses | 5, **kept blocked** unless an address is shown to be an official business address (founder) |
 | Top-up block TOPUP-002 | 371 companies researched to exhaustion → **65 eligible (control 41, variant 24)**, frozen before any email lookup, fingerprint `e52d9027…` |
-| Apollo credits | up to **65** approved as a hard ceiling (audit `AUD-00179`); **lookup not run** |
-| Expected after the lookup | about 13 control / 10 variant verified, so roughly 27 / 28 per arm |
+| Apollo credits | up to **65** approved as a hard ceiling (audit `AUD-00179`) |
+| TOPUP-002 lookup (2026-09-15) | 65 identities: **2 verified on-domain (both control), 1 unavailable, 62 unmatched**, 0 off-domain. Expected was ~23 verified; the hit rate was far below rounds 1–2 |
+| Roster after import (`AUD-00180`) | **16 message-ready control / 18 variant**, 0 incidents; Gmail prior-contact check on the two new domains returned nothing (in-query positive control returned) |
 | Prior contact | 0 overlap between this experiment's 155 domains and this repository's `growth.db` and files (checked 2026-09-15, with a positive control) |
 
 ## Decisions already taken by the founder
@@ -69,7 +70,7 @@ praise, no guessed pain — written in one pass over the final roster with arms 
 
 ## To resume (only on the founder's word)
 
-Apollo lookup of the 65 TOPUP-002 identities → import → actual arm denominators → arm-blind
+Decide whether to run at 16 / 18 → arm-blind
 opening lines → freeze the rendered pack → final suppression and prior-contact check (both
 repositories) → explicit SEND approval → send → 14-day outcome window.
 
