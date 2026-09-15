@@ -403,6 +403,22 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         for experiment_id, paths in sorted(diagnoses.items()):
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
+    elif args.action == "verdict":
+        from datetime import date
+
+        from .staged_verdict import VerdictError, load_rules, render_verdict, verdict
+
+        if not args.experiment_id:
+            raise SystemExit("verdict needs --experiment-id")
+        path = args.rules or f"experiments/{args.experiment_id}/preregistered-gates.json"
+        try:
+            rules = load_rules(path)
+        except (OSError, VerdictError) as exc:
+            raise SystemExit(f"REFUSED: {exc}")
+        if rules["experiment_id"] != args.experiment_id:
+            raise SystemExit(f"REFUSED: {path} holds the rules of {rules['experiment_id']}, not {args.experiment_id}")
+        result = verdict(args.db, rules, as_of=args.as_of or date.today().isoformat())
+        print(json.dumps(result, indent=2, default=str) if args.json else render_verdict(result))
     elif args.action == "change":
         from datetime import date
 
@@ -741,7 +757,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
     p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems",
-                                      "segments", "target", "offer", "route", "change"])
+                                      "segments", "target", "offer", "route", "change", "verdict"])
+    p.add_argument("--rules", default="", help="verdict: preregistered-gates JSON (default experiments/<EXP>/preregistered-gates.json)")
     p.add_argument("--baseline", default="", help="change: START:END (ISO dates)")
     p.add_argument("--comparison", default="", help="change: START:END (ISO dates)")
     p.add_argument("--baseline-arm", default="")

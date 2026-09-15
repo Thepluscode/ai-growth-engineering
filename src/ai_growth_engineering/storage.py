@@ -352,6 +352,18 @@ CREATE TABLE IF NOT EXISTS reply_decisions (
     PRIMARY KEY (candidate_id, item)
 );
 
+-- When a governed reply check ran. A no-response verdict needs a check made after its window.
+CREATE TABLE IF NOT EXISTS reply_checks (
+    check_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
+    checked_at TEXT NOT NULL,
+    messages_in_payload INTEGER NOT NULL,
+    summary_json TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS reply_checks_no_update BEFORE UPDATE ON reply_checks
+BEGIN SELECT RAISE(ABORT, 'reply checks are append-only'); END;
+
 CREATE TRIGGER IF NOT EXISTS reply_candidates_no_update BEFORE UPDATE ON reply_candidates
 BEGIN SELECT RAISE(ABORT, 'reply candidates are captured once and never rewritten'); END;
 

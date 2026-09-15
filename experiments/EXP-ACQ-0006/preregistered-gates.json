@@ -1,0 +1,61 @@
+{
+  "experiment_id": "EXP-ACQ-0006",
+  "transcribed_on": "2026-09-15",
+  "sources": {
+    "preregistration": "FS-001.md (EXP-0004), preregistered 2026-09-08 before any research: sections 'ACCESS', 'DEMAND', 'Kill criteria'",
+    "amendment": "FS-001-A1-amendment.md, recorded 2026-09-08 before any exposure: section 3 (accounts not paths), section 5 (demand isolation), section 6 (Stage A / Stage B)",
+    "gate_code": "src/theplus_growth/outreach/fs001.py: TARGET_* and MIN_* constants, _access(), _demand(), evaluate()",
+    "window": "fs001_queue.yaml judge_not_before, enforced in evaluate(): blocks the negative verdict only; a PASS never waits",
+    "location": "imports/marketing-engineering-os/ (git-ignored copy of the original repository)"
+  },
+  "stage": "Stage A: asynchronous routing request to a published corporate route. No offer, no meeting ask, no problem claim.",
+  "judge_not_before": "2026-09-22",
+  "demand_exposure_counted": false,
+  "demand_exposure_note": "FS-001-A1 section 5: a routing attempt is a RoutingAttempt, not an OutreachExposure. Reaching the buyer upgrades the route and nothing else. Pain volunteered unprompted is SPONTANEOUS / NON_PREREGISTERED and counts toward no gate. A role inbox never counts as exposure or demand evidence (FS-001 ACCESS).",
+  "access": {
+    "min_desk_eligible": 30,
+    "min_named_buyers": 20,
+    "min_verified_access_accounts": 15,
+    "verified_access_account": "a cohort account with at least one DIRECT or route-confirmed ROUTED path to the probable operational buyer (FS-001-A1 section 3)",
+    "preferred_direct": 10,
+    "preferred_direct_is_gate": false,
+    "min_clean_delivery_rate": 0.70,
+    "min_observed_for_rate": 10,
+    "failed_requires": "routing actually attempted and resolved; before judge_not_before FAILED is reported as ROUTING_IN_PROGRESS"
+  },
+  "demand": {
+    "denominator": "clean deliveries to named buyers",
+    "min_clean_deliveries": 30,
+    "min_replies": 5,
+    "min_pain_conversations": 3,
+    "pain_conversation_definition": "a meeting booked or a proposal requested (fs001.py count_funnel)",
+    "min_proposals": 2,
+    "min_paid_partners": 1,
+    "pass": "at least 1 paid design partner, the only gate answering the premise",
+    "kill": "after 30 clean deliveries, any of: replies < 5, pain conversations < 3, proposals sent < 2"
+  },
+  "research_snapshot": {
+    "taken": "2026-09-15",
+    "command": "theplus-growth fs001 in the imported copy, read-only",
+    "desk_eligible": 38,
+    "named_buyers": 15,
+    "verified_access_accounts": 1,
+    "direct_access_companies": ["Will Stone Gas Plumbing and Heating Ltd"],
+    "sends_claimed": 22,
+    "note": "Research state, not market outcomes. Re-take the snapshot if research changes named buyers or DIRECT paths; route confirmations come from approved replies at verdict time."
+  },
+  "response_mapping": {
+    "routing": ["AUTHORITY_SIGNAL"],
+    "demand": ["PROBLEM_STATED", "PAIN_CONFIRMED", "DESIRED_OUTCOME", "BUYING_CRITERION", "URGENCY_SIGNAL", "BUDGET_SIGNAL",
+               "REASON_FOR_INTEREST", "WILLINGNESS_TO_PAY_STATED", "PROPOSAL_REQUESTED"],
+    "note": "A routing reply is recorded through approved AUTHORITY_SIGNAL evidence (a referral, a named diary owner, 'wrong person'). A pain conversation is a meeting booked or an approved PROPOSAL_REQUESTED."
+  },
+  "next_actions": {
+    "no_human_replies": "Stage B, as preregistered (FS-001-A1 section 6): live telephone routing for the accounts Stage A did not resolve, only through the outbound-contact compliance gate (TPS/CTPS screening with a named source, caller identification, displayed number, internal suppression, recorded prior objection). Do not build product. An ACCESS failure is a reachability decision: change channel, change the buyer, or conclude the ICP is not reachable at this cost. It is never evidence against demand (FS-001 'Kill criteria').",
+    "routing_without_demand": "Record each confirmed route as a verified-access account and continue toward the 15-account ACCESS gate. Ask demand only through a separate named-buyer exposure counted against 30 clean deliveries (FS-001 DEMAND).",
+    "demand_without_meetings": "Keep the demand evidence as SPONTANEOUS / NON_PREREGISTERED (FS-001-A1 section 5): it informs the named-buyer demand exposure and counts toward no gate.",
+    "meetings_without_proposals": "Outside Stage A's preregistered scope. A person decides, against the DEMAND gates (3 pain conversations, 2 proposals sent, 1 paid design partner over 30 clean deliveries).",
+    "proposals_without_customers": "Outside Stage A's preregistered scope. A person decides, against the DEMAND pass gate (1 paid design partner).",
+    "customers": "DEMAND PASS for this workflow: product work is unblocked for that one workflow only (fs001.py _demand)."
+  }
+}

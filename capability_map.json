@@ -252,7 +252,8 @@
         "performance_change_diagnosis": "IMPLEMENTED",
         "reply_capture_with_human_approval": "IMPLEMENTED",
         "verified_send_lineage": "IMPLEMENTED",
-        "governed_reply_check": "IMPLEMENTED"
+        "governed_reply_check": "IMPLEMENTED",
+        "preregistered_staged_verdict": "IMPLEMENTED"
       }
     }
   }

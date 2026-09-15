@@ -437,7 +437,7 @@ def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str
                                                f"OR sender IN ({','.join('?' * len(recipients))})",
                                                (*threads, *recipients))]
     new = {k: v for k, v in counts.items() if k not in ("already_captured", "own_messages")}
-    return {
+    summary = {
         "experiment_id": experiment_id, "window": [start, until or "open"],
         "threads_checked": len(threads), "recipients_checked": len(recipients),
         "out_of_scope_dropped": out_of_scope, "own_messages": own,
@@ -451,6 +451,11 @@ def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str
         "real_buyer_replies": sum(1 for r in ledger if r["kind"] == "BUYER_REPLY" and r["match_state"] == "MATCHED"),
         "canonical_writes": sum(writes.values()),
     }
+    with connect(db_path) as con:
+        con.execute("INSERT INTO reply_checks(experiment_id, checked_at, messages_in_payload, summary_json) VALUES (?, ?, ?, ?)",
+                    (experiment_id, datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                     len(in_scope) + len(held) + out_of_scope + own, json.dumps(summary, sort_keys=True)))
+    return summary
 
 
 def render_check(s: dict) -> str:
