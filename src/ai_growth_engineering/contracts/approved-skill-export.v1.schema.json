@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "approved-skill-export.v1",
+  "description": "The neutral file contract an APPROVED-and-ADOPTED external skill exports to another ThePlus repository. File only: no runtime coupling, no database, no HTTP.",
+  "type": "object",
+  "required": ["contract_version", "contract", "skill_id", "skill_version", "content_hash", "source", "admission_status", "permissions", "approved_use_cases", "control_plane_mapping", "evaluation_refs", "approved_by", "approved_at"],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {"type": "string", "const": "1"},
+    "contract": {"type": "string", "const": "approved-skill-export.v1"},
+    "skill_id": {"type": "string"},
+    "skill_version": {"type": "string"},
+    "content_hash": {"type": "string"},
+    "source": {
+      "type": "object",
+      "required": ["source_type", "source_commit"],
+      "properties": {
+        "source_type": {"type": "string"},
+        "original_source_url": {"type": ["string", "null"]},
+        "original_repository": {"type": ["string", "null"]},
+        "source_commit": {"type": "string"},
+        "license": {"type": "string"}
+      }
+    },
+    "admission_status": {"type": "string", "const": "APPROVED"},
+    "effective_status": {"type": "string", "enum": ["ADOPTED", "FORKED"]},
+    "permissions": {
+      "type": "object",
+      "required": ["filesystem", "network", "credentials", "tools", "code_execution", "external_actions", "data_classes", "human_approval"]
+    },
+    "approved_use_cases": {"type": "array", "items": {"type": "string"}},
+    "control_plane_mapping": {"type": "array", "items": {"type": "string", "enum": ["identity", "policy", "audit", "observability", "evidence"]}},
+    "evaluation_refs": {"type": "array", "items": {"type": "string"}},
+    "approved_by": {"type": "string"},
+    "approved_at": {"type": "string"},
+    "review_after": {"type": ["string", "null"]}
+  }
+}

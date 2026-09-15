@@ -38,6 +38,17 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
         ("audience_type", "source"),
         ("exclusions", "notes"),
     ),
+    # A marketing procedure is known by procedure_id@version AND its content hash; a name alone
+    # identifies nothing. Registration records that a procedure exists and where it came from. It
+    # carries no performance field: effectiveness is derived on read, never registered.
+    "procedures": (
+        "procedure_ref",
+        ("procedure_id", "procedure_version", "content_hash", "source_type", "source_ref",
+         "admission_status", "approved_use_cases"),
+        ("admission_ref", "effective_status", "source_commit", "license", "permissions_json",
+         "evaluation_refs", "approved_by", "approved_at", "review_after", "introduced_at",
+         "retired_at", "retired_reason", "import_sha256", "imported_from"),
+    ),
     "channels": (
         "channel_id",
         ("name",),
@@ -198,6 +209,7 @@ REGISTRY_TABLES = {
     "audience_ownership": "audience_ownership",
     "campaigns": "campaigns",
     "audiences": "audiences",
+    "marketing_procedures": "procedures",
     "value_ladders": "value_ladders",
     "product_opportunity_portfolio": "product_opportunities",
     "product_format_decisions": "product_format_decisions",
@@ -217,6 +229,7 @@ INT_SUFFIXES = (
 CHOICES = {
     ("campaigns", "status"): ("planned", "active", "paused", "completed"),
     ("audiences", "audience_type"): ("cold", "retargeting", "lookalike", "customer"),
+    ("procedures", "admission_status"): ("APPROVED", "INTERNAL_BASELINE"),
 }
 
 INT_FIELDS = {

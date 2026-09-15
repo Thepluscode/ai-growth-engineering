@@ -253,7 +253,15 @@
         "reply_capture_with_human_approval": "IMPLEMENTED",
         "verified_send_lineage": "IMPLEMENTED",
         "governed_reply_check": "IMPLEMENTED",
-        "preregistered_staged_verdict": "IMPLEMENTED"
+        "preregistered_staged_verdict": "IMPLEMENTED",
+        "marketing_procedure_registry": "IMPLEMENTED",
+        "approved_skill_export_import": "IMPLEMENTED",
+        "procedure_experiment_declaration": "IMPLEMENTED",
+        "procedure_impact_evaluator": "IMPLEMENTED",
+        "skill_evaluation_result_export": "IMPLEMENTED",
+        "procedure_offline_evaluation_runner": "SPECIFIED",
+        "marketing_job_context_packaging": "HYPOTHESIS",
+        "revops_stage_hygiene_diagnostics": "HYPOTHESIS"
       }
     }
   }

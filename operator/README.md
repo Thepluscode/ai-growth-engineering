@@ -2,7 +2,7 @@
 
 # operator
 
-**AI Growth Engineering — the method layer** — 32 of 43 capabilities implemented.
+**AI Growth Engineering — the method layer** — 37 of 51 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -18,6 +18,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | Capability | Status |
 | --- | --- |
 | `action_risk_classes` | IMPLEMENTED |
+| `approved_skill_export_import` | IMPLEMENTED |
 | `budget_authority_controls` | IMPLEMENTED |
 | `buyer_truth_evidence_link` | IMPLEMENTED |
 | `campaign_creative_audience_model` | IMPLEMENTED |
@@ -36,16 +37,20 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `keep_iterate_kill_decisions` | IMPLEMENTED |
 | `marketing_adapter_contract` | IMPLEMENTED |
 | `marketing_engineer_status` | IMPLEMENTED |
+| `marketing_procedure_registry` | IMPLEMENTED |
 | `next_experiment_card` | IMPLEMENTED |
 | `next_experiment_recommender` | IMPLEMENTED |
 | `observed_inferred_unknown_separation` | IMPLEMENTED |
 | `performance_change_diagnosis` | IMPLEMENTED |
 | `preregistered_staged_verdict` | IMPLEMENTED |
 | `problem_to_revenue_view` | IMPLEMENTED |
+| `procedure_experiment_declaration` | IMPLEMENTED |
+| `procedure_impact_evaluator` | IMPLEMENTED |
 | `reply_capture_with_human_approval` | IMPLEMENTED |
 | `segment_performance_comparison` | IMPLEMENTED |
 | `signal_prospect_message_lineage` | IMPLEMENTED |
 | `single_variable_experiment_contract` | IMPLEMENTED |
+| `skill_evaluation_result_export` | IMPLEMENTED |
 | `stripe_revenue_adapter` | IMPLEMENTED |
 | `target_offer_route_decisioning` | IMPLEMENTED |
 | `verified_send_lineage` | IMPLEMENTED |
@@ -58,6 +63,9 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | `growth_control_plane` | HYPOTHESIS |
 | `growth_event_bus` | HYPOTHESIS |
 | `growth_state` | HYPOTHESIS |
+| `marketing_job_context_packaging` | HYPOTHESIS |
+| `procedure_offline_evaluation_runner` | SPECIFIED |
+| `revops_stage_hygiene_diagnostics` | HYPOTHESIS |
 | `time_to_action` | HYPOTHESIS |
 | `time_to_decision` | HYPOTHESIS |
 

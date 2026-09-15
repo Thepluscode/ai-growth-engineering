@@ -78,6 +78,81 @@ An adapter never supplies a field its source does not carry (a send log with no 
 `occurred_at_is_send_date: true`) and never assigns an experiment the source does not name — the
 operator passes `--experiment-id`.
 
+## Marketing procedures — approved skills as experimental inputs (2026-09-15)
+
+```text
+Intelligent Machine (admission, provenance, permissions, approval — NOT reproduced here)
+   │  approved-skill-export.v1 (file snapshot, no runtime coupling)
+   ▼
+procedures registry (procedure_id@version + content_hash)     = KNOWN, never PROVEN
+   ▼
+experiment_procedures (frozen before first exposure)           = VARIABLE of one arm | COMMON_INPUT of every arm
+   ▼
+canonical funnel events (unchanged) → segment unit model → change_diagnosis window resolution
+   ▼
+procedure evaluator (on read) → report + skill-evaluation-result.v1 → back to the Intelligent Machine as evidence
+```
+
+| Truth | Owner | Never |
+|---|---|---|
+| Whether an external skill may be used | Intelligent Machine | re-reviewed, widened or approved here |
+| Which procedure version exists | `procedures` registry | carrying a score, lift or revenue field |
+| Which version an experiment ran | `experiment_procedures`, append-only, refused after exposure | inferred from timing or backfilled |
+| Whether it performed better | `procedures.evaluate`, computed on read | stored, or produced by a model |
+
+**Import** (`age procedures import FILE`) refuses, in order: an unsupported contract or version, an
+admission status other than APPROVED, a revoked or unadopted skill, a missing or malformed sha256,
+missing provenance (source type, commit, licence, repository or URL, approver, approval date), use
+cases that do not permit marketing, an expired review, and anything off the vendored schema
+(`src/ai_growth_engineering/contracts/`, copied from the Intelligent Machine at 0cddae4). The same file
+re-imports to the same row; the same version with different content is refused.
+
+**Baseline.** ThePlus's own `skills/*/SKILL.md` are the baseline procedures, seeded in
+`seeds/registries.json` with the hash of each file; a test fails if a skill file changes without a
+version bump.
+
+**Declaration** (`age procedures bind`). A procedure is the experimental VARIABLE only when the frozen
+contract declares `variable = procedure`; otherwise it is a COMMON_INPUT held constant. Once any
+exposure exists the declaration is refused, and a different version or hash for an arm is refused at
+any time: a new version is a new experiment.
+
+**Lineage.** An event runs under a procedure only through its own experiment's declaration for its
+arm (or every arm) made on or before the day it happened. Exposures dated before the declaration, and
+events whose metadata records a different `procedure_ref`, break the comparison.
+
+**Evaluation** (`age marketing-engineer procedure`). The metric is the experiment's preregistered
+primary metric, never chosen at read time; activity metrics are refused and jobs judged offline
+(buyer research, experiment design and analysis, RevOps) are NOT_EVALUABLE in the market. Classes, in
+order: NOT_EVALUABLE (no declaration, no market exposure — synthetic fixtures never count — or no
+delivered exposure) → IMMATURE → CONFOUNDED (a recorded input other than the job's own output
+changed, sides not concurrent, exposure before declaration, competing procedure) →
+INSUFFICIENT_SAMPLE (below 30 matured per side or the preregistered minimum, zero outcomes on both
+sides, or underpowered: the smallest visible gap exceeds 10 points) → CONTROLLED_EFFECT / REGRESSION
+(only a CONTROLLED_MARKET_EXPERIMENT: one experiment, variable = procedure, both arms declared) or
+DESCRIPTIVE_DIFFERENCE (observational) → NO_DIFFERENCE. Decisions: KEEP only on CONTROLLED_EFFECT;
+REJECT on REGRESSION or a powered NO_DIFFERENCE (the baseline is retained); ITERATE on descriptive or
+confounded; NEED_MORE_DATA otherwise. Revenue is reported per side through the same unit model with
+the money-graph campaigns to open, and is ASSOCIATED_ONLY unless a controlled experiment's primary
+metric was paid rate.
+
+**Result export** (`--export FILE`, `age procedures validate-result FILE`). `skill-evaluation-result.v1`
+refuses a causal class outside a controlled market experiment, market validation or KEEP without a
+controlled effect, offline evidence claiming market validation, and any authority other than
+RECOMMENDATION_ONLY.
+
+```text
+External skill adoption is not market validation.
+Offline eval is not revenue evidence.
+Correlation is not controlled effect.
+Higher activity is not better growth.
+Procedure competence does not grant execution authority.
+```
+
+No autonomous learning mutation exists: an underperforming procedure is never rewritten, committed or
+promoted here. The path is outcome → proposed improvement → new version and hash → offline evaluation
+→ controlled experiment where justified → human review in the Intelligent Machine → new approved
+version. The candidate review behind this build is `docs/PROCEDURE_GAP_REVIEW.md`.
+
 ## Deliberately not built yet
 
 Per the founder's sequencing — money lineage on one real channel first, paid channels after it works:

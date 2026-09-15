@@ -649,6 +649,104 @@
       "execution_mode_reason": "Founder decision 2026-09-15 (first recorded with the mislabelled date 2026-09-16): frozen cohort of 39 is below the preregistered 51; run descriptively, no rerandomisation, see experiments/EXP-ACQ-0003/EXECUTION-MODE.md"
     }
   ],
+  "procedures": [
+    {
+      "procedure_ref": "theplus.customer-intelligence@1.0.0",
+      "procedure_id": "theplus.customer-intelligence",
+      "procedure_version": "1.0.0",
+      "content_hash": "ac409b8a016ab52ec16353f04aa34ea00deb46ca2f909d4a3ef1b65c704fe196",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/customer-intelligence/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"buyer_research\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.market-research@1.0.0",
+      "procedure_id": "theplus.market-research",
+      "procedure_version": "1.0.0",
+      "content_hash": "56b0bd75b69b32f35e9cae5a9dacb07ca7f111352bfb6629877bbe9d6b89dd0f",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/market-research/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"buyer_research\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.outreach-research@1.0.0",
+      "procedure_id": "theplus.outreach-research",
+      "procedure_version": "1.0.0",
+      "content_hash": "11ab2c98269de8b07cb0d03e729a21a83acb4c2a1860546244cea923abece66e",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/outreach-research/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"message_generation\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.persuasion-engineering@1.0.0",
+      "procedure_id": "theplus.persuasion-engineering",
+      "procedure_version": "1.0.0",
+      "content_hash": "d93b11c20f71c22166df9139ed690c1c3d45dca236f335895f1b2dbfc61341f8",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/persuasion-engineering/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"message_generation\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.revenue-intelligence@1.0.0",
+      "procedure_id": "theplus.revenue-intelligence",
+      "procedure_version": "1.0.0",
+      "content_hash": "bc0a668b403f177bdb04605872972cd4dc235bfa423700449c0ea205c15af2b7",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/revenue-intelligence/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"icp_scoring\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.experiment-design@1.0.0",
+      "procedure_id": "theplus.experiment-design",
+      "procedure_version": "1.0.0",
+      "content_hash": "25aa2fb46e0fd32c051e8cc77a6c9ee6f8c55ed6e7720a55eed86ce826e0cda5",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/experiment-design/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"experiment_design\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.experiment-design@1.1.0",
+      "procedure_id": "theplus.experiment-design",
+      "procedure_version": "1.1.0",
+      "content_hash": "0a3d0fdfafb0291eaaa9cf1e910661e3e8bf276e596d8805aad2af1de7b14d5b",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/experiment-design/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"experiment_design\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    },
+    {
+      "procedure_ref": "theplus.growth-diagnostic@1.0.0",
+      "procedure_id": "theplus.growth-diagnostic",
+      "procedure_version": "1.0.0",
+      "content_hash": "83849c50edeeae92039c04a442d5a849d7715f2073e7546171c68165d54fd14f",
+      "source_type": "theplus_internal",
+      "source_ref": "skills/growth-diagnostic/SKILL.md",
+      "admission_status": "INTERNAL_BASELINE",
+      "effective_status": "BASELINE",
+      "approved_use_cases": "[\"experiment_analysis\"]",
+      "admission_ref": "internal: a ThePlus procedure, not an external admission"
+    }
+  ],
   "audiences": [
     {
       "audience_id": "AUD-ACQ-0001-TEARDOWN-QUEUES",

@@ -403,6 +403,26 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         for experiment_id, paths in sorted(diagnoses.items()):
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
+    elif args.action == "procedure":
+        from . import procedures as pr
+
+        if not (args.experiment_id and args.use_case):
+            raise SystemExit("procedure needs --experiment-id and --use-case (plus --candidate-arm / --baseline-arm)")
+        result = pr.evaluate(args.db, experiment_id=args.experiment_id, candidate_arm=args.candidate_arm,
+                             baseline_arm=args.baseline_arm, use_case=args.use_case,
+                             baseline_experiment_id=args.baseline_experiment_id, as_of=args.as_of or None)
+        if args.export:
+            try:
+                doc = pr.result_document(result)
+            except pr.ProcedureError as exc:
+                raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+            errors = pr.validate_result(doc)
+            if errors:
+                raise SystemExit("REFUSED (invalid_result): " + "; ".join(errors))
+            with open(args.export, "w", encoding="utf-8") as handle:
+                json.dump(doc, handle, indent=2, default=str)
+                handle.write("\n")
+        print(json.dumps(result, indent=2, default=str) if args.json else pr.render_report(result))
     elif args.action == "verdict":
         from datetime import date
 
@@ -552,6 +572,44 @@ def cmd_replies(args: argparse.Namespace) -> None:
         else:
             result = rc.reject(args.db, args.target, items=items, reason=args.reason, decided_by=args.by)
     except rc.ReplyCaptureError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(json.dumps(result, indent=2, default=str))
+
+
+def cmd_procedures(args: argparse.Namespace) -> None:
+    import json
+
+    from . import procedures as pr
+
+    try:
+        if args.action == "import":
+            result = pr.import_export(args.db, args.target)
+        elif args.action == "register-internal":
+            result = pr.register_internal(args.db, args.target, args.use_case)
+        elif args.action == "bind":
+            result = pr.bind(args.db, args.experiment_id, args.target, args.role, arm=args.arm, frozen_by=args.by)
+        elif args.action == "retire":
+            result = pr.retire(args.db, args.target, args.reason)
+        elif args.action == "validate-result":
+            with open(args.target, encoding="utf-8") as handle:
+                errors = pr.validate_result(json.load(handle))
+            print("VALID" if not errors else "INVALID\n" + "\n".join(f"  - {e}" for e in errors))
+            if errors:
+                raise SystemExit(1)
+            return
+        else:
+            rows = pr.procedure_rows(args.db)
+            if args.json:
+                print(json.dumps(rows, indent=2, default=str))
+                return
+            print("MARKETING PROCEDURES  [registered = KNOWN, never PROVEN · performance is derived per experiment]")
+            for ref, row in sorted(rows.items()):
+                print(f"  {ref:48} {row['content_hash'][:12]}  {row['admission_status']:17} {row['source_ref']}"
+                      + (f"  RETIRED {row['retired_at'][:10]}" if row["retired_at"] else ""))
+            if not rows:
+                print("  none registered")
+            return
+    except pr.ProcedureError as exc:
         raise SystemExit(f"REFUSED ({exc.code}): {exc}")
     print(json.dumps(result, indent=2, default=str))
 
@@ -757,8 +815,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
     p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems",
-                                      "segments", "target", "offer", "route", "change", "verdict"])
+                                      "segments", "target", "offer", "route", "change", "verdict", "procedure"])
     p.add_argument("--rules", default="", help="verdict: preregistered-gates JSON (default experiments/<EXP>/preregistered-gates.json)")
+    p.add_argument("--use-case", default="", help="procedure: the marketing job being evaluated")
+    p.add_argument("--candidate-arm", default="", help="procedure: arm running the candidate ('' = the experiment's common input)")
+    p.add_argument("--baseline-experiment-id", default="", help="procedure: baseline in another experiment (observational)")
+    p.add_argument("--export", default="", help="procedure: write a validated skill-evaluation-result.v1 file")
     p.add_argument("--baseline", default="", help="change: START:END (ISO dates)")
     p.add_argument("--comparison", default="", help="change: START:END (ISO dates)")
     p.add_argument("--baseline-arm", default="")
@@ -827,6 +889,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="founder")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_replies)
+
+    p = sub.add_parser("procedures"); dbarg(p)
+    p.add_argument("action", choices=["list", "import", "register-internal", "bind", "retire", "validate-result"])
+    p.add_argument("target", nargs="?", default="",
+                   help="export JSON for import; skill directory for register-internal; procedure_ref for bind and "
+                        "retire; result JSON for validate-result")
+    p.add_argument("--use-case", action="append", default=[], help="register-internal: repeat per approved job")
+    p.add_argument("--experiment-id", default="")
+    p.add_argument("--role", default="", choices=["", "VARIABLE", "COMMON_INPUT"])
+    p.add_argument("--arm", default="")
+    p.add_argument("--reason", default="")
+    p.add_argument("--by", default="founder")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_procedures)
 
     p = sub.add_parser("adapter-specs")
     p.add_argument("--platform", default="")

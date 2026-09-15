@@ -91,7 +91,7 @@ EXPERIMENT_NAMESPACES = frozenset(
 # values; naming it is what stops a "CTA test" from also changing the offer.
 TEST_VARIABLES = frozenset({
     "hook", "body", "cta", "subject", "offer", "price", "creative", "landing_page_headline",
-    "audience", "channel", "recipient_route", "format", "send_time",
+    "audience", "channel", "recipient_route", "format", "send_time", "procedure",
 })
 
 

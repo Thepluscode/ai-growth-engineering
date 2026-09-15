@@ -373,6 +373,27 @@ BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
 CREATE TRIGGER IF NOT EXISTS reply_decisions_no_delete BEFORE DELETE ON reply_decisions
 BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
 
+-- Which exact procedure version an experiment declared, before its first exposure: the variable of
+-- one arm, or an input held constant across every arm (arm ''). Frozen once written.
+CREATE TABLE IF NOT EXISTS experiment_procedures (
+    experiment_id TEXT NOT NULL REFERENCES experiments(experiment_id),
+    arm TEXT NOT NULL DEFAULT '',
+    procedure_id TEXT NOT NULL,
+    procedure_ref TEXT NOT NULL,
+    procedure_version TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('VARIABLE', 'COMMON_INPUT')),
+    frozen_by TEXT NOT NULL,
+    frozen_at TEXT NOT NULL,
+    PRIMARY KEY (experiment_id, arm, procedure_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS experiment_procedures_no_update BEFORE UPDATE ON experiment_procedures
+BEGIN SELECT RAISE(ABORT, 'a declared procedure is frozen: a new version is a new experimental condition'); END;
+
+CREATE TRIGGER IF NOT EXISTS experiment_procedures_no_delete BEFORE DELETE ON experiment_procedures
+BEGIN SELECT RAISE(ABORT, 'a declared procedure is frozen: a new version is a new experimental condition'); END;
+
 CREATE TRIGGER IF NOT EXISTS linked_observation_frozen
 BEFORE UPDATE OF statement, source, observed_at, kind ON evidence
 WHEN EXISTS (SELECT 1 FROM commercial_evidence WHERE evidence_id = OLD.evidence_id)
