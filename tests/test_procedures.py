@@ -12,6 +12,7 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
 
@@ -28,21 +29,15 @@ from ai_growth_engineering.storage import connect, init_db
 ROOT = Path(__file__).resolve().parents[1]
 AS_OF = "2026-09-30"
 FROZEN = "2026-07-01T00:00:00+00:00"
-CANDIDATE_HASH = "a" * 64
-EXPORT = {
-    "contract_version": "1", "contract": "approved-skill-export.v1", "skill_id": "ext_outbound_writer",
-    "skill_version": "2.0.0", "content_hash": CANDIDATE_HASH,
-    "source": {"source_type": "github", "original_source_url": None, "original_repository": "example/skills",
-               "source_commit": "5b2c0007766c6a1cf1d53fd8fc73e979e0821022", "license": "MIT"},
-    "admission_status": "APPROVED", "effective_status": "FORKED",
-    "permissions": {"filesystem": "none", "network": "none", "credentials": "none", "tools": [], "code_execution": False,
-                    "external_actions": [], "data_classes": [], "human_approval": True},
-    "approved_use_cases": ["message_generation"], "control_plane_mapping": ["evidence"],
-    "evaluation_refs": ["evaluations/ext_outbound_writer-aaaaaaaa-vs-outreach.yaml"],
-    "approved_by": "founder", "approved_at": "2026-09-10", "review_after": "2027-03-10",
-}
+# Written by the Intelligent Machine's own export_document() and normalise_permissions() at IM commit
+# 0cddae4, and schema-valid there, so every permission section has the nested shape the IM really emits.
+# Only review_after moves: the fixture must describe a CURRENT approval whenever the suite runs.
+FIXTURE = ROOT / "tests" / "fixtures" / "im_approved_skill_export.v1.json"
+EXPORT = dict(json.loads(FIXTURE.read_text(encoding="utf-8")),
+              review_after=(date.today() + timedelta(days=90)).isoformat())
+CANDIDATE_HASH = EXPORT["content_hash"]
 BASELINE_REF = "theplus.outreach-research@1.0.0"
-CANDIDATE_REF = "ext_outbound_writer@2.0.0"
+CANDIDATE_REF = f"{EXPORT['skill_id']}@{EXPORT['skill_version']}"
 
 
 def frozen_clock():
@@ -127,7 +122,7 @@ class ImportContractTests(ProcedureCase):
 
     def test_an_unapproved_export_is_rejected(self):
         self.assertEqual(self.refused(self.mutate(admission_status="QUARANTINED")), "not_approved")
-        self.assertNotIn("ext_outbound_writer@9.9.9", pr.procedure_rows(self.db))
+        self.assertNotIn("vendor_outbound_writer@9.9.9", pr.procedure_rows(self.db))
 
     def test_an_unsupported_contract_version_is_rejected(self):
         self.assertEqual(self.refused(self.mutate(contract_version="2")), "unsupported_contract")
@@ -145,7 +140,7 @@ class ImportContractTests(ProcedureCase):
         doc = self.mutate()
         doc["source"] = dict(doc["source"], source_commit="unknown")
         self.assertEqual(self.refused(doc), "provenance_missing")
-        doc["source"] = dict(EXPORT["source"], original_repository=None)
+        doc["source"] = dict(EXPORT["source"], original_repository=None, original_source_url=None)
         self.assertEqual(self.refused(doc), "provenance_missing")
 
     def test_a_use_case_that_does_not_permit_marketing_is_rejected(self):
@@ -158,11 +153,12 @@ class ImportContractTests(ProcedureCase):
     def test_registration_preserves_provenance_and_claims_nothing_about_performance(self):
         row = pr.procedure_rows(self.db)[CANDIDATE_REF]
         self.assertEqual((row["procedure_id"], row["procedure_version"], row["content_hash"], row["source_type"]),
-                         ("ext_outbound_writer", "2.0.0", CANDIDATE_HASH, "github"))
-        self.assertEqual(row["source_ref"], "example/skills@5b2c0007766c6a1cf1d53fd8fc73e979e0821022")
+                         ("vendor_outbound_writer", "2.0.0", CANDIDATE_HASH, "git"))
+        self.assertEqual(row["source_ref"], "vendor/skills@5b2c0007766c6a1cf1d53fd8fc73e979e0821022")
+        self.assertEqual(json.loads(row["permissions_json"]), EXPORT["permissions"])
         self.assertEqual((row["license"], row["admission_status"], row["effective_status"], row["approved_by"]),
                          ("MIT", "APPROVED", "FORKED", "founder"))
-        self.assertEqual(row["admission_ref"], "approved-skill-export.v1:ext_outbound_writer@2.0.0:2026-09-10")
+        self.assertEqual(row["admission_ref"], "approved-skill-export.v1:vendor_outbound_writer@2.0.0:2026-09-10")
         self.assertEqual(len(row["import_sha256"]), 64)
         self.assertFalse({"score", "lift", "win_rate", "revenue_pence", "proven"} & set(row))
         self.assertEqual(self.import_export(EXPORT), {"procedure_ref": CANDIDATE_REF, "inserted": False,
@@ -191,13 +187,13 @@ class DeclarationTests(ProcedureCase):
         self.import_export(dict(copy.deepcopy(EXPORT), skill_version="2.1.0", content_hash="c" * 64), name="v21.json")
         for arm, code in (("candidate", "frozen_binding"), ("challenger", "exposure_started")):
             with self.assertRaises(pr.ProcedureError) as caught:
-                pr.bind(self.db, "EXP-ACQ-0010", "ext_outbound_writer@2.1.0", "VARIABLE", arm=arm)
+                pr.bind(self.db, "EXP-ACQ-0010", "vendor_outbound_writer@2.1.0", "VARIABLE", arm=arm)
             self.assertEqual(caught.exception.code, code)
         self.experiment("EXP-ACQ-0012", variable="procedure")
-        self.assertTrue(pr.bind(self.db, "EXP-ACQ-0012", "ext_outbound_writer@2.1.0", "VARIABLE", arm="candidate")["inserted"])
+        self.assertTrue(pr.bind(self.db, "EXP-ACQ-0012", "vendor_outbound_writer@2.1.0", "VARIABLE", arm="candidate")["inserted"])
         declared = {(b["experiment_id"], b["arm"]): (b["procedure_ref"], b["content_hash"]) for b in pr.bindings(self.db)}
         self.assertEqual(declared[("EXP-ACQ-0010", "candidate")], (CANDIDATE_REF, CANDIDATE_HASH))
-        self.assertEqual(declared[("EXP-ACQ-0012", "candidate")], ("ext_outbound_writer@2.1.0", "c" * 64))
+        self.assertEqual(declared[("EXP-ACQ-0012", "candidate")], ("vendor_outbound_writer@2.1.0", "c" * 64))
 
     def test_a_declaration_is_frozen_in_storage_and_never_touches_the_contract(self):
         with connect(self.db) as con:
@@ -276,7 +272,7 @@ class EvaluationTests(ProcedureCase):
         self.assertEqual(r["money_graph"], {"baseline": ["CMP-P"], "candidate": ["CMP-P"]})
         doc = pr.result_document(r, generated_at="2026-09-30T00:00:00+00:00")
         self.assertEqual(pr.validate_result(doc), [])
-        self.assertEqual((doc["skill_id"], doc["content_hash"], doc["decision"]), ("ext_outbound_writer", CANDIDATE_HASH, "KEEP"))
+        self.assertEqual((doc["skill_id"], doc["content_hash"], doc["decision"]), ("vendor_outbound_writer", CANDIDATE_HASH, "KEEP"))
         self.assertIn("RECOMMENDATION_ONLY", pr.render_report(r))
 
     def test_a_controlled_loss_is_a_regression(self):
@@ -296,8 +292,10 @@ class EvaluationTests(ProcedureCase):
         self.assertEqual((r["result_class"], r["evidence_class"], r["decision"], r["market_validation"]),
                          ("DESCRIPTIVE_DIFFERENCE", "OBSERVATIONAL_MARKET_RESULT", "ITERATE", False))
         self.assertIn(f"{CANDIDATE_REF} caused any difference from the baseline.", r["unsupported_claims"])
-        forged = dict(pr.result_document(r), result_class="CONTROLLED_EFFECT", decision="KEEP", market_validation=True)
-        self.assertEqual(len(pr.validate_result(forged)), 3)
+        errors = pr.validate_result(dict(pr.result_document(r), result_class="CONTROLLED_EFFECT", decision="KEEP",
+                                         market_validation=True))
+        for fragment in ("only a CONTROLLED_MARKET_EXPERIMENT", "market_validation needs", "KEEP needs"):
+            self.assertTrue(any(fragment in e for e in errors), errors)
 
     def test_two_procedure_experiments_compared_with_each_other_are_still_observational(self):
         self.experiment("EXP-ACQ-0015", variable="procedure")
@@ -392,11 +390,14 @@ class EvaluationTests(ProcedureCase):
                "content_hash": "d" * 64, "evaluation_type": "OFFLINE_EVAL", "evidence_class": "OFFLINE_EVAL",
                "result_class": "DESCRIPTIVE_DIFFERENCE", "use_case": "experiment_design",
                "baseline": {"procedure_ref": BASELINE_REF, "content_hash": "e" * 64}, "experiment_id": None,
-               "metrics": {}, "sample": {}, "maturity": {}, "confounders": [], "unsupported_claims": [],
+               "metrics": {}, "sample": {}, "maturity": {}, "revenue": {"claim": "NONE_OBSERVED"}, "confounders": [],
+               "competing_variables": [], "includes_synthetic": False, "unsupported_claims": [],
                "market_validation": False, "decision": "REJECT", "authority": "RECOMMENDATION_ONLY",
                "generated_at": "2026-09-15", "generated_by": "test"}
         self.assertEqual(pr.validate_result(doc), [])
         self.assertTrue(pr.validate_result(dict(doc, market_validation=True)))
+        self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "ASSOCIATED_ONLY"})))
+        self.assertTrue(pr.validate_result(dict(doc, revenue={"claim": "made up"})))
         self.assertTrue(pr.validate_result(dict(doc, result_class="CONTROLLED_EFFECT")))
         self.assertTrue(pr.validate_result(dict(doc, authority="EXECUTE")))
 
@@ -456,6 +457,142 @@ class BoundaryTests(ProcedureCase):
         self.assertEqual(caught.exception.code, "variable_not_declared")
         with connect(self.db) as con:
             self.assertEqual([dict(row) for row in con.execute("SELECT * FROM experiments ORDER BY experiment_id")], before)
+
+
+class UpstreamApprovalTests(ProcedureCase):
+    """An import is a snapshot. A NEW declaration re-reads the export the procedure came from and fails
+    closed; declarations already made stay exactly as they were."""
+
+    def upstream(self, **changes):
+        path = Path(self.tmp.name) / "export.json"
+        path.write_text(json.dumps(dict(copy.deepcopy(EXPORT), **changes)), encoding="utf-8")
+        return path
+
+    def snapshot(self):
+        with connect(self.db) as con:
+            return tuple([dict(r) for r in con.execute(f"SELECT * FROM {table} ORDER BY rowid")]
+                         for table in ("experiments", "procedures", "experiment_procedures"))
+
+    def refused(self, code, **bind):
+        args = {"experiment_id": "EXP-ACQ-0011", "procedure_ref": CANDIDATE_REF, "role": "COMMON_INPUT"}
+        args.update(bind)
+        before = self.snapshot()
+        with self.assertRaises(pr.ProcedureError) as caught:
+            pr.bind(self.db, args.pop("experiment_id"), args.pop("procedure_ref"), args.pop("role"), **args)
+        self.assertEqual(caught.exception.code, code, str(caught.exception))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_the_real_intelligent_machine_export_imports_registers_and_binds(self):
+        row = pr.procedure_rows(self.db)[CANDIDATE_REF]
+        permissions = json.loads(row["permissions_json"])
+        self.assertEqual(permissions["network"], {"enabled": False, "allowed_domains": []})
+        self.assertEqual(permissions["human_approval"], {"required_for": ["email_send", "publish"]})
+        self.assertEqual(permissions["filesystem"], {"read": ["workspace/briefs"], "write": []})
+        self.assertEqual(set(permissions), {"filesystem", "network", "credentials", "tools", "code_execution",
+                                            "external_actions", "data_classes", "human_approval"})
+        self.assertTrue(pr.bind(self.db, "EXP-ACQ-0011", CANDIDATE_REF, "COMMON_INPUT")["inserted"])
+
+    def test_an_expired_review_refuses_a_new_binding(self):
+        with mock.patch("ai_growth_engineering.procedures._utc_now", return_value="2099-01-01T00:00:00+00:00"):
+            self.refused("review_expired")
+            # A re-reviewed upstream export does not silently refresh what was imported.
+            self.upstream(review_after="2100-01-01")
+            self.refused("review_expired")
+
+    def test_a_removed_upstream_export_refuses_a_new_binding(self):
+        self.upstream().unlink()
+        self.refused("upstream_export_missing")
+
+    def test_an_upstream_export_no_longer_approved_or_revoked_refuses_a_new_binding(self):
+        self.upstream(admission_status="QUARANTINED")
+        self.refused("upstream_approval_not_current")
+        self.upstream(effective_status="REVOKED")
+        self.refused("upstream_approval_not_current")
+
+    def test_changed_upstream_content_refuses_a_new_binding(self):
+        self.upstream(content_hash="d" * 64)
+        self.refused("upstream_content_changed")
+
+    def test_a_changed_upstream_version_refuses_a_new_binding(self):
+        self.upstream(skill_version="2.0.1")
+        self.refused("upstream_identity_changed")
+
+    def test_a_withdrawn_use_case_refuses_a_new_binding(self):
+        self.upstream(approved_use_cases=["marketing_experimentation"])
+        self.refused("upstream_use_case_withdrawn")
+
+    def test_a_historical_binding_survives_revocation_and_a_new_binding_does_not(self):
+        with frozen_clock():
+            pr.bind(self.db, "EXP-ACQ-0010", CANDIDATE_REF, "VARIABLE", arm="candidate")
+            pr.bind(self.db, "EXP-ACQ-0010", BASELINE_REF, "VARIABLE", arm="baseline")
+        self.cohort("c", 2, arm="candidate")
+        history = pr.bindings(self.db)
+        self.upstream(effective_status="REVOKED")
+        self.refused("upstream_approval_not_current")
+        self.assertEqual(pr.bindings(self.db), history)
+        self.assertEqual([b["procedure_ref"] for b in pr.lineage(
+            {"experiment_id": "EXP-ACQ-0010", "arm": "candidate", "occurred_at": "2026-08-02"}, pr.bindings(self.db))],
+            [CANDIDATE_REF])
+        self.assertEqual(pr.procedure_rows(self.db)[CANDIDATE_REF]["content_hash"], CANDIDATE_HASH)
+
+    def test_a_theplus_baseline_has_no_upstream_to_lapse(self):
+        with mock.patch("ai_growth_engineering.procedures._utc_now", return_value="2099-01-01T00:00:00+00:00"):
+            self.assertTrue(pr.bind(self.db, "EXP-ACQ-0011", BASELINE_REF, "COMMON_INPUT")["inserted"])
+
+
+class ResultGateTests(ProcedureCase):
+    """A result file may not carry a causal claim its own evidence does not support."""
+
+    def setUp(self):
+        super().setUp()
+        self.experiment("EXP-ACQ-0016", variable="procedure", primary_metric="paid_rate")
+        with frozen_clock():
+            pr.bind(self.db, "EXP-ACQ-0016", CANDIDATE_REF, "VARIABLE", arm="candidate")
+            pr.bind(self.db, "EXP-ACQ-0016", BASELINE_REF, "VARIABLE", arm="baseline")
+        self.cohort("c", 60, experiment="EXP-ACQ-0016", arm="candidate", payments=30)
+        self.cohort("b", 60, experiment="EXP-ACQ-0016", arm="baseline", payments=12)
+        self.result = self.evaluate(experiment_id="EXP-ACQ-0016")
+        self.doc = pr.result_document(self.result, generated_at="2026-09-30T00:00:00+00:00")
+
+    def rejected(self, fragment, **changes):
+        errors = pr.validate_result(dict(copy.deepcopy(self.doc), **changes))
+        self.assertTrue(any(fragment in e for e in errors), errors)
+
+    def test_a_genuinely_controlled_paid_outcome_is_accepted_as_causal_revenue(self):
+        self.assertEqual((self.result["result_class"], self.result["revenue"]["claim"], self.doc["market_validation"]),
+                         ("CONTROLLED_EFFECT", "CAUSAL_SUPPORTED", True))
+        self.assertEqual(pr.validate_result(self.doc), [])
+
+    def test_observational_or_offline_evidence_cannot_claim_causal_revenue(self):
+        self.rejected("revenue CAUSAL_SUPPORTED needs a CONTROLLED_EFFECT", evidence_class="OBSERVATIONAL_MARKET_RESULT",
+                      result_class="DESCRIPTIVE_DIFFERENCE", decision="ITERATE", market_validation=False)
+        self.rejected("revenue CAUSAL_SUPPORTED needs a CONTROLLED_EFFECT", evaluation_type="OFFLINE_EVAL",
+                      evidence_class="OFFLINE_EVAL", result_class="DESCRIPTIVE_DIFFERENCE", decision="REJECT",
+                      market_validation=False)
+
+    def test_no_weaker_class_can_claim_causal_revenue(self):
+        for weaker in ("DESCRIPTIVE_DIFFERENCE", "CONFOUNDED", "IMMATURE", "INSUFFICIENT_SAMPLE", "NO_DIFFERENCE",
+                       "REGRESSION", "NOT_EVALUABLE"):
+            self.rejected(f"not {weaker}", result_class=weaker, decision="NEED_MORE_DATA", market_validation=False)
+
+    def test_causal_revenue_needs_a_paid_primary_metric(self):
+        metrics = dict(self.doc["metrics"], primary_metric="qualified_reply_rate")
+        self.rejected("needs a paid outcome", metrics=metrics)
+
+    def test_a_controlled_effect_needs_an_experiment_and_a_sample(self):
+        self.rejected("needs the experiment id", experiment_id=None)
+        self.rejected("matured baseline exposures in the sample", sample={})
+
+    def test_a_controlled_effect_needs_matured_uncompeted_exact_evidence(self):
+        immature = {side: {"state": "IMMATURE", "matures_between": []} for side in ("baseline", "candidate")}
+        self.rejected("needs matured candidate outcomes", maturity=immature)
+        self.rejected("unresolved competing variables", competing_variables=["offer differs between the sides"])
+        self.rejected("distinct candidate and baseline", baseline=dict(self.doc["baseline"], content_hash=None))
+        self.rejected("beyond z", metrics=dict(self.doc["metrics"], z=1.2))
+
+    def test_synthetic_data_never_validates_the_market(self):
+        self.rejected("synthetic fixtures never validate the market", includes_synthetic=True)
+        self.rejected("synthetic fixtures are not market exposure", includes_synthetic=True)
 
 
 if __name__ == "__main__":

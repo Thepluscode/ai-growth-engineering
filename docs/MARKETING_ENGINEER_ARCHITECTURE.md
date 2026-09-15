@@ -116,6 +116,17 @@ contract declares `variable = procedure`; otherwise it is a COMMON_INPUT held co
 exposure exists the declaration is refused, and a different version or hash for an arm is refused at
 any time: a new version is a new experiment.
 
+**Upstream approval at declaration (fail closed).** An import is a snapshot. Before every NEW
+declaration of an approved external procedure, `upstream_refusal` refuses when:
+- the stored `review_after` has passed (`review_expired`), even if the upstream export was re-reviewed since, because nothing is silently refreshed;
+- the export file it was imported from is gone (`upstream_export_missing`);
+- that file no longer passes import (`upstream_approval_not_current`), for example no longer APPROVED, revoked, or its marketing use case removed;
+- it now names a different id or version (`upstream_identity_changed`) or content hash (`upstream_content_changed`);
+- a use case approved at import has been withdrawn (`upstream_use_case_withdrawn`).
+
+Declarations already made are history: they are never re-judged, rewritten or deleted. A ThePlus
+baseline has no upstream approval to lapse.
+
 **Lineage.** An event runs under a procedure only through its own experiment's declaration for its
 arm (or every arm) made on or before the day it happened. Exposures dated before the declaration, and
 events whose metadata records a different `procedure_ref`, break the comparison.
@@ -136,9 +147,20 @@ the money-graph campaigns to open, and is ASSOCIATED_ONLY unless a controlled ex
 metric was paid rate.
 
 **Result export** (`--export FILE`, `age procedures validate-result FILE`). `skill-evaluation-result.v1`
-refuses a causal class outside a controlled market experiment, market validation or KEEP without a
-controlled effect, offline evidence claiming market validation, and any authority other than
-RECOMMENDATION_ONLY.
+re-checks the evaluator's own controlled-effect requirements on the document itself, so a hand-edited
+or foreign result cannot carry a claim its evidence does not support.
+- **CONTROLLED_EFFECT or REGRESSION** requires:
+  - a CONTROLLED_MARKET_EXPERIMENT and a non-null experiment id;
+  - exact, distinct candidate and baseline identities;
+  - no competing variables and no synthetic data;
+  - 30+ matured exposures per side, in a MATURE or PARTIALLY_MATURE state;
+  - a market primary metric whose difference passes z 1.96 in the stated direction.
+- **Revenue claim** is a closed enum: NONE_OBSERVED / ASSOCIATED_ONLY / ATTRIBUTED / CAUSAL_SUPPORTED.
+  - CAUSAL_SUPPORTED requires a CONTROLLED_EFFECT whose primary metric is a paid outcome.
+  - An offline evaluation can only claim NONE_OBSERVED.
+- **market_validation** requires a controlled effect and is refused for offline or synthetic evidence.
+- **KEEP** requires a controlled effect.
+- **Authority** must be RECOMMENDATION_ONLY.
 
 ```text
 External skill adoption is not market validation.

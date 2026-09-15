@@ -54,6 +54,11 @@ OFFLINE_METRICS = {
 MARKET_METRICS = {"reply_rate": "replies", "qualified_reply_rate": "qualified_replies", "meeting_rate": "meetings",
                   "proposal_rate": "proposals", "paid_rate": "customers"}
 METRIC_ALIASES = {"meaningful_reply_rate": "qualified_reply_rate", "positive_reply_rate": "qualified_reply_rate"}
+# The only primary metrics whose controlled effect is itself a revenue outcome.
+REVENUE_METRICS = frozenset({"paid_rate"})
+# Revenue claims (enum in skill-evaluation-result.v1): NONE_OBSERVED — no customer or payment in the
+# compared units; ASSOCIATED_ONLY — revenue sits beside the procedure; ATTRIBUTED — an attribution model
+# assigned it, still not causation; CAUSAL_SUPPORTED — a controlled effect on a paid outcome.
 ACTIVITY_METRICS = frozenset({"messages_generated", "posts_generated", "impressions", "raw_impressions",
                               "token_volume", "messages_sent", "outreach_sent"})
 PROCEDURE_POLICY = {
@@ -211,7 +216,7 @@ def import_export(db_path: str, path: str, *, today: str | None = None) -> dict:
         "evaluation_refs": json.dumps(doc["evaluation_refs"]),
         "approved_by": doc["approved_by"], "approved_at": str(doc["approved_at"]),
         "review_after": str(doc.get("review_after") or ""), "introduced_at": _utc_now(),
-        "import_sha256": hashlib.sha256(raw).hexdigest(), "imported_from": str(path),
+        "import_sha256": hashlib.sha256(raw).hexdigest(), "imported_from": str(Path(path).resolve()),
     })
 
 
@@ -264,6 +269,41 @@ def procedure_rows(db_path: str) -> dict[str, dict]:
     return rows
 
 
+def upstream_refusal(procedure: dict, *, today: str) -> tuple[str, str] | None:
+    """Why an imported approval is no longer current, or None. An import is a snapshot: since then the
+    Intelligent Machine may have revoked the skill, stopped exporting it, re-scoped it or let its
+    review lapse. Checked before every NEW declaration, failing closed; declarations already made
+    are history and are never re-judged, and the stored procedure is never refreshed from here."""
+    if procedure["admission_status"] != "APPROVED":
+        return None  # a ThePlus baseline has no upstream approval to lapse
+    ref, stored_review = procedure["procedure_ref"], str(procedure["review_after"] or "")
+    if stored_review and stored_review[:10] < today:
+        return "review_expired", f"{ref}'s approval was due for review on {stored_review[:10]}; import a re-reviewed export"
+    source = str(procedure["imported_from"] or "")
+    path = Path(source)
+    if not source or not path.is_file():
+        return ("upstream_export_missing", f"{ref} was imported from {source or 'an unrecorded file'}, which no longer "
+                "exists; the Intelligent Machine exports only current approvals, so a missing export is not one")
+    try:
+        doc = json.loads(path.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        return "upstream_approval_not_current", f"{ref}: {source} can no longer be read as an export: {exc}"
+    refusal = export_refusal(doc, today=today)
+    if refusal:
+        code = "review_expired" if refusal[0] == "review_expired" else "upstream_approval_not_current"
+        return code, f"{ref}: the upstream export no longer passes import ({refusal[0]}: {refusal[1]})"
+    if (doc["skill_id"], str(doc["skill_version"])) != (procedure["procedure_id"], procedure["procedure_version"]):
+        return ("upstream_identity_changed", f"{source} now exports {doc['skill_id']}@{doc['skill_version']}, not {ref}; "
+                "a new version is imported as its own procedure")
+    if doc["content_hash"] != procedure["content_hash"]:
+        return ("upstream_content_changed", f"{ref} was approved as {procedure['content_hash'][:12]}, but the upstream "
+                f"export now carries {doc['content_hash'][:12]}; changed content is a new version")
+    withdrawn = set(json.loads(procedure["approved_use_cases"] or "[]")) - set(doc["approved_use_cases"])
+    if withdrawn:
+        return "upstream_use_case_withdrawn", f"{ref} is no longer approved for {', '.join(sorted(withdrawn))}"
+    return None
+
+
 # --- declaration ----------------------------------------------------------------------------
 
 def bind(db_path: str, experiment_id: str, procedure_ref: str, role: str, *, arm: str = "",
@@ -310,6 +350,9 @@ def bind(db_path: str, experiment_id: str, procedure_ref: str, role: str, *, arm
         raise ProcedureError("exposure_started",
                              f"{experiment_id} has {len(exposed)} exposure event(s) since {exposed[0][:10]}; a procedure "
                              "declared after exposure never earns credit — declare it in a new experiment before its first send")
+    lapsed = upstream_refusal(dict(procedure), today=_utc_now()[:10])
+    if lapsed:
+        raise ProcedureError(*lapsed)
     with connect(db_path) as con:
         con.execute("""INSERT INTO experiment_procedures(experiment_id, arm, procedure_id, procedure_ref,
                          procedure_version, content_hash, role, frozen_by, frozen_at)
@@ -367,7 +410,8 @@ def evaluate(db_path: str, *, experiment_id: str, candidate_arm: str, baseline_a
     r = {"as_of": as_of, "use_case": use_case, "experiment_id": experiment_id,
          "baseline_experiment_id": baseline_experiment_id, "candidate": {"arm": candidate_arm, "procedure": None},
          "baseline": {"arm": baseline_arm, "procedure": None}, "evidence_class": "OBSERVATIONAL_MARKET_RESULT",
-         "primary_metric": None, "sample": {}, "maturity": {}, "metric": {}, "confounders": [], "revenue": {},
+         "primary_metric": None, "sample": {}, "maturity": {}, "metric": {}, "confounders": [],
+         "competing_variables": [], "revenue": {},
          "money_graph": {}, "authority": "RECOMMENDATION_ONLY", "market_validation": False}
 
     def done(label: str, reason: str = "") -> dict:
@@ -468,6 +512,7 @@ def evaluate(db_path: str, *, experiment_id: str, candidate_arm: str, baseline_a
     if not controlled:
         notes.append("observational: the procedure was not the declared variable of concurrent arms in one experiment")
     r["confounders"] = breaking + notes
+    r["competing_variables"] = breaking
 
     counts = {side: windows[side]["cohort"]["counts"] for side in ("baseline", "candidate")}
     n_b, n_c = windows["baseline"]["matured"], windows["candidate"]["matured"]
@@ -503,7 +548,7 @@ def evaluate(db_path: str, *, experiment_id: str, candidate_arm: str, baseline_a
     if not controlled:
         return done("DESCRIPTIVE_DIFFERENCE", f"{metric} {'higher' if diff > 0 else 'lower'} for the candidate "
                     f"(z {z:.2f}), observed without a controlled design")
-    if r["revenue"]["claim"] == "ASSOCIATED_ONLY" and metric == "paid_rate":
+    if diff > 0 and r["revenue"]["claim"] == "ASSOCIATED_ONLY" and metric in REVENUE_METRICS:
         r["revenue"]["claim"] = "CAUSAL_SUPPORTED"
     return done("CONTROLLED_EFFECT" if diff > 0 else "REGRESSION",
                 f"within {experiment_id}, whose declared variable is procedure, the candidate's {metric} was "
@@ -585,8 +630,10 @@ def result_document(r: dict, *, generated_at: str | None = None) -> dict:
                      "source_ref": base["source_ref"]},
         "experiment_id": r["experiment_id"],
         "metrics": {"primary_metric": r["primary_metric"], **{k: v for k, v in r["metric"].items()}},
-        "sample": r["sample"], "maturity": r["maturity"], "revenue": r["revenue"],
-        "confounders": r["confounders"], "unsupported_claims": r["unsupported_claims"],
+        "sample": r["sample"], "maturity": r["maturity"], "revenue": r["revenue"] or {"claim": "NONE_OBSERVED"},
+        "confounders": r["confounders"], "competing_variables": r["competing_variables"],
+        # The evaluator reads effective events, which exclude synthetic fixtures by construction.
+        "includes_synthetic": False, "unsupported_claims": r["unsupported_claims"],
         "market_validation": r["market_validation"], "decision": r["decision"], "authority": "RECOMMENDATION_ONLY",
         "generated_at": generated_at or _utc_now(), "generated_by": "ai-growth-engineering",
     }
@@ -603,10 +650,56 @@ def validate_result(doc) -> list[str]:
     if not HEX64.fullmatch(doc["content_hash"]):
         errors.append("content_hash must be a sha256 hex digest")
     controlled = doc["evidence_class"] == "CONTROLLED_MARKET_EXPERIMENT"
-    if doc["result_class"] in ("CONTROLLED_EFFECT", "REGRESSION") and not controlled:
-        errors.append(f"{doc['result_class']} is causal; only a CONTROLLED_MARKET_EXPERIMENT can earn it")
-    if doc["market_validation"] and not (controlled and doc["result_class"] == "CONTROLLED_EFFECT"):
-        errors.append("market_validation needs a controlled market effect; offline or observational evidence never validates demand")
+    if doc["result_class"] in ("CONTROLLED_EFFECT", "REGRESSION"):
+        errors += [f"{doc['result_class']}: {gap}" for gap in _controlled_evidence_gaps(doc)]
+    claim = doc["revenue"]["claim"]
+    if claim == "CAUSAL_SUPPORTED":
+        if doc["result_class"] != "CONTROLLED_EFFECT":
+            errors.append(f"revenue CAUSAL_SUPPORTED needs a CONTROLLED_EFFECT, not {doc['result_class']}")
+        if doc["metrics"].get("primary_metric") not in REVENUE_METRICS:
+            errors.append("revenue CAUSAL_SUPPORTED needs a paid outcome as the primary metric")
+    if claim != "NONE_OBSERVED" and offline:
+        errors.append(f"revenue {claim}: an offline evaluation observes no revenue")
+    if doc["market_validation"]:
+        if offline or doc["includes_synthetic"]:
+            errors.append("market_validation: offline benchmarks and synthetic fixtures never validate the market")
+        if not (controlled and doc["result_class"] == "CONTROLLED_EFFECT"):
+            errors.append("market_validation needs a controlled market effect; offline or observational evidence never validates demand")
     if doc["decision"] == "KEEP" and not (controlled and doc["result_class"] == "CONTROLLED_EFFECT"):
         errors.append("KEEP needs a CONTROLLED_EFFECT from a controlled market experiment")
     return errors
+
+
+def _controlled_evidence_gaps(doc: dict) -> list[str]:
+    """The evaluator's own controlled-effect requirements, re-checked on the document itself, so a
+    hand-edited or foreign result cannot carry a causal class the evidence in it does not support."""
+    gaps = []
+    if doc["evidence_class"] != "CONTROLLED_MARKET_EXPERIMENT":
+        gaps.append("only a CONTROLLED_MARKET_EXPERIMENT can earn it")
+    if not doc["experiment_id"]:
+        gaps.append("needs the experiment id")
+    base = doc["baseline"]
+    if not (base.get("procedure_ref") and HEX64.fullmatch(str(base.get("content_hash") or ""))) \
+            or base.get("content_hash") == doc["content_hash"]:
+        gaps.append("needs exact, distinct candidate and baseline procedure identities")
+    if doc["includes_synthetic"]:
+        gaps.append("synthetic fixtures are not market exposure")
+    if doc["competing_variables"]:
+        gaps.append(f"unresolved competing variables: {'; '.join(doc['competing_variables'])}")
+    minimum = CHANGE_POLICY["min_rate_denominator"]
+    for side in ("baseline", "candidate"):
+        sample = doc["sample"].get(side)
+        matured = sample.get("matured") if isinstance(sample, dict) else None
+        if not isinstance(matured, int) or isinstance(matured, bool) or matured < minimum:
+            gaps.append(f"needs {minimum}+ matured {side} exposures in the sample")
+        state = doc["maturity"].get(side)
+        if not (isinstance(state, dict) and state.get("state") in ("MATURE", "PARTIALLY_MATURE")):
+            gaps.append(f"needs matured {side} outcomes")
+    metrics = doc["metrics"]
+    z, delta = metrics.get("z"), metrics.get("delta")
+    if metrics.get("primary_metric") not in MARKET_METRICS:
+        gaps.append("needs a preregistered market outcome as the primary metric")
+    if (not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (z, delta))
+            or abs(z) < PROCEDURE_POLICY["z_threshold"] or (delta > 0) != (doc["result_class"] == "CONTROLLED_EFFECT")):
+        gaps.append(f"needs a primary-metric difference beyond z {PROCEDURE_POLICY['z_threshold']} in its direction")
+    return gaps

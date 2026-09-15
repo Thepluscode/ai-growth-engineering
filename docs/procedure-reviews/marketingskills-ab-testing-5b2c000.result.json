@@ -33,6 +33,9 @@
     "This offline comparison shows demand, pipeline or revenue impact.",
     "Admission or public popularity shows the candidate is effective."
   ],
+  "revenue": {"claim": "NONE_OBSERVED"},
+  "competing_variables": [],
+  "includes_synthetic": false,
   "market_validation": false,
   "decision": "REJECT",
   "authority": "RECOMMENDATION_ONLY",

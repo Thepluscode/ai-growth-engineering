@@ -1,0 +1,65 @@
+{
+  "contract_version": "1",
+  "contract": "approved-skill-export.v1",
+  "skill_id": "vendor_outbound_writer",
+  "skill_version": "2.0.0",
+  "content_hash": "b2eca77ac59f910ecffc525b50fc879f25975598b5422d3c4e1e4f2c26aa3b0d",
+  "source": {
+    "source_type": "git",
+    "original_source_url": "https://example.test/vendor/skills",
+    "original_repository": "vendor/skills",
+    "source_commit": "5b2c0007766c6a1cf1d53fd8fc73e979e0821022",
+    "license": "MIT"
+  },
+  "admission_status": "APPROVED",
+  "effective_status": "FORKED",
+  "permissions": {
+    "filesystem": {
+      "read": [
+        "workspace/briefs"
+      ],
+      "write": []
+    },
+    "network": {
+      "enabled": false,
+      "allowed_domains": []
+    },
+    "credentials": {
+      "required": []
+    },
+    "tools": {
+      "required": []
+    },
+    "code_execution": {
+      "allowed": false
+    },
+    "external_actions": {
+      "allowed": []
+    },
+    "data_classes": {
+      "allowed": [
+        "public_company_data"
+      ]
+    },
+    "human_approval": {
+      "required_for": [
+        "email_send",
+        "publish"
+      ]
+    }
+  },
+  "approved_use_cases": [
+    "marketing_experimentation",
+    "message_generation"
+  ],
+  "control_plane_mapping": [
+    "policy",
+    "evidence"
+  ],
+  "evaluation_refs": [
+    "evaluations/vendor_outbound_writer-2.0.0-vs-outreach-research.yaml"
+  ],
+  "approved_by": "founder",
+  "approved_at": "2026-09-10",
+  "review_after": "2026-12-09"
+}
