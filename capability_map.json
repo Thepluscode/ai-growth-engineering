@@ -238,7 +238,9 @@
         "single_variable_experiment_contract": "IMPLEMENTED",
         "next_experiment_recommender": "IMPLEMENTED",
         "marketing_engineer_status": "IMPLEMENTED",
-        "commercial_funnel_diagnosis": "IMPLEMENTED"
+        "commercial_funnel_diagnosis": "IMPLEMENTED",
+        "campaign_creative_audience_model": "IMPLEMENTED",
+        "next_experiment_card": "IMPLEMENTED"
       }
     }
   }

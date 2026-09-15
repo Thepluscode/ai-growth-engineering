@@ -626,6 +626,67 @@
       "reviewed_at": "2026-08-20"
     }
   ],
+  "audiences": [
+    {
+      "audience_id": "AUD-ACQ-0001-TEARDOWN-QUEUES",
+      "audience_type": "cold",
+      "source": "experiments/EXP-ACQ-0001 teardown queues 01-05: qualified UK firms, first contact by email"
+    },
+    {
+      "audience_id": "AUD-ACQ-0003-FROZEN-COHORT",
+      "audience_type": "cold",
+      "source": "experiments/EXP-ACQ-0003/EXECUTION-COHORT.md: frozen cohort of 39 named decision-makers",
+      "exclusions": "7 identities on rows never qualified (inadmissible upstream lineage)"
+    }
+  ],
+  "campaigns": [
+    {
+      "campaign_id": "EXP-ACQ-0001-email-queue-01-05",
+      "channel": "email",
+      "icp": "Founder/MD of UK cyber/MSP",
+      "objective": "meaningful_reply_rate",
+      "status": "completed",
+      "offer_id": "OFF-TEARDOWN",
+      "experiment_id": "EXP-ACQ-0001",
+      "audience_id": "AUD-ACQ-0001-TEARDOWN-QUEUES"
+    },
+    {
+      "campaign_id": "CMP-ACQ-0003-LINKEDIN-INVITE",
+      "channel": "linkedin",
+      "icp": "Named director evidenced as commercial decision-maker at a UK cybersecurity consultancy or MSP",
+      "objective": "invite_accept_rate",
+      "status": "active",
+      "offer_id": "OFF-TEARDOWN",
+      "experiment_id": "EXP-ACQ-0003",
+      "audience_id": "AUD-ACQ-0003-FROZEN-COHORT"
+    }
+  ],
+  "creatives": [
+    {
+      "creative_id": "OBS-ECON-CTA-v1",
+      "buyer": "Founder/MD of UK cyber/MSP",
+      "problem": "acquisition not becoming qualified pipeline",
+      "hook": "I noticed <one specific conversion constraint on the buyer's own site>",
+      "body": "I'd test whether <one bounded change> converts more high-intent buyers into qualified conversations.",
+      "cta": "I mapped the test in a one-page teardown. Want me to send it?",
+      "angle": "observation + economic hypothesis + low-friction CTA",
+      "format": "plain-text email",
+      "version": "v1",
+      "campaign_id": "EXP-ACQ-0001-email-queue-01-05",
+      "experiment_id": "EXP-ACQ-0001"
+    },
+    {
+      "creative_id": "standard_invitation_no_note",
+      "buyer": "Named director evidenced as commercial decision-maker at a UK cybersecurity consultancy or MSP",
+      "problem": "acquisition not becoming qualified pipeline",
+      "hook": "none: a standard invitation carries no note",
+      "body": "after acceptance, the unchanged OBS-ECON-CTA-v1 message as a direct message",
+      "format": "linkedin invitation",
+      "version": "v1",
+      "campaign_id": "CMP-ACQ-0003-LINKEDIN-INVITE",
+      "experiment_id": "EXP-ACQ-0003"
+    }
+  ],
   "hiring_sources": [
     {
       "company": "Atlas Cloud",

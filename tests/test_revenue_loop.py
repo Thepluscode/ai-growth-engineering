@@ -13,8 +13,10 @@ from ai_growth_engineering.execution import freeze_execution_cohort, record_invi
 from ai_growth_engineering.funnel_events import (
     EventError, correct_event, effective_events, import_invitations, import_outreach_csv, record_event,
 )
+from ai_growth_engineering import registries
 from ai_growth_engineering.marketing_engineer import (
-    RECOMMENDATION_FIELDS, evaluate, recommend_next_experiment, render_status, status_report,
+    RECOMMENDATION_FIELDS, _keep_constant, campaign_graph, customer_graph, evaluate, next_experiment_card,
+    recommend_next_experiment, render_card, render_status, status_report,
 )
 from ai_growth_engineering.models import ExperimentSpec
 from ai_growth_engineering.registry import add_experiment, set_execution_mode
@@ -398,6 +400,97 @@ class DiagnosisTests(StoreCase):
         text = render_status(report)
         self.assertIn("DESCRIPTIVE_FROZEN_COHORT", text)
         self.assertIn("Verdict: DESCRIPTIVE_INCONCLUSIVE", text)
+
+
+class CommercialModelTests(StoreCase):
+    def register(self, campaign_id="CMP-1", experiment_id="EXP-ACQ-0009", **kw):
+        registries.add(self.db, "campaigns", {
+            "campaign_id": campaign_id, "channel": "email", "icp": "Founders of 20-200 person firms",
+            "objective": "meeting_rate", "status": "active", "offer_id": "OFF-1",
+            "experiment_id": experiment_id, "audience_id": "AUD-1", **kw})
+
+    def fixture(self):
+        registries.add(self.db, "offers", {"offer_id": "OFF-1", "buyer": "Founder", "problem": "no pipeline",
+                                           "outcome": "a diagnosed leak", "price_pence": 120_000})
+        registries.add(self.db, "audiences", {"audience_id": "AUD-1", "audience_type": "cold", "source": "list"})
+        registries.add(self.db, "creatives", {"creative_id": "CR-1", "buyer": "Founder", "problem": "no pipeline",
+                                              "hook": "I noticed", "body": "I'd test", "campaign_id": "CMP-1"})
+        self.register()
+        exp = {"experiment_id": "EXP-ACQ-0009", "channel": "email"}
+        for company in ("a", "b", "c"):
+            self.ev("message_sent", company=company, creative_id="CR-1", occurred_at="2026-08-01", **exp)
+        self.ev("meeting_booked", company="a", occurred_at="2026-08-05", **exp)
+        self.ev("proposal_sent", company="a", occurred_at="2026-08-06", value_pence=500_000, currency="GBP", **exp)
+        self.ev("customer_won", company="a", occurred_at="2026-08-07", **exp)
+        self.ev("payment_received", company="a", occurred_at="2026-08-08", value_pence=300_000, currency="GBP", **exp)
+        self.ev("spend_recorded", campaign_id="CMP-1", occurred_at="2026-08-01", value_pence=150_000, currency="GBP")
+
+    def test_closed_vocabularies_refuse_free_text(self):
+        with self.assertRaisesRegex(ValueError, "audience_type"):
+            registries.add(self.db, "audiences", {"audience_id": "AUD-2", "audience_type": "warm", "source": "x"})
+        with self.assertRaisesRegex(ValueError, "status"):
+            self.register(campaign_id="CMP-9", status="live")
+
+    def test_a_campaign_traces_every_count_and_pound_to_events(self):
+        self.fixture()
+        graph = campaign_graph(self.db, "CMP-1")
+        self.assertEqual((graph["offer"]["offer_id"], graph["audience"]["audience_type"]), ("OFF-1", "cold"))
+        self.assertEqual([c["creative_id"] for c in graph["creatives"]], ["CR-1"])
+        counts = graph["counts"]
+        self.assertEqual((counts["message_sent"], counts["meeting_booked"], counts["proposal_sent"],
+                          counts["customer_won"]), (3, 1, 1, 1))
+        self.assertEqual(len(graph["trace"]["message_sent"]), 3)
+        self.assertEqual(graph["events_linked_by_experiment"], 7)
+        self.assertEqual((graph["spend_pence"], graph["cac_pence"], graph["customers"]), (150_000, 150_000, ["a"]))
+        self.assertEqual((graph["attributed_revenue_pence"]["linear"], graph["roas"]["linear"]), (300_000, 2.0))
+        self.assertAlmostEqual(graph["pipeline_roas"], 500_000 / 150_000)
+        with self.assertRaises(ValueError):
+            campaign_graph(self.db, "CMP-404")
+
+    def test_an_experiment_with_two_campaigns_links_nothing_by_guess(self):
+        self.fixture()
+        self.register(campaign_id="CMP-2")
+        self.assertEqual(campaign_graph(self.db, "CMP-1")["counts"]["message_sent"], 0)
+
+    def test_a_customer_traces_back_to_icp_offer_creative_and_channel(self):
+        self.fixture()
+        graph = customer_graph(self.db, "A")
+        self.assertEqual((graph["icp"], graph["channels"], graph["campaigns"]),
+                         (["Founders of 20-200 person firms"], ["email"], ["CMP-1"]))
+        self.assertEqual([o["offer_id"] for o in graph["offers"]], ["OFF-1"])
+        self.assertEqual([c["creative_id"] for c in graph["creatives"]], ["CR-1"])
+        self.assertEqual(graph["revenue_pence"], 300_000)
+
+    def test_the_card_names_one_test_and_keeps_the_rest_fixed_from_records(self):
+        registries.add(self.db, "offers", {"offer_id": "OFF-1", "buyer": "Founder", "problem": "no pipeline",
+                                           "outcome": "a diagnosed leak", "price_pence": 120_000})
+        registries.add(self.db, "creatives", {"creative_id": "CR-7", "buyer": "Founder", "problem": "p",
+                                              "hook": "h", "body": "I'd test", "campaign_id": "CMP-7"})
+        self.register(campaign_id="CMP-7", experiment_id="EXP-ACQ-0007")
+        for i in range(50):
+            self.ev("message_sent", company=f"b{i}", occurred_at="2026-08-01", experiment_id="EXP-ACQ-0007")
+        card = next_experiment_card(self.db, as_of="2026-09-15")
+        self.assertEqual((card["status"], card["campaign_id"], card["variable"]),
+                         ("PROPOSED_NEEDS_CONTRACT", "CMP-7", "cta"))
+        self.assertEqual(card["current_constraint"], "Delivered → Replies")
+        self.assertEqual(card["evidence"][:3], ["50 delivered", "0 replies", "0.0% conversion"])
+        self.assertEqual(card["keep_constant"], {
+            "ICP": "Founders of 20-200 person firms", "offer": "OFF-1 — a diagnosed leak",
+            "message body": "I'd test", "channel": "email", "price": "£1,200.00"})
+        text = render_card(card)
+        for title in ("CURRENT CONSTRAINT", "EVIDENCE", "HIGHEST-VALUE UNCERTAINTY", "NEXT TEST",
+                      "PRIMARY METRIC", "KEEP CONSTANT", "KILL CONDITION"):
+            self.assertIn(f"\n{title}\n", text)
+
+    def test_the_variable_under_test_is_released_and_an_unpriced_offer_is_not_free(self):
+        offer = {"offer_id": "OFF-0", "outcome": "o", "price_pence": 0}
+        kept = _keep_constant({"icp": "i", "channel": "c"}, offer, None, "offer")
+        self.assertEqual(kept, {"ICP": "i", "message body": "not recorded", "channel": "c", "price": "not recorded"})
+
+    def test_with_nothing_observed_the_card_still_renders_without_inventing(self):
+        card = next_experiment_card(self.db, as_of="2026-09-15")
+        self.assertEqual(card["status"], "NO_BASIS")
+        self.assertIn("KILL CONDITION", render_card(card))
 
 
 class ExperimentVariableTests(unittest.TestCase):

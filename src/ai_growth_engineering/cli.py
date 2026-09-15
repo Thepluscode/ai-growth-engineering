@@ -19,9 +19,11 @@ from .funnel_events import (
     PROVENANCES, EventError, correct_event, effective_events, import_invitations,
     import_outreach_csv, record_event,
 )
-from .marketing_engineer import recommend_next_experiment, render_diagnosis, render_status, status_report
+from .marketing_engineer import (
+    campaign_graph, customer_graph, next_experiment_card, recommend_next_experiment, render_card,
+    render_diagnosis, render_status, status_report,
+)
 from .models import ExperimentSpec
-from .revenue_loop import money_graph_for_campaign, money_graph_for_entity
 from .registry import (
     add_experiment,
     import_outreach,
@@ -402,14 +404,21 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
     elif args.action == "next-experiment":
-        rec = recommend_next_experiment(args.db)
-        print(json.dumps({k: rec[k] for k in ("preferred", "alternatives", "findings")}, indent=2, default=str))
+        card = next_experiment_card(args.db, as_of=args.as_of or None)
+        if args.json:
+            rec = recommend_next_experiment(args.db, as_of=args.as_of or None)
+            print(json.dumps({"card": card, **{k: rec[k] for k in ("preferred", "alternatives", "findings")}},
+                             indent=2, default=str))
+        else:
+            print(render_card(card))
     else:
         if bool(args.company) == bool(args.campaign_id):
             raise SystemExit("money-graph needs exactly one of --company or --campaign-id")
-        events = effective_events(args.db)
-        graph = (money_graph_for_entity(events, args.company) if args.company
-                 else money_graph_for_campaign(events, args.campaign_id))
+        try:
+            graph = (customer_graph(args.db, args.company) if args.company
+                     else campaign_graph(args.db, args.campaign_id))
+        except ValueError as exc:
+            raise SystemExit(f"REFUSED: {exc}")
         print(json.dumps(graph, indent=2, default=str))
 
 

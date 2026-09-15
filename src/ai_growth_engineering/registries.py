@@ -23,7 +23,20 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
         (
             "awareness", "angle", "format", "proof", "cta", "experiment_id",
             "spend_pence", "qualified_leads", "opportunities", "revenue_pence",
+            "campaign_id", "body", "version",
         ),
+    ),
+    # The minimum that connects marketing activity to money: events carry these ids, and the
+    # money graph resolves them back to ICP, offer and creative. No platform execution here.
+    "campaigns": (
+        "campaign_id",
+        ("channel", "icp", "objective", "status"),
+        ("offer_id", "experiment_id", "audience_id", "notes"),
+    ),
+    "audiences": (
+        "audience_id",
+        ("audience_type", "source"),
+        ("exclusions", "notes"),
     ),
     "channels": (
         "channel_id",
@@ -183,6 +196,8 @@ REGISTRY_TABLES = {
     "social_profile_surfaces": "social_profiles",
     "conversation_funnels": "conversation_funnels",
     "audience_ownership": "audience_ownership",
+    "campaigns": "campaigns",
+    "audiences": "audiences",
     "value_ladders": "value_ladders",
     "product_opportunity_portfolio": "product_opportunities",
     "product_format_decisions": "product_format_decisions",
@@ -197,6 +212,12 @@ INT_SUFFIXES = (
     # and a false limit could pass the gate that exists to catch it.
     "capacity", "committed", "_conversions",
 )
+
+# Closed vocabularies. A free-text status is how "live", "Live" and "running" become three states.
+CHOICES = {
+    ("campaigns", "status"): ("planned", "active", "paused", "completed"),
+    ("audiences", "audience_type"): ("cold", "retargeting", "lookalike", "customer"),
+}
 
 INT_FIELDS = {
     "evidence_count", "pain_severity", "frequency", "urgency", "buying_intent",
@@ -267,6 +288,9 @@ def add(db_path: str, registry: str, record: dict) -> None:
     for name in (pk,) + required:
         if not str(record.get(name, "")).strip():
             raise ValueError(f"{registry}: {name} is required")
+    for (table, name), allowed_values in CHOICES.items():
+        if table == registry and name in record and record[name] not in allowed_values:
+            raise ValueError(f"{registry}: {name} must be one of {allowed_values}")
     columns = [f for f in fields(registry) if f in record]
     placeholders = ", ".join("?" for _ in columns)
     with connect(db_path) as con:

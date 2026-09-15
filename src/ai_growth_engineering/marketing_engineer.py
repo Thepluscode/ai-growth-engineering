@@ -6,13 +6,15 @@ acts: a recommendation is data until a person approves it through the existing c
 """
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date
 from typing import Any
 
+from . import registries
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
     LADDERS, STAGE_LABELS, attribute, compute_metrics, diagnose_funnel, entity, group_by,
-    money_graph_for_campaign, totals,
+    money_graph_for_campaign, money_graph_for_entity, totals,
 )
 from .storage import connect, init_db
 
@@ -41,7 +43,7 @@ STEP_LEVERS: dict[tuple[str, str], tuple[str, str]] = {
 RECOMMENDATION_FIELDS = (
     "status", "experiment_id", "hypothesis", "single_variable", "control", "variant", "icp",
     "offer", "channel", "primary_metric", "guardrails", "sample_and_stopping_rule",
-    "why_highest_value", "evidence", "previous_experiments", "stop_condition",
+    "why_highest_value", "evidence", "previous_experiments", "stop_condition", "based_on_experiment_id",
 )
 
 
@@ -192,6 +194,7 @@ def _run_preregistered(e: dict, supply: int, exposed: int, guardrails: list[dict
     return {
         "status": "PREREGISTERED_UNRUN",
         "experiment_id": e["experiment_id"],
+        "based_on_experiment_id": e["experiment_id"],
         "hypothesis": e["hypothesis"],
         "single_variable": e.get("variable") or "not declared in the contract (it predates the variable field)",
         "control": e["control"] or "not declared in the contract",
@@ -228,6 +231,7 @@ def _proposal_from_leak(leak: dict, history: list[dict], min_sample: int) -> dic
     return {
         "status": "PROPOSED_NEEDS_CONTRACT",
         "experiment_id": None,
+        "based_on_experiment_id": leak["experiment_id"],
         "hypothesis": f"Changing only {variable} raises {metric} at the step where {leak['observation']}.",
         "single_variable": variable,
         "control": f"the {variable} used in {leak['experiment_id']}",
@@ -336,9 +340,155 @@ def render_diagnosis(experiment_id: str, diag: dict, execution_mode: str = "") -
     return lines
 
 
+COMMERCIAL_STAGES = ("impression", "click", "invitation_sent", "message_sent", "lead_created",
+                     "lead_qualified", "reply_received", "reply_meaningful", "meeting_booked",
+                     "proposal_sent", "customer_won", "payment_received")
+# Which KEEP CONSTANT line a test variable releases.
+VARIABLE_RELEASES = {"audience": "ICP", "offer": "offer", "price": "price", "channel": "channel", "body": "message body"}
+
+
+def _row(db_path: str, registry: str, key: str | None) -> dict | None:
+    if not key:
+        return None
+    pk = registries.REGISTRIES[registry][0]
+    # ponytail: full registry scan per lookup; index by key once registries hold hundreds of rows.
+    return next((r for r in registries.rows(db_path, registry) if r[pk] == key), None)
+
+
+def linked_events(db_path: str) -> list[dict]:
+    """Effective events, where an event naming no campaign inherits one only when its experiment
+    has exactly one registered campaign. Two candidates is ambiguity, and it stays unlinked."""
+    owners: dict[str, list[str]] = defaultdict(list)
+    for c in registries.rows(db_path, "campaigns"):
+        if c["experiment_id"]:
+            owners[c["experiment_id"]].append(c["campaign_id"])
+    linked = []
+    for e in effective_events(db_path):
+        candidates = owners.get(e["experiment_id"], [])
+        if not e["campaign_id"] and len(candidates) == 1:
+            e = dict(e, campaign_id=candidates[0],
+                     metadata={**(e["metadata"] or {}), "campaign_linked_by": "experiment_id"})
+        linked.append(e)
+    return linked
+
+
+def campaign_graph(db_path: str, campaign_id: str) -> dict:
+    """A campaign's commercial record joined to what it produced. Every count lists the event ids
+    behind it; money comes from the attribution the revenue loop already computes."""
+    campaign = _row(db_path, "campaigns", campaign_id)
+    if campaign is None:
+        raise ValueError(f"campaign {campaign_id} is not registered")
+    events = linked_events(db_path)
+    scoped = [e for e in events if e["campaign_id"] == campaign_id]
+    money = money_graph_for_campaign(events, campaign_id)
+    t = totals(scoped)
+    trace = {s: [e["event_id"] for e in scoped if e["event_type"] == s] for s in COMMERCIAL_STAGES}
+    spend = money["spend_pence"]
+    return {
+        "campaign": campaign, "offer": _row(db_path, "offers", campaign["offer_id"]),
+        "audience": _row(db_path, "audiences", campaign["audience_id"]),
+        "creatives": [c for c in registries.rows(db_path, "creatives") if c["campaign_id"] == campaign_id],
+        "counts": {s: t.get(s, 0) for s in COMMERCIAL_STAGES},
+        "trace": {s: ids for s, ids in trace.items() if ids},
+        "events_linked_by_experiment": sum(1 for e in scoped if (e["metadata"] or {}).get("campaign_linked_by")),
+        "spend_pence": spend, "pipeline_pence": money["pipeline_pence"], "customers": money["customers"],
+        "attributed_revenue_pence": money["attributed_revenue_pence"], "cac_pence": money["cac_pence"],
+        "roas": money["roas"], "pipeline_roas": None if not spend else money["pipeline_pence"] / spend,
+    }
+
+
+def customer_graph(db_path: str, name: str) -> dict:
+    """From one buyer back to the ICP, offer, campaign, creative, experiment and channel that reached them."""
+    graph = money_graph_for_entity(linked_events(db_path), name)
+    campaigns = {c: _row(db_path, "campaigns", c) for c in graph["campaigns"]}
+    known = [c for c in campaigns.values() if c]
+    offers = (_row(db_path, "offers", c["offer_id"]) for c in known)
+    creative_ids = sorted({e["creative_id"] for e in graph["chain"] if e["creative_id"]})
+    return {
+        **graph,
+        "icp": sorted({c["icp"] for c in known}),
+        "offers": list({o["offer_id"]: o for o in offers if o}.values()),
+        "channels": sorted({e["channel"] for e in graph["chain"] if e["channel"]}),
+        "creatives": [_row(db_path, "creatives", i) or {"creative_id": i, "registered": False} for i in creative_ids],
+        "unregistered_campaigns": sorted(c for c, row in campaigns.items() if row is None),
+    }
+
+
+def _constraint_summary(diag: dict | None, preferred: dict) -> tuple[str, list[str]]:
+    if diag is None:
+        return "no funnel events for this experiment", list(preferred["evidence"] or [])
+    c = diag["constraint"]
+    if c:
+        tr = next(s["transition"] for s in diag["stages"] if s["stage"] == c["to"])
+        return (f"{STAGE_LABELS[c['from']]} → {STAGE_LABELS[c['to']]}",
+                [f"{tr['denominator']} {STAGE_LABELS[c['from']].lower()}",
+                 f"{tr['numerator']} {STAGE_LABELS[c['to']].lower()}",
+                 f"{c['rate']:.1%} conversion",
+                 f"confidence {c['confidence']} — {c['reason']}"])
+    first = diag["stages"][1]["transition"]
+    evidence = [f"{diag['stages'][0]['count']} {STAGE_LABELS[first['from']].lower()}"]
+    if first["in_flight"]:
+        evidence.append(f"{first['in_flight']} still inside the {diag['response_window_days']}-day response window")
+    return f"none measurable yet — {STAGE_LABELS[first['from']]} → {STAGE_LABELS[first['to']]} {first['status']}", evidence
+
+
+def _keep_constant(campaign: dict | None, offer: dict | None, creative: dict | None, variable: str | None) -> dict:
+    values = {
+        "ICP": campaign and campaign["icp"],
+        "offer": offer and f"{offer['offer_id']} — {offer['outcome']}",
+        "message body": creative and creative["body"],
+        "channel": campaign and campaign["channel"],
+        # A price of 0 is how an unpriced offer is stored, so it is never shown as free.
+        "price": offer and offer["price_pence"] and _money(offer["price_pence"]),
+    }
+    return {k: v or "not recorded" for k, v in values.items() if k != VARIABLE_RELEASES.get(variable or "")}
+
+
+def next_experiment_card(db_path: str, *, as_of: str | None = None) -> dict:
+    """The ONE preferred experiment in decision form: the constraint it attacks, the evidence, the
+    single variable, and what stays fixed — resolved from registered records, never invented."""
+    report = status_report(db_path, as_of=as_of)
+    p = report["recommendation"]["preferred"]
+    base = p["based_on_experiment_id"]
+    diag = next(iter(report["diagnoses"].get(base, {}).values()), None) if base else None
+    campaign = next((c for c in registries.rows(db_path, "campaigns") if base and c["experiment_id"] == base), None)
+    offer = _row(db_path, "offers", campaign["offer_id"]) if campaign else None
+    creative = next((c for c in registries.rows(db_path, "creatives")
+                     if campaign and c["campaign_id"] == campaign["campaign_id"] and c["body"]), None)
+    constraint, evidence = _constraint_summary(diag, p)
+    return {
+        "status": p["status"], "experiment_id": p["experiment_id"], "based_on_experiment_id": base,
+        "campaign_id": campaign and campaign["campaign_id"],
+        "current_constraint": constraint, "evidence": evidence,
+        "highest_value_uncertainty": p["hypothesis"] or p["why_highest_value"],
+        "variable": p["single_variable"], "control": p["control"], "variant": p["variant"],
+        "primary_metric": p["primary_metric"],
+        "keep_constant": _keep_constant(campaign, offer, creative, p["single_variable"]),
+        "kill_condition": p["stop_condition"],
+    }
+
+
+def render_card(card: dict) -> str:
+    head = f"{card['status']}: {card['experiment_id'] or '(new contract needed)'}"
+    if card["based_on_experiment_id"] and card["based_on_experiment_id"] != card["experiment_id"]:
+        head += f" · from {card['based_on_experiment_id']}"
+    lines = ["NEXT EXPERIMENT  [RECOMMENDATION — requires human approval]", head]
+    sections = (
+        ("CURRENT CONSTRAINT", [card["current_constraint"]]), ("EVIDENCE", card["evidence"]),
+        ("HIGHEST-VALUE UNCERTAINTY", [card["highest_value_uncertainty"]]),
+        ("NEXT TEST", [f"Variable: {card['variable']}", f"Control: {card['control']}", f"Variant: {card['variant']}"]),
+        ("PRIMARY METRIC", [card["primary_metric"]]),
+        ("KEEP CONSTANT", [f"{k}: {v}" for k, v in card["keep_constant"].items()]),
+        ("KILL CONDITION", [card["kill_condition"]]),
+    )
+    for title, body in sections:
+        lines += ["", title] + [f"  {line}" for line in body if line]
+    return "\n".join(lines)
+
+
 def status_report(db_path: str, *, as_of: str | None = None) -> dict:
     as_of = as_of or date.today().isoformat()
-    events = effective_events(db_path)
+    events = linked_events(db_path)
     metrics = compute_metrics(events)
     recommendation = recommend_next_experiment(db_path, as_of=as_of)
     minimums = _minimums(recommendation["experiments"])
