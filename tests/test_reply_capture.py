@@ -1,17 +1,20 @@
 """Reply capture on synthetic Gmail-shaped messages. Capture only proposes; every write to events or
-evidence goes through an explicit, item-by-item approval."""
+evidence goes through an explicit, item-by-item approval, and never ahead of its verifiable send."""
 from __future__ import annotations
 
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
 
 from ai_growth_engineering.buyer_truth import buyer_evidence
-from ai_growth_engineering.funnel_events import effective_events
+from ai_growth_engineering.funnel_events import effective_events, event_id_for, record_event
 from ai_growth_engineering.marketing_engineer import render_status, status_report
 from ai_growth_engineering.reply_capture import (
-    ReplyCaptureError, approve, candidate, candidate_id_for, capture, gmail_messages, link_outbound, reject, review,
+    ReplyCaptureError, approve, candidate, candidate_id_for, capture, gmail_messages, import_outbound_sends, link_outbound,
+    reject, review,
 )
+from ai_growth_engineering.revenue_loop import compute_metrics, diagnose_funnel, money_graph_for_entity, totals
 from ai_growth_engineering.storage import connect, init_db
 
 MAILBOX = "founder@example.test"
@@ -54,6 +57,13 @@ class ReplyCaptureCase(unittest.TestCase):
     def items(self, mid):
         return {p["item"]: p for p in self.get(mid)["proposals"]}
 
+    def outcomes(self):
+        """Everything recorded after the send: replies, bounces."""
+        return [e for e in effective_events(self.db) if e["event_type"] != "message_sent"]
+
+    def sends(self):
+        return [e for e in effective_events(self.db) if e["event_type"] == "message_sent"]
+
 
 class CaptureTests(ReplyCaptureCase):
     def test_a_reply_becomes_a_candidate_and_nothing_is_recorded_before_approval(self):
@@ -93,8 +103,9 @@ class CaptureTests(ReplyCaptureCase):
                          subject="Delivery Status Notification (Failure)")
         self.run_capture(bounce)
         self.assertEqual((self.get("m1")["kind"], list(self.items("m1"))), ("BOUNCE", ["bounce"]))
+        import_outbound_sends(self.db, "EXP-ACQ-0006")
         approve(self.db, self.get("m1")["candidate_id"])
-        self.assertEqual([(e["event_type"], e["company"]) for e in effective_events(self.db)], [("message_bounced", "Beta Ltd")])
+        self.assertEqual([(e["event_type"], e["company"]) for e in self.outcomes()], [("message_bounced", "Beta Ltd")])
         self.run_capture(message("m2", "t-beta", "mailer-daemon@googlemail.com", "Still undelivered.",
                                  subject="Delivery Status Notification (Failure)"))
         self.assertEqual(self.get("m2")["proposals"], [])
@@ -151,14 +162,16 @@ class CaptureTests(ReplyCaptureCase):
 class ApprovalTests(ReplyCaptureCase):
     def setUp(self):
         super().setUp()
+        import_outbound_sends(self.db, "EXP-ACQ-0006")
         self.run_capture(message("m1", "t-acme", "buyer@acme.test", INTERESTED))
         self.cid = self.get("m1")["candidate_id"]
 
     def test_the_reply_event_can_be_approved_without_any_evidence(self):
         approve(self.db, self.cid, items=["event"])
-        [event] = effective_events(self.db)
+        [event] = self.outcomes()
         self.assertEqual((event["event_type"], event["source"], event["source_record_id"], event["metadata"]["source_thread_id"]),
                          ("reply_received", "gmail", "m1", "t-acme"))
+        self.assertEqual(event["metadata"]["answers_send_event_id"], event_id_for("gmail", "out-1", "message_sent"))
         self.assertEqual(buyer_evidence(self.db), [])
         self.assertEqual(review(self.db)["pending"][0]["pending"], ["meaningful", "E1", "E2"])
         reject(self.db, self.cid, reason="read in full; nothing more established")
@@ -172,25 +185,95 @@ class ApprovalTests(ReplyCaptureCase):
         with self.assertRaises(ReplyCaptureError) as caught:
             approve(self.db, self.cid, items=["event", "E2"], texts={"E2": "we need a cheaper option"})
         self.assertEqual(caught.exception.code, "text_not_in_reply")
-        self.assertEqual(effective_events(self.db), [])
+        self.assertEqual(self.outcomes(), [])
         result = approve(self.db, self.cid, items=["event", "E2"])
         reject(self.db, self.cid, items=["meaningful", "E1"], reason="interest alone is not a qualified conversation")
         [evidence] = buyer_evidence(self.db)
         self.assertEqual((evidence["category"], evidence["source"], evidence["source_record_id"], evidence["source_event_id"]),
                          ("BUYING_CRITERION", "gmail", "m1", result["approved"]["event"]))
-        self.assertEqual([e["event_type"] for e in effective_events(self.db)], ["reply_received"])
+        self.assertEqual([e["event_type"] for e in self.outcomes()], ["reply_received"])
         with self.assertRaises(ReplyCaptureError):
             approve(self.db, self.cid, items=["E1"])
 
     def test_a_rejected_candidate_never_comes_back(self):
         reject(self.db, self.cid, reason="not a buyer reply")
         self.assertEqual(self.run_capture(message("m1", "t-acme", "buyer@acme.test", INTERESTED)), {"already_captured": 1})
-        self.assertEqual((review(self.db)["pending"], effective_events(self.db), buyer_evidence(self.db)), ([], [], []))
+        self.assertEqual((review(self.db)["pending"], self.outcomes(), buyer_evidence(self.db)), ([], [], []))
 
     def test_status_counts_pending_reviews_as_nothing_else(self):
         report = status_report(self.db, as_of="2026-09-15")
-        self.assertEqual((report["pending_reply_reviews"], report["events"]), (1, 0))
+        self.assertEqual((report["pending_reply_reviews"], report["totals"].get("reply_received", 0)), (1, 0))
         self.assertIn("[PENDING REVIEW] 1 reply candidate(s)", render_status(report))
+
+
+class SendLineageTests(ReplyCaptureCase):
+    def test_each_verified_send_becomes_one_event_with_its_lineage_and_timestamp(self):
+        self.assertEqual(import_outbound_sends(self.db, "EXP-ACQ-0006"),
+                         {"experiment_id": "EXP-ACQ-0006", "linked": 3, "inserted": 3, "already_present": 0, "refused": []})
+        by_company = {e["company"]: e for e in self.sends()}
+        acme = by_company["Acme Ltd"]
+        self.assertEqual((acme["source"], acme["source_record_id"], acme["occurred_at"], acme["experiment_id"],
+                          acme["campaign_id"], acme["channel"], acme["provenance"]),
+                         ("gmail", "out-1", "2026-09-08T07:00:00+00:00", "EXP-ACQ-0006", "CMP-6", "email", "platform_export"))
+        self.assertEqual((acme["metadata"]["source_thread_id"], acme["metadata"]["recipient_class"],
+                          by_company["Beta Ltd"]["metadata"]["recipient_class"]), ("t-acme", "named_buyer", "role_inbox"))
+        self.assertEqual(import_outbound_sends(self.db, "EXP-ACQ-0006")["inserted"], 0)
+        self.assertEqual(len(self.sends()), 3)
+
+    def test_a_bounce_is_an_attempt_not_a_delivery_and_never_a_reply(self):
+        import_outbound_sends(self.db, "EXP-ACQ-0006")
+        self.run_capture(message("b1", "t-beta", "mailer-daemon@googlemail.com", "Address not found.",
+                                 subject="Delivery Status Notification (Failure)", date="2026-09-08T07:01:30Z"))
+        approve(self.db, self.get("b1")["candidate_id"])
+        events = [e for e in effective_events(self.db) if e["experiment_id"] == "EXP-ACQ-0006"]
+        self.assertEqual(sorted(e["event_type"] for e in events), ["message_bounced", "message_sent", "message_sent", "message_sent"])
+        diagnosis = diagnose_funnel(events, "outbound", as_of="2026-09-30")
+        self.assertEqual((diagnosis["stages"][0]["count"], diagnosis["attempts_not_exposure"]), (2, 1))
+        self.assertEqual((totals(events)["message_sent"], totals(events)["delivered_messages"]), (3, 2))
+        self.assertEqual(compute_metrics(events)["metrics"]["reply_rate"]["denominator"], 2)
+
+    def test_a_send_without_its_source_message_is_never_created(self):
+        with self.assertRaises(ReplyCaptureError) as caught:
+            link_outbound(self.db, [{"thread_id": "t-x", "recipient": "info@waterworx.test", "company": "Waterworx",
+                                     "experiment_id": "EXP-ACQ-0006", "sent_at": "2026-09-08T08:27:20Z"}])
+        self.assertEqual(caught.exception.code, "outbound_incomplete")
+        with self.assertRaises(ReplyCaptureError) as caught:
+            import_outbound_sends(self.db, "EXP-ACQ-0099")
+        self.assertEqual(caught.exception.code, "no_linked_sends")
+        self.assertEqual(effective_events(self.db), [])
+
+    def test_a_reply_traces_to_its_recorded_send_and_never_enters_before_it(self):
+        self.run_capture(message("m1", "t-acme", "buyer@acme.test", INTERESTED))
+        cid = self.get("m1")["candidate_id"]
+        with self.assertRaises(ReplyCaptureError) as caught:
+            approve(self.db, cid, items=["event"])
+        self.assertEqual(caught.exception.code, "upstream_send_missing")
+        self.assertEqual(effective_events(self.db), [])
+        import_outbound_sends(self.db, "EXP-ACQ-0006")
+        approve(self.db, cid, items=["event"])
+        chain = money_graph_for_entity(effective_events(self.db), "Acme Ltd")["chain"]
+        self.assertEqual([c["event_type"] for c in chain], ["message_sent", "reply_received"])
+        [reply] = self.outcomes()
+        self.assertEqual(reply["metadata"]["answers_send_event_id"], chain[0]["event_id"])
+
+    def test_ambiguous_send_lineage_is_refused(self):
+        link_outbound(self.db, [{"message_id": "out-5", "thread_id": "t-acme-2", "recipient": "buyer@acme.test",
+                                 "company": "Acme Holdings", "experiment_id": "EXP-ACQ-0006", "sent_at": "2026-09-08T07:05:00Z"}])
+        result = import_outbound_sends(self.db, "EXP-ACQ-0006")
+        self.assertEqual(sorted((r["message_id"], r["code"]) for r in result["refused"]),
+                         [("out-1", "ambiguous_lineage"), ("out-5", "ambiguous_lineage")])
+        self.assertEqual({e["company"] for e in self.sends()}, {"Beta Ltd", "Gamma Ltd"})
+
+    def test_a_claimed_total_is_not_an_input_and_a_buyer_is_never_counted_twice(self):
+        # The historical claim (22 sends) cannot be passed in: only linked, verified messages import.
+        self.assertEqual(set(inspect.signature(import_outbound_sends).parameters), {"db_path", "experiment_id"})
+        record_event(self.db, {"event_type": "message_sent", "company": "Beta Ltd", "experiment_id": "EXP-ACQ-0006",
+                               "source": "outreach_csv", "source_record_id": "log-beta", "occurred_at": "2026-09-08",
+                               "provenance": "system_import"})
+        result = import_outbound_sends(self.db, "EXP-ACQ-0006")
+        self.assertEqual((result["linked"], result["inserted"], [r["code"] for r in result["refused"]]),
+                         (3, 2, ["recorded_from_other_source"]))
+        self.assertEqual(sorted(e["company"] for e in self.sends()), ["Acme Ltd", "Beta Ltd", "Gamma Ltd"])
 
 
 if __name__ == "__main__":

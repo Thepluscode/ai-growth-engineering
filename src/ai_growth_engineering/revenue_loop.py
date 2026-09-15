@@ -29,9 +29,9 @@ METRICS: tuple[tuple[str, str, str, int, str, str], ...] = (
     ("qualified_lead_rate", "lead_qualified", "lead_created", 1, "rate", "qualified_leads / leads"),
     ("accept_rate", "invitation_accepted", "invitation_sent", 1, "rate",
      "accepted invitations / invitations sent"),
-    ("meaningful_reply_rate", "reply_meaningful", "message_sent", 1, "rate",
-     "meaningful replies / delivered messages (bounces are not sends)"),
-    ("reply_rate", "reply_received", "message_sent", 1, "rate", "replies / delivered messages"),
+    ("meaningful_reply_rate", "reply_meaningful", "delivered_messages", 1, "rate",
+     "meaningful replies / delivered messages (a bounced send is an attempt, not a delivery)"),
+    ("reply_rate", "reply_received", "delivered_messages", 1, "rate", "replies / delivered messages"),
     ("qualified_reply_rate", "reply_meaningful", "reply_received", 1, "rate",
      "qualified conversations / replies"),
     ("meeting_rate", "meeting_booked", "lead_qualified", 1, "rate", "meetings / qualified_leads"),
@@ -100,6 +100,9 @@ def totals(events: Iterable[dict]) -> dict[str, Any]:
     out["pipeline_pence"] = money["proposal_sent"]
     out["spend_recorded"] = counts["spend_recorded"] > 0
     out["currency"] = next(iter(currencies), "")
+    undelivered = undelivered_units(events)
+    out["delivered_messages"] = sum(e["quantity"] for e in events if e["event_type"] == "message_sent"
+                                    and (entity(e), e["experiment_id"]) not in undelivered)
     return out
 
 
@@ -189,8 +192,9 @@ def diagnose_funnel(events: Iterable[dict], path: str, *, as_of: str,
     position = {stage: i for i, stage in enumerate(ladder)}
     base = next(i for i, stage in enumerate(ladder) if stage not in AGGREGATE_TYPES)
     exposed_at: dict[str, str] = {}
+    undelivered = undelivered_units(events)
     for e in events:
-        if e["event_type"] == ladder[base] and entity(e):
+        if e["event_type"] == ladder[base] and entity(e) and (entity(e), e["experiment_id"]) not in undelivered:
             key = entity(e)
             exposed_at[key] = min(exposed_at.get(key, e["occurred_at"]), e["occurred_at"])
     furthest: dict[str, int] = {}
@@ -275,6 +279,12 @@ def diagnose_funnel(events: Iterable[dict], path: str, *, as_of: str,
 
 def entity(event: dict) -> str:
     return (event.get("company") or event.get("person_id") or "").strip().lower()
+
+
+def undelivered_units(events: Iterable[dict]) -> set[tuple[str, str]]:
+    """(buyer, experiment) pairs whose outreach never arrived. A send followed by its bounce stays
+    on record as an attempt, but it is not a delivered exposure and leaves every response denominator."""
+    return {(entity(e), e["experiment_id"]) for e in events if e["event_type"] in ATTEMPT_TYPES}
 
 
 def attribute(events: Iterable[dict], model: str = "linear") -> list[dict]:

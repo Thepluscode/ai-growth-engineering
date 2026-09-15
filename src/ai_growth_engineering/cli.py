@@ -512,6 +512,8 @@ def cmd_replies(args: argparse.Namespace) -> None:
         if args.action == "link-outbound":
             with open(args.target, encoding="utf-8") as handle:
                 result = rc.link_outbound(args.db, json.load(handle))
+        elif args.action == "import-sends":
+            result = rc.import_outbound_sends(args.db, args.target)
         elif args.action == "capture":
             with open(args.target, encoding="utf-8") as handle:
                 result = rc.capture(args.db, rc.gmail_messages(json.load(handle)), mailbox=args.mailbox)
@@ -784,9 +786,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_evidence_interpret)
 
     p = sub.add_parser("replies"); dbarg(p)
-    p.add_argument("action", choices=["link-outbound", "capture", "review", "approve", "reject"])
+    p.add_argument("action", choices=["link-outbound", "import-sends", "capture", "review", "approve", "reject"])
     p.add_argument("target", nargs="?", default="",
-                   help="JSON file for link-outbound and capture; candidate id for approve and reject")
+                   help="JSON file for link-outbound and capture; experiment id for import-sends; candidate id for "
+                        "approve and reject")
     p.add_argument("--mailbox", default="", help="capture: the address governed outreach was sent from")
     p.add_argument("--items", default="", help="comma-separated items: event, meaningful, E1, bounce, suppress")
     p.add_argument("--category", action="append", default=[], help="approve edit: E1=OBJECTION")

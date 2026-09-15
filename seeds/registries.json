@@ -660,6 +660,11 @@
       "audience_type": "cold",
       "source": "experiments/EXP-ACQ-0003/EXECUTION-COHORT.md: frozen cohort of 39 named decision-makers",
       "exclusions": "7 identities on rows never qualified (inadmissible upstream lineage)"
+    },
+    {
+      "audience_id": "AUD-ACQ-0006-FROZEN-COHORT",
+      "audience_type": "cold",
+      "source": "experiments/EXP-ACQ-0006: 46 researched, 8 not eligible, cohort frozen 2026-09-08 at 30 (records held in imports/)"
     }
   ],
   "campaigns": [
@@ -682,6 +687,16 @@
       "offer_id": "OFF-TEARDOWN",
       "experiment_id": "EXP-ACQ-0003",
       "audience_id": "AUD-ACQ-0003-FROZEN-COHORT"
+    },
+    {
+      "campaign_id": "CMP-ACQ-0006-STAGE-A",
+      "channel": "email",
+      "icp": "UK field-service operators (HVAC, plumbing, electrical; 5-50 technicians)",
+      "objective": "access validation: route to the owner of the engineer diary",
+      "status": "active",
+      "experiment_id": "EXP-ACQ-0006",
+      "audience_id": "AUD-ACQ-0006-FROZEN-COHORT",
+      "notes": "Stage A offers nothing and asks for no meeting, so no offer is linked"
     }
   ],
   "creatives": [

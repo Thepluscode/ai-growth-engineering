@@ -250,7 +250,8 @@
         "segment_performance_comparison": "IMPLEMENTED",
         "target_offer_route_decisioning": "IMPLEMENTED",
         "performance_change_diagnosis": "IMPLEMENTED",
-        "reply_capture_with_human_approval": "IMPLEMENTED"
+        "reply_capture_with_human_approval": "IMPLEMENTED",
+        "verified_send_lineage": "IMPLEMENTED"
       }
     }
   }

@@ -13,12 +13,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from typing import Iterable
 
 from .buyer_truth import CATEGORIES, MIN_OBSERVATION_WORDS, BuyerTruthError, record_commercial_evidence
-from .funnel_events import EventError, effective_events, record_event
+from .funnel_events import EventError, effective_events, event_id_for, record_event
 from .revenue_loop import entity
 from .storage import connect, init_db
 
@@ -81,7 +81,9 @@ def link_outbound(db_path: str, records: Iterable[dict]) -> dict:
             values["recipient"] = _address(values["recipient"])
             missing = [k for k in ("message_id", "thread_id", "recipient", "company", "experiment_id", "sent_at") if not values[k]]
             if missing:
-                raise ReplyCaptureError("outbound_incomplete", f"outbound record lacks {missing}")
+                raise ReplyCaptureError("outbound_incomplete", f"outbound record lacks {missing}: a send without its "
+                                        "source message cannot be linked, however it was counted elsewhere")
+            values["sent_at"] = _iso(values["sent_at"])
             existing = con.execute("SELECT company, experiment_id FROM outbound_messages WHERE message_id = ?",
                                    (values["message_id"],)).fetchone()
             if existing:
@@ -96,6 +98,57 @@ def link_outbound(db_path: str, records: Iterable[dict]) -> dict:
                  values["company"], values["person_id"], values["experiment_id"], values["campaign_id"], values["sent_at"]))
             inserted += 1
     return {"inserted": inserted, "already_present": present}
+
+
+# Shared mailboxes: a send to one of these reached an inbox, not a named person.
+ROLE_INBOXES = frozenset({"info", "enquiries", "enquiry", "sales", "hello", "office", "reception", "admin", "support",
+                          "contact", "help", "accounts", "team", "service", "services", "bookings"})
+
+
+def import_outbound_sends(db_path: str, experiment_id: str) -> dict:
+    """One `message_sent` per linked, verified outbound message of one experiment. Only a linked
+    message — a real message id in a real thread — becomes a send: this function takes no count,
+    so a total claimed elsewhere can never create one. Idempotent on the message id."""
+    init_db(db_path)
+    with connect(db_path) as con:
+        rows = [dict(r) for r in con.execute("SELECT * FROM outbound_messages WHERE experiment_id = ? "
+                                             "ORDER BY sent_at, message_id", (experiment_id,))]
+        campaigns = {r["campaign_id"]: r["offer_id"] for r in con.execute(
+            "SELECT campaign_id, offer_id FROM campaigns WHERE experiment_id = ?", (experiment_id,))}
+    if not rows:
+        raise ReplyCaptureError("no_linked_sends", f"no governed outbound message is linked for {experiment_id}")
+    owners: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        owners[row["recipient"]].add(row["company"])
+    # A buyer already counted from another source (a send log) is never counted a second time.
+    elsewhere = {(entity(e), e["experiment_id"]) for e in effective_events(db_path, include_synthetic=True)
+                 if e["event_type"] in ("message_sent", "message_bounced") and e["source"] != "gmail"}
+    inserted = present = 0
+    refused = []
+    for row in rows:
+        if len(owners[row["recipient"]]) > 1:
+            refused.append({"message_id": row["message_id"], "code": "ambiguous_lineage",
+                            "reason": f"the recipient is linked to {len(owners[row['recipient']])} companies in {experiment_id}"})
+            continue
+        if (row["company"].lower(), experiment_id) in elsewhere:
+            refused.append({"message_id": row["message_id"], "code": "recorded_from_other_source",
+                            "reason": "this buyer's send is already in the funnel from another source"})
+            continue
+        campaign = row["campaign_id"] or (next(iter(campaigns)) if len(campaigns) == 1 else "")
+        metadata = {"source_thread_id": row["thread_id"],
+                    "recipient_class": "role_inbox" if row["recipient"].partition("@")[0] in ROLE_INBOXES else "named_buyer",
+                    "recipient_class_basis": "recipient address local part", "offer_id": campaigns.get(campaign, "")}
+        if campaign and not row["campaign_id"]:
+            metadata["campaign_linked_by"] = "experiment_id"
+        result = record_event(db_path, {
+            "event_type": "message_sent", "company": row["company"], "person_id": row["person_id"],
+            "experiment_id": experiment_id, "campaign_id": campaign, "channel": "email", "source": row["source"],
+            "source_record_id": row["message_id"], "occurred_at": row["sent_at"], "provenance": "platform_export",
+            "metadata": metadata})
+        inserted += result["inserted"]
+        present += not result["inserted"]
+    return {"experiment_id": experiment_id, "linked": len(rows), "inserted": inserted, "already_present": present,
+            "refused": refused}
 
 
 # --- deterministic reading --------------------------------------------------------------
@@ -388,6 +441,19 @@ def approve(db_path: str, candidate_id: str, *, items: Iterable[str] | None = No
             "provenance": "platform_export",
             "metadata": {"source_thread_id": candidate["source_thread_id"], "candidate_id": candidate_id,
                          "match_method": candidate["match_method"], "approved_by": decided_by}}
+    # The governed send this message answers. When it is verifiable it must already be in the funnel:
+    # a reply or a bounce never enters without its upstream exposure.
+    if any(i in ("event", "meaningful", "bounce") or i.startswith("E") for i in chosen) and candidate["source_thread_id"]:
+        with connect(db_path) as con:
+            sends = [r["message_id"] for r in con.execute(
+                "SELECT message_id FROM outbound_messages WHERE source = ? AND thread_id = ? AND sent_at <= ? "
+                "ORDER BY sent_at", (candidate["source"], candidate["source_thread_id"], candidate["occurred_at"]))]
+        if sends:
+            upstream = event_id_for(candidate["source"], sends[-1], "message_sent")
+            if upstream not in {e["event_id"] for e in effective_events(db_path, include_synthetic=True)}:
+                raise ReplyCaptureError("upstream_send_missing", "the governed send this answers is verifiable but not "
+                                        f"recorded: run `age replies import-sends {candidate['experiment_id']}` first")
+            base["metadata"]["answers_send_event_id"] = upstream
     results: dict[str, str] = {}
     event_id = candidate["decisions"].get("event", {}).get("result_ref", "")
     for item in sorted(chosen, key=lambda i: (i != "event", i)):

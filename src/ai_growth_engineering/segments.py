@@ -186,7 +186,8 @@ def _units(events: list[dict]) -> tuple[dict, dict, int]:
 def _segment(value: str, keys: set[tuple[str, str]], by_entity: dict, first: dict, evidence: list[dict],
              cutoff: str, dimension: str, scoped: list[dict], registry: dict) -> dict:
     types = {k: {e["event_type"] for e in by_entity[k]} for k in keys}
-    delivered = {k for k in keys if types[k] & DELIVERED}
+    # A send whose bounce is recorded was attempted, not delivered.
+    delivered = {k for k in keys if types[k] & DELIVERED and not types[k] & (ATTEMPTS - DELIVERED)}
     first_delivery = {k: min(e["occurred_at"] for e in by_entity[k] if e["event_type"] in DELIVERED) for k in delivered}
     matured = {k for k, at in first_delivery.items() if at[:10] <= cutoff}
     reached: dict[str, set[str]] = {}

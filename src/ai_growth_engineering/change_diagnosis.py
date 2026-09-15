@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from . import registries
 from .buyer_truth import SEGMENT_MIN_ORGANISATIONS, _themes, buyer_evidence
 from .revenue_loop import compute_metrics
-from .segments import DELIVERED, EVIDENCE_POLICY, UNKNOWN, _attributes, _rate, _segment, _units, load_registry
+from .segments import ATTEMPTS, DELIVERED, EVIDENCE_POLICY, UNKNOWN, _attributes, _rate, _segment, _units, load_registry
 from .storage import connect
 
 # Every threshold a diagnosis depends on, in one place.
@@ -108,7 +108,8 @@ def _resolve(label: str, spec: dict, events: list[dict], exposures: dict, by_uni
                 and (not campaign or attrs["campaign"] == campaign) and (not arm or first["arm"] == arm)
                 and (not segment or attrs.get(segment[0]) == segment[1])):
             units[unit] = (first, attrs)
-    delivered = {u for u in units if any(e["event_type"] in DELIVERED for e in by_unit[u])}
+    delivered = {u for u in units if any(e["event_type"] in DELIVERED for e in by_unit[u])
+                 and not any(e["event_type"] in ATTEMPTS - DELIVERED for e in by_unit[u])}
     first_delivery = {u: min(e["occurred_at"][:10] for e in by_unit[u] if e["event_type"] in DELIVERED) for u in delivered}
     window_days = CHANGE_POLICY["response_window_days"]
     cutoff = (date.fromisoformat(as_of[:10]) - timedelta(days=window_days)).isoformat()
