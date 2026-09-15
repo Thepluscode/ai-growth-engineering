@@ -12,6 +12,7 @@ from typing import Any
 
 from . import registries
 from .buyer_truth import buyer_evidence, buyer_truth, problem_revenue, stalled_objections, truth_summary
+from .change_diagnosis import QUIET, change_summary, diagnosis_proposal
 from .segments import NOT_RECORDED, UNRESOLVED, decision_summary, segment_proposal
 from .funnel_events import effective_events, synthetic_count
 from .revenue_loop import (
@@ -315,11 +316,13 @@ def recommend_next_experiment(db_path: str, *, min_sample: int = MIN_SAMPLE, as_
         })
     # Nearest the money first: proposal-stage objections, then segment evidence, then funnel leaks.
     evidence = buyer_evidence(db_path)
-    decisions = decision_summary(db_path, as_of=as_of or date.today().isoformat(), events=linked_events(db_path),
-                                 evidence=evidence)
+    linked, today = linked_events(db_path), as_of or date.today().isoformat()
+    decisions = decision_summary(db_path, as_of=today, events=linked, evidence=evidence)
     segment_test = segment_proposal(decisions, history) if decisions else None
+    change_test = diagnosis_proposal(change_summary(db_path, as_of=today, events=linked), history)
     candidates = ([_proposal_from_objection(o, evidence, history) for o in stalled_objections(evidence, events)]
                   + ([segment_test] if segment_test else [])
+                  + ([change_test] if change_test else [])
                   + [_proposal_from_leak(leak, history, min_sample) for leak in findings if leak["kind"] == "leak"])
     for proposal in candidates:
         if preferred is None:
@@ -610,6 +613,7 @@ def status_report(db_path: str, *, as_of: str | None = None) -> dict:
         "as_of": as_of, "events": len(events), "synthetic_excluded": synthetic_count(db_path),
         "buyer_truth": truth_summary(buyer_evidence(db_path), events),
         "decisions": decision_summary(db_path, as_of=as_of, events=events, evidence=buyer_evidence(db_path)),
+        "change": change_summary(db_path, as_of=as_of, events=events),
         "totals": metrics["totals"], "metrics": metrics["metrics"], "diagnoses": diagnoses,
         "by_channel": {k or "unknown": totals(v) for k, v in group_by(events, "channel").items()},
         "campaigns": campaigns,
@@ -700,6 +704,17 @@ def render_status(report: dict) -> str:
         if contradiction := decisions["route"].get("access_vs_downstream"):
             lines.append(f"   {contradiction}")
         lines.append(f"   not recorded, so never compared: {', '.join(NOT_RECORDED)}")
+    change = report.get("change")
+    if change:
+        windows = (f"declared status windows {change['baseline']['start']}..{change['baseline']['end']} vs "
+                   f"{change['comparison']['start']}..{change['comparison']['end']}")
+        if change["classification"] in QUIET:
+            lines.append(f"WHY PERFORMANCE CHANGED: NOT ENOUGH EVIDENCE — {change['classification']}: {change['reason']} ({windows})")
+        else:
+            lines += [f"WHY PERFORMANCE CHANGED  [DERIVED diagnosis · not causal unless CONTROLLED_EFFECT · {windows}]",
+                      f"   {change['classification']} ({change['comparison_state']}): {change['observed_change']}",
+                      f"   supported: {change['supported_interpretation']}",
+                      f"   next test: {change['next_test']['statement']}"]
     p = rec["preferred"]
     lines.append("8. What should we test next?  [RECOMMENDATION — requires human approval]")
     lines.append(f"   {p['status']}: {p['experiment_id'] or '(new contract needed)'}")

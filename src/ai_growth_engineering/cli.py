@@ -403,6 +403,30 @@ def cmd_marketing_engineer(args: argparse.Namespace) -> None:
         for experiment_id, paths in sorted(diagnoses.items()):
             for diag in paths.values():
                 print("\n".join(render_diagnosis(experiment_id, diag, modes.get(experiment_id, ""))))
+    elif args.action == "change":
+        from datetime import date
+
+        from .change_diagnosis import ChangeError, default_windows, diagnose_change, render_change
+
+        as_of = args.as_of or date.today().isoformat()
+        if bool(args.baseline) != bool(args.comparison):
+            raise SystemExit("change needs both --baseline and --comparison (START:END), or neither for the declared "
+                             "status windows")
+        if args.baseline:
+            baseline, comparison = ({"start": text.partition(":")[0], "end": text.partition(":")[2]}
+                                    for text in (args.baseline, args.comparison))
+        else:
+            baseline, comparison = default_windows(as_of)
+        for window, arm in ((baseline, args.baseline_arm), (comparison, args.comparison_arm)):
+            window.update(experiment_id=args.experiment_id, campaign_id=args.campaign_id, arm=arm)
+            if args.segment:
+                dimension, _, value = args.segment.partition("=")
+                window["segment"] = (dimension, value)
+        try:
+            diagnosis = diagnose_change(args.db, baseline, comparison, as_of=as_of)
+        except ChangeError as exc:
+            raise SystemExit(f"REFUSED: {exc}")
+        print(json.dumps(diagnosis, indent=2, default=str) if args.json else render_change(diagnosis))
     elif args.action in ("segments", "target", "offer", "route"):
         from . import segments
 
@@ -676,7 +700,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("marketing-engineer"); dbarg(p)
     p.add_argument("action", choices=["status", "diagnose", "next-experiment", "money-graph", "customer", "problems",
-                                      "segments", "target", "offer", "route"])
+                                      "segments", "target", "offer", "route", "change"])
+    p.add_argument("--baseline", default="", help="change: START:END (ISO dates)")
+    p.add_argument("--comparison", default="", help="change: START:END (ISO dates)")
+    p.add_argument("--baseline-arm", default="")
+    p.add_argument("--comparison-arm", default="")
+    p.add_argument("--segment", default="", help="change: dimension=value")
     p.add_argument("--dimension", default="acquisition_route",
                    help="icp, buyer_role, audience_type, offer, price, campaign, experiment, channel, "
                         "recipient_route, acquisition_route")
