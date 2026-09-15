@@ -15,7 +15,13 @@ from .hiring_signal_connector import (
     scan_saved_hiring_sources,
 )
 from .execution import access_result, cohort, record_invitation
+from .funnel_events import (
+    PROVENANCES, EventError, correct_event, effective_events, import_invitations,
+    import_outreach_csv, record_event,
+)
+from .marketing_engineer import recommend_next_experiment, render_status, status_report
 from .models import ExperimentSpec
+from .revenue_loop import money_graph_for_campaign, money_graph_for_entity
 from .registry import (
     add_experiment,
     import_outreach,
@@ -180,6 +186,7 @@ def cmd_experiment_add(args: argparse.Namespace) -> None:
             budget_pence=args.budget_pence,
             start_date=args.start_date,
             end_date=args.end_date,
+            variable=args.variable,
         ),
     )
     print(f"preregistered {args.experiment_id}")
@@ -339,6 +346,60 @@ def cmd_command_center(args: argparse.Namespace) -> None:
         )
 
 
+def cmd_events_import_outreach(args: argparse.Namespace) -> None:
+    result = import_outreach_csv(args.db, args.csv_path, experiment_id=args.experiment_id,
+                                 campaign_id=args.campaign_id, arm=args.arm)
+    print(f"{result['inserted']} events appended, {result['already_present']} already present, "
+          f"{result['incomplete_rows']} rows incomplete")
+
+
+def cmd_events_import_invitations(args: argparse.Namespace) -> None:
+    result = import_invitations(args.db, args.cohort_id, experiment_id=args.experiment_id)
+    print(f"{result['members']} cohort members: {result['inserted']} events appended, "
+          f"{result['corrected']} acceptances corrected")
+
+
+def cmd_event_record(args: argparse.Namespace) -> None:
+    """Record one observed commercial fact — a meeting, proposal, win or payment."""
+    values = {name: getattr(args, name) for name in (
+        "event_type", "occurred_at", "source", "source_record_id", "provenance", "company",
+        "company_id", "person_id", "campaign_id", "creative_id", "audience_id", "channel",
+        "experiment_id", "arm", "value_pence", "currency", "quantity")}
+    values["metadata"] = {"note": args.note} if args.note else {}
+    try:
+        result = record_event(args.db, values)
+    except EventError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(f"{result['event_id']} {result['event_type']} "
+          f"{'appended' if result['inserted'] else 'already present, nothing appended'}")
+
+
+def cmd_event_correct(args: argparse.Namespace) -> None:
+    try:
+        result = correct_event(args.db, args.event_id, args.reason)
+    except EventError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(f"{result['event_id']} voids {result['corrects_event_id']}")
+
+
+def cmd_marketing_engineer(args: argparse.Namespace) -> None:
+    import json
+
+    if args.action == "status":
+        report = status_report(args.db)
+        print(json.dumps(report, indent=2, default=str) if args.json else render_status(report))
+    elif args.action == "next-experiment":
+        rec = recommend_next_experiment(args.db)
+        print(json.dumps({k: rec[k] for k in ("preferred", "alternatives", "findings")}, indent=2, default=str))
+    else:
+        if bool(args.company) == bool(args.campaign_id):
+            raise SystemExit("money-graph needs exactly one of --company or --campaign-id")
+        events = effective_events(args.db)
+        graph = (money_graph_for_entity(events, args.company) if args.company
+                 else money_graph_for_campaign(events, args.campaign_id))
+        print(json.dumps(graph, indent=2, default=str))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="age",
@@ -391,6 +452,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--channel", default="")
     p.add_argument("--control", default="")
     p.add_argument("--variant", default="")
+    p.add_argument("--variable", default="", help="the one variable control and variant differ on")
     p.add_argument("--secondary-metric", action="append", default=[])
     p.add_argument("--economic-metric", default="")
     p.add_argument("--budget-pence", type=int, default=0)
@@ -466,6 +528,43 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--identity", required=True)
     p.add_argument("--reason", required=True)
     p.set_defaults(func=cmd_suppress)
+
+    p = sub.add_parser("events-import-outreach"); dbarg(p); p.add_argument("csv_path")
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--campaign-id", default="")
+    p.add_argument("--arm", default="")
+    p.set_defaults(func=cmd_events_import_outreach)
+
+    p = sub.add_parser("events-import-invitations"); dbarg(p)
+    p.add_argument("--cohort-id", required=True)
+    p.add_argument("--experiment-id", default="")
+    p.set_defaults(func=cmd_events_import_invitations)
+
+    p = sub.add_parser("event-record"); dbarg(p)
+    p.add_argument("--event-type", required=True)
+    p.add_argument("--occurred-at", required=True)
+    p.add_argument("--source", required=True)
+    p.add_argument("--source-record-id", required=True)
+    p.add_argument("--provenance", default="operator_recorded", choices=PROVENANCES)
+    for name in ("company", "person-id", "campaign-id", "creative-id", "audience-id", "channel",
+                 "experiment-id", "arm", "currency", "note"):
+        p.add_argument(f"--{name}", default="")
+    p.add_argument("--company-id", type=int, default=None)
+    p.add_argument("--value-pence", type=int, default=0)
+    p.add_argument("--quantity", type=int, default=1)
+    p.set_defaults(func=cmd_event_record)
+
+    p = sub.add_parser("event-correct"); dbarg(p)
+    p.add_argument("--event-id", required=True)
+    p.add_argument("--reason", required=True)
+    p.set_defaults(func=cmd_event_correct)
+
+    p = sub.add_parser("marketing-engineer"); dbarg(p)
+    p.add_argument("action", choices=["status", "next-experiment", "money-graph"])
+    p.add_argument("--company", default="")
+    p.add_argument("--campaign-id", default="")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_marketing_engineer)
     return parser
 
 

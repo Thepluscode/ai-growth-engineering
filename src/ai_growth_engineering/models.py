@@ -87,6 +87,14 @@ EXPERIMENT_NAMESPACES = frozenset(
 )
 
 
+# One declared variable per experiment. Control and variant are the same variable at two
+# values; naming it is what stops a "CTA test" from also changing the offer.
+TEST_VARIABLES = frozenset({
+    "hook", "body", "cta", "subject", "offer", "price", "creative", "landing_page_headline",
+    "audience", "channel", "recipient_route", "format", "send_time",
+})
+
+
 @dataclass(frozen=True)
 class ExperimentSpec:
     experiment_id: str
@@ -112,8 +120,16 @@ class ExperimentSpec:
     start_date: str = ""
     end_date: str = ""
     learning: str = ""
+    variable: str = ""
 
     def validate(self) -> None:
+        if self.variable and self.variable not in TEST_VARIABLES:
+            raise ValueError(
+                f"variable must be exactly one of {sorted(TEST_VARIABLES)}; "
+                "a compound variable changes two things at once"
+            )
+        if self.control.strip() and self.variant.strip() and not self.variable:
+            raise ValueError("an experiment with a control and a variant must declare its single variable")
         parts = self.experiment_id.split("-")
         if (
             len(parts) != 3

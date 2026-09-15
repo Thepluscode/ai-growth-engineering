@@ -47,8 +47,8 @@ def add_experiment(db_path: str, spec: ExperimentSpec) -> None:
                  experiment_id, hypothesis, primary_metric, success_threshold,
                  review_threshold, minimum_sample, market, buyer, problem, channel,
                  control, variant, secondary_metrics, economic_metric, budget_pence,
-                 start_date, end_date, learning
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 start_date, end_date, learning, variable
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 spec.experiment_id,
                 spec.hypothesis,
@@ -68,6 +68,7 @@ def add_experiment(db_path: str, spec: ExperimentSpec) -> None:
                 spec.start_date,
                 spec.end_date,
                 spec.learning,
+                spec.variable,
             ),
         )
         con.executemany(

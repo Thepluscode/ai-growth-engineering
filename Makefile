@@ -42,6 +42,7 @@ demo: seed
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-add --db $(DB) --experiment-id EXP-ACQ-0002 --hypothesis "The same message delivered to a named buyer's own mailbox will produce >=10% meaningful reply rate" --primary-metric meaningful_reply_rate --success-threshold 0.10 --review-threshold 0.05 --minimum-sample 30 || true
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli import-outreach --db $(DB) experiments/EXP-ACQ-0001/sales/outreach.csv
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli experiment-result --db $(DB) --experiment-id EXP-ACQ-0001 --sample-size 50 --observed-value 0.0 --learning "50 counted sends, 0 meaningful replies. 48 of 50 went to a role inbox; 2 reached a named buyer. See experiments/EXP-ACQ-0001/VERDICT.md"
+	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli events-import-outreach --db $(DB) experiments/EXP-ACQ-0001/sales/outreach.csv --experiment-id EXP-ACQ-0001 --campaign-id EXP-ACQ-0001-email-queue-01-05
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli scoreboard --db $(DB)
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli recipient-split --db $(DB)
 

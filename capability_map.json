@@ -197,12 +197,15 @@
         "economic_kill_switch": "IMPLEMENTED",
         "budget_experiments": "HYPOTHESIS",
         "revenue_attribution_registry": "IMPLEMENTED",
-        "attribution_model": "HYPOTHESIS",
+        "attribution_model": "IMPLEMENTED",
         "analytics_and_reporting": "IMPLEMENTED",
         "creative_to_revenue_attribution": "HYPOTHESIS",
         "pipeline_measurement": "IMPLEMENTED",
         "social_funnel_attribution": "IMPLEMENTED",
-        "audience_capture_rate": "IMPLEMENTED"
+        "audience_capture_rate": "IMPLEMENTED",
+        "canonical_funnel_event_log": "IMPLEMENTED",
+        "deterministic_metric_definitions": "IMPLEMENTED",
+        "money_graph_lineage": "IMPLEMENTED"
       }
     },
     "8_ai_growth_engineering": {
@@ -231,7 +234,10 @@
         "audit_trail": "HYPOTHESIS",
         "claim_publication_gate": "IMPLEMENTED",
         "growth_command_center": "IMPLEMENTED",
-        "evidence_governed_revenue_intelligence": "IMPLEMENTED"
+        "evidence_governed_revenue_intelligence": "IMPLEMENTED",
+        "single_variable_experiment_contract": "IMPLEMENTED",
+        "next_experiment_recommender": "IMPLEMENTED",
+        "marketing_engineer_status": "IMPLEMENTED"
       }
     }
   }

@@ -2,7 +2,7 @@
 
 # measurement
 
-**Measurement and unit economics** — 12 of 17 capabilities implemented.
+**Measurement and unit economics** — 16 of 20 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -20,17 +20,20 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 | --- | --- |
 | `allowable_cac` | IMPLEMENTED |
 | `analytics_and_reporting` | IMPLEMENTED |
+| `attribution_model` | IMPLEMENTED |
 | `audience_capture_rate` | IMPLEMENTED |
+| `canonical_funnel_event_log` | IMPLEMENTED |
 | `commercial_funnel_rates` | IMPLEMENTED |
 | `contribution_profit_calculation` | IMPLEMENTED |
+| `deterministic_metric_definitions` | IMPLEMENTED |
 | `economic_kill_switch` | IMPLEMENTED |
 | `ltv_model` | IMPLEMENTED |
+| `money_graph_lineage` | IMPLEMENTED |
 | `pipeline_measurement` | IMPLEMENTED |
 | `revenue_attribution_registry` | IMPLEMENTED |
 | `revenue_scoreboard` | IMPLEMENTED |
 | `scale_gates` | IMPLEMENTED |
 | `social_funnel_attribution` | IMPLEMENTED |
-| `attribution_model` | HYPOTHESIS |
 | `budget_experiments` | HYPOTHESIS |
 | `contribution_profit_over_vanity` | SPECIFIED |
 | `creative_to_revenue_attribution` | HYPOTHESIS |

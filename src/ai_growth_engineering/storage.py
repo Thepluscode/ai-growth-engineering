@@ -213,6 +213,46 @@ CREATE TABLE IF NOT EXISTS draft_signal_lineage (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(draft_id, signal_id)
 );
+
+-- Canonical funnel events. Append-only: a wrong event is voided by a correction row, never
+-- rewritten, so every past report can be rebuilt from the log as it stood.
+CREATE TABLE IF NOT EXISTS funnel_events (
+    event_id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    person_id TEXT NOT NULL DEFAULT '',
+    company_id INTEGER,
+    company TEXT NOT NULL DEFAULT '',
+    campaign_id TEXT NOT NULL DEFAULT '',
+    creative_id TEXT NOT NULL DEFAULT '',
+    audience_id TEXT NOT NULL DEFAULT '',
+    channel TEXT NOT NULL DEFAULT '',
+    experiment_id TEXT NOT NULL DEFAULT '',
+    arm TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL,
+    source_record_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity >= 1),
+    value_pence INTEGER NOT NULL DEFAULT 0 CHECK(value_pence >= 0),
+    currency TEXT NOT NULL DEFAULT '',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    provenance TEXT NOT NULL,
+    corrects_event_id TEXT REFERENCES funnel_events(event_id),
+    recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(source, source_record_id, event_type)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_funnel_events_one_correction
+ON funnel_events(corrects_event_id) WHERE corrects_event_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_funnel_events_experiment
+ON funnel_events(experiment_id, event_type, occurred_at);
+
+CREATE TRIGGER IF NOT EXISTS funnel_events_no_update BEFORE UPDATE ON funnel_events
+BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction instead'); END;
+
+CREATE TRIGGER IF NOT EXISTS funnel_events_no_delete BEFORE DELETE ON funnel_events
+BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction instead'); END;
 """
 
 
@@ -248,6 +288,7 @@ EXPERIMENT_CONTRACT_COLUMNS = (
     ("start_date", "TEXT NOT NULL DEFAULT ''"),
     ("end_date", "TEXT NOT NULL DEFAULT ''"),
     ("learning", "TEXT NOT NULL DEFAULT ''"),
+    ("variable", "TEXT NOT NULL DEFAULT ''"),
 )
 
 EVIDENCE_CONTRACT_COLUMNS = (

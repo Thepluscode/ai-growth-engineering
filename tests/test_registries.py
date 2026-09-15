@@ -204,7 +204,7 @@ class ExperimentContractTests(unittest.TestCase):
             primary_metric="qualified_leads",
             success_threshold=0.10, review_threshold=0.05, minimum_sample=200,
             market="UK SME", buyer="Ops lead", problem="lead quality", channel="meta",
-            control="feature hook", variant="proof hook",
+            control="feature hook", variant="proof hook", variable="hook",
             secondary_metrics=("ctr", "cpl"), economic_metric="contribution_profit",
             budget_pence=250_000, start_date="2026-09-01", end_date="2026-09-30",
             evidence_ids=("E-001",),
