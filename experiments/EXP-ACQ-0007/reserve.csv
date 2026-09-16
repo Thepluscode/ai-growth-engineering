@@ -1,0 +1,14 @@
+replacement_rank,company,domain,company_number,named_current_officers,complexity_signals,covariate,reserve_key
+1,Andromeda Solutions,andromedasolutions.co.uk,08628185,1,8,,040fc0346456f766e515a701195afa364fe8933c4720811a5b8f36370838ddfa
+2,Advantage Business Systems,advantage.co.uk,01778540,2,7,recent_control_change,1ac0ad3335a70623d30665f952caf1a498a207a7ef4acf391811ff2e09c762d0
+3,Aptus Technology,aptustechnology.co.uk,04425747,3,7,,3118430005ef69a166944a0dc7aada57f1d6eeafba3218cd6cdbeca4631de28f
+4,Absolute Networks,absolute-networks.co.uk,04851663,1,7,,40481e24490682e6844f59fe17410949da3c16e2bfbc6083d7428236546922fd
+5,A.S.E. Computer Services,asecomputers.co.uk,04645219,1,5,,4879da64972916e6f2120599f6b3402dc70251ab06be39407e23fbc73a5577e0
+6,Bespoke IT Solutions,bespokeitsolutions.com,08992273,1,8,,79acc8f539c199f10c08ec70532367ac5f60c9b9ea05229d639ff04f6e4f02c3
+7,Ask4Support,ask4support.co.uk,07767536,2,8,,7bbf097d05c1f2c3cd1e8e4bb79ff01c0ddeb2f670a8ce1d2abe1dfdf6f5cf06
+8,Custom Computer Services (Wales),ccsw.co.uk,03366720,3,6,,958e94bf68883899a7a85114f360b2a706fc3e62dceeee49fa25a12bac904e9e
+9,Adept Communications and Technology,adeptcts.co.uk,04901558,2,7,recent_control_change,a0e446624730c142c421de3045b3dc856bdfb38d303b4c6588aab6d1988916d3
+10,Auxilium IT Consultancy,auxilium-it.com,SC618188,2,5,scottish_registration,aa92ef2e0276a2946c6f953ff0b8c8c9e1139f214c7d9c3c08e1eecd5c4e9bc5
+11,Complus IT,complus-it.com,09667114,2,9,,b1dd0d7906c141484a85918c46404acdb778f94c1ccaf55dbc62a21cd575a467
+12,Belper Technology,belpertechnology.co.uk,13567165,1,5,recent_incorporation,bfc17b6f6f8a8630fb721ff9f054ff17abcccd6a02d6169b79e70d238c9964f3
+13,4Cambridge,4cambridge.co.uk,10473812,2,6,,c1835ef58ea11f008f513587c486e1c1e29a2f3dff4569678a0359f514084a7d
