@@ -132,6 +132,7 @@ table together.
 | --- | --- | --- |
 | `EXP-ACQ-0001` | UK Cyber/MSP teardown-led outbound | ACTIVE — no conclusion before 50 qualified sends |
 | `EXP-ACQ-0002+` | Future market acquisition experiments | UNPLANNED — requires a separate premise and preregistration |
+| `EXP-ACQ-0007` | Governed external message procedure vs the incumbent | PREREGISTERED 2026-09-16 — cohort frozen, 30/30 drawn, nothing generated or sent |
 | `EXP-CREATIVE-*` | Creative and AI UGC experiments | UNPLANNED — evidence-triggered |
 | `EXP-PAID-*` | Paid-media and creative-family experiments | UNPLANNED — evidence-triggered |
 | `EXP-SEO-*` | Search and AI-search visibility experiments | UNPLANNED — evidence-triggered |
