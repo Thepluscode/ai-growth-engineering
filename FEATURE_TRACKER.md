@@ -120,6 +120,12 @@ qualification, teardown research, manual outreach, discovery, proposals, and evi
 its market gate passes. This does not redefine the Digital Marketing Project as an outbound or
 cybersecurity project.
 
+## Engineering backlog — recorded, not fixed
+
+| Defect | Status | Evidence / Notes |
+|---|---|---|
+| `invitation-record` defaults `submitted_at` to now | BACKLOG (founder: do not fix mid-run, 2026-09-16) | `execution.record_invitation` line 153 writes `str(values.get("submitted_at") or _utc_now())`, so recording a LATER lifecycle event (an acceptance) against an existing invitation silently re-dates the exposure. On 2026-09-16 this moved Cheeky Munkey's invitation from 2026-09-15 to today; the importer then corrected the exposure event to match, and refused to restore it (`voided_event_reused`). Recovered append-only: the send date was re-recorded as 2026-09-15 and the exposure re-appended under a new `source_record_id`. Exposure dates feed the maturity window, so a silent default here can corrupt a response window. Fix shape: when the invitation row exists, keep its `submitted_at` unless one is passed explicitly |
+
 ## External skill audit gaps closed (2026-09-15, after the independent re-audit)
 
 | Feature | Status | Evidence / Notes |
