@@ -1,5 +1,7 @@
 # EXP-ACQ-0003 — execution mode
 
+> **HISTORICAL** — narrative as written on 2026-09-15, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 **Recorded:** 2026-09-15 · **Decided by:** founder
 
 ```

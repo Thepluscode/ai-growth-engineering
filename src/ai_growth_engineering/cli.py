@@ -683,6 +683,19 @@ def cmd_experiment_gate(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2))
 
 
+def cmd_snapshot(args: argparse.Namespace) -> None:
+    """A PII-free state summary for documentation to cite. Printed, or written with --write."""
+    import json
+
+    from . import snapshot
+
+    if args.write:
+        snapshot.write(args.db, args.write)
+        print(f"wrote {args.write}")
+    else:
+        print(json.dumps(snapshot.snapshot(args.db), indent=2, sort_keys=True))
+
+
 def cmd_trust(args: argparse.Namespace) -> None:
     """Governed access to the existing trust writers. Every refusal is a printed REFUSED."""
     import json
@@ -1016,6 +1029,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--as-of", default="", help="release: the day the dependency's verdict is judged")
     p.add_argument("--by", default="founder")
     p.set_defaults(func=cmd_experiment_gate)
+
+    p = sub.add_parser("snapshot", help="PII-free state summary (counts, statuses, hashes) for docs to cite")
+    dbarg(p)
+    p.add_argument("--write", default="", help="write to this path, e.g. docs/STATE.json")
+    p.set_defaults(func=cmd_snapshot)
 
     p = sub.add_parser("reconcile", help="compare stored experiment figures with the event log")
     dbarg(p)

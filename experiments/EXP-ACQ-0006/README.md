@@ -1,5 +1,7 @@
 # EXP-ACQ-0006 — FS-001 field-service wedge (imported, live)
 
+> **HISTORICAL** — narrative as written on 2026-09-15, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 **Imported:** 2026-09-15 from the separate `~/projects/ai-growth-engineering` repository, where it
 ran as `FS-001` / `EXP-0004`. **Status: LIVE — outcome window open until 2026-09-22.** No verdict
 before then.

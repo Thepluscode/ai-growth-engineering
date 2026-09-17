@@ -2,7 +2,7 @@ PY := python3
 PYTHONPATH := src
 DB := .age/growth.db
 
-.PHONY: hooks test gate init seed scoreboard capability-map command-center demo clean sweep sweep-schedule ui
+.PHONY: hooks test gate snapshot docs-sync docs-check init seed scoreboard capability-map command-center demo clean sweep sweep-schedule ui
 
 hooks:
 	git config core.hooksPath .githooks
@@ -15,6 +15,8 @@ gate:
 	$(PY) scripts/scope_gate.py
 	$(PY) scripts/pii_guard.py --selftest
 	$(PY) scripts/pii_guard.py
+	$(PY) scripts/docs_check.py --selftest
+	$(PY) scripts/docs_check.py
 
 test: gate
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m unittest discover -s tests -v
@@ -56,3 +58,14 @@ sweep-schedule:
 
 clean:
 	rm -rf .age __pycache__ src/ai_growth_engineering/__pycache__ tests/__pycache__
+
+# The store is private; the snapshot is the PII-free summary docs cite. Generated from a copy so
+# producing it never migrates the store.
+snapshot:
+	cp $(DB) .age/snapshot-source.db && PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli snapshot --db .age/snapshot-source.db --write docs/STATE.json; rc=$$?; rm -f .age/snapshot-source.db; exit $$rc
+
+docs-sync:
+	$(PY) scripts/docs_check.py --sync
+
+docs-check:
+	$(PY) scripts/docs_check.py

@@ -1,0 +1,125 @@
+{
+  "capabilities": {
+    "HYPOTHESIS": 87,
+    "IMPLEMENTED": 107,
+    "SPECIFIED": 21,
+    "domains": 8,
+    "total": 215
+  },
+  "schema": "age-state.v1",
+  "store": {
+    "events": {
+      "by_experiment": {
+        "EXP-ACQ-0001": {
+          "message_bounced": 5,
+          "message_sent": 50
+        },
+        "EXP-ACQ-0003": {
+          "invitation_accepted": 1,
+          "invitation_sent": 34,
+          "invitation_undeliverable": 4,
+          "message_sent": 1
+        },
+        "EXP-ACQ-0006": {
+          "message_bounced": 1,
+          "message_sent": 21
+        }
+      },
+      "by_type": {
+        "invitation_accepted": 1,
+        "invitation_sent": 34,
+        "invitation_undeliverable": 4,
+        "message_bounced": 6,
+        "message_sent": 72
+      },
+      "corrections": 38,
+      "effective": 117,
+      "log_sha256": "d4124ff546c7b2e6baafbd87f1723baaecc2d157305168947cf00681aedf9bc1",
+      "rows": 193,
+      "synthetic_excluded": 0
+    },
+    "experiments": {
+      "EXP-ACQ-0001": {
+        "computed_sample": 50,
+        "decision": "review",
+        "execution": "EXECUTABLE",
+        "sample_reconciliation": "MATCH",
+        "stored_sample": 50,
+        "trust_policy": "UNDECLARED"
+      },
+      "EXP-ACQ-0002": {
+        "computed_sample": null,
+        "decision": "preregistered",
+        "execution": "EXECUTABLE",
+        "sample_reconciliation": "NO_DATA",
+        "stored_sample": 0,
+        "trust_policy": "UNDECLARED"
+      },
+      "EXP-ACQ-0003": {
+        "computed_sample": 34,
+        "decision": "preregistered",
+        "execution": "EXECUTABLE",
+        "sample_reconciliation": "NOT_RECORDED",
+        "stored_sample": 0,
+        "trust_policy": "UNDECLARED"
+      },
+      "EXP-ACQ-0007": {
+        "computed_sample": null,
+        "decision": "preregistered",
+        "execution": "PREREGISTERED_BLOCKED",
+        "sample_reconciliation": "NO_DATA",
+        "stored_sample": 0,
+        "trust_policy": "UNDECLARED"
+      }
+    },
+    "idempotency_conflicts": 0,
+    "pending_reply_reviews": 0,
+    "scoreboard": {
+      "collected_revenue_pence": {
+        "basis": "COMPUTED",
+        "diverges": false,
+        "value": 0
+      },
+      "commercial_proposals": {
+        "basis": "COMPUTED",
+        "diverges": false,
+        "value": 0
+      },
+      "diagnostics_proposed": {
+        "basis": "MANUAL_ANNOTATION",
+        "diverges": false,
+        "value": 0
+      },
+      "discovery_calls": {
+        "basis": "COMPUTED",
+        "diverges": false,
+        "value": 0
+      },
+      "meaningful_responses": {
+        "basis": "COMPUTED",
+        "diverges": false,
+        "value": 0
+      },
+      "outreach_sent": {
+        "basis": "COMPUTED",
+        "diverges": true,
+        "value": 71
+      },
+      "paying_customers": {
+        "basis": "COMPUTED",
+        "diverges": false,
+        "value": 0
+      },
+      "qualified_prospects": {
+        "basis": "REGISTRY",
+        "diverges": false,
+        "value": 51
+      },
+      "unreviewed_prospects": {
+        "basis": "REGISTRY",
+        "diverges": false,
+        "value": 10
+      }
+    }
+  }
+}

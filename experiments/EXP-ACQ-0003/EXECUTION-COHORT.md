@@ -1,5 +1,7 @@
 # EXP-ACQ-0003 — execution cohort, frozen
 
+> **HISTORICAL** — narrative as written on 2026-09-08, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 **Frozen:** 2026-09-08 · **Cohort:** 39 accounts · **Status:** ready to send, **zero invitations sent**
 
 ## The cohort

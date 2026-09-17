@@ -1,5 +1,7 @@
 # `EXP-ACQ-0001` — First 30 Days
 
+> **HISTORICAL** — narrative as written on 2026-08-20, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 This plan governs the first UK Cyber/MSP acquisition experiment, not the full Digital Marketing
 Project.
 

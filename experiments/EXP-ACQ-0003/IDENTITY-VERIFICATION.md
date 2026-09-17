@@ -1,5 +1,7 @@
 # LinkedIn identity verification — result
 
+> **HISTORICAL** — narrative as written on 2026-09-08, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 **Run:** 2026-09-08 · **Contract:** `PREREGISTRATION.md` admission rule (2)
 
 Admission rule (2) requires a commercial decision-making role evidenced on the person's own

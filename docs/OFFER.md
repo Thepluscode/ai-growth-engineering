@@ -1,5 +1,7 @@
 # `EXP-ACQ-0001` Commercial Offer
 
+> **HISTORICAL** — narrative as written on 2026-08-19, kept unedited. Live counts are generated in `docs/STATE.json`.
+
 This is the service ladder under test for the current UK Cyber/MSP acquisition experiment. It is not
 the permanent offer or full scope of the Digital Marketing Project.
 

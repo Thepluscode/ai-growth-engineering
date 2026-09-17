@@ -1,11 +1,11 @@
 # Digital Marketing Project — Feature and Market Tracker
 
-Last updated: 2026-09-08
+Last updated: 2026-09-17 · live counts: `docs/STATE.json`
 
 | Capability / outcome | Status | Evidence / next gate |
 | --- | --- | --- |
 | Project identity and scope | VERIFIED | Digital Marketing is the project; AI Growth Engineering is the method and engineering layer; `docs/ARCHITECTURE.md` defines the eight operating areas |
-| Full-stack architecture of record | VERIFIED | `capability_map.json` declares 180 capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
+| Full-stack architecture of record | VERIFIED | `capability_map.json` declares <!-- state:capabilities.total -->215<!-- /state --> capabilities across all eight domains; semantic coverage tests prevent the source scope from silently collapsing back to the outbound wedge |
 | Twenty-two software-memory registries | DEPLOYED | Twenty generated and two specialised registries now include product opportunities and product-format decisions; typed schemas, write/read interfaces, durable seeds and in-place migration are tested |
 | Product build gate | DEPLOYED | Non-compensatory code requires buyer, problem, unique evidence threshold, demand signal, distribution path, measurable purchase action, validation test and economics before scoring; high margin cannot override missing evidence |
 | Product format decision model | DEPLOYED | Deterministic tests choose static asset, interactive tool, manual service, software or subscription from recurrence, data, state, automation, integration and ongoing value |
@@ -135,6 +135,7 @@ cybersecurity project.
 | 4a · Single truth for the revenue gate | TESTED | Every gate counter the event log can derive is COMPUTED from it; the legacy `outreach` counter is shown beside it as MANUAL_ANNOTATION and flagged when it disagrees; `diagnostics_proposed` has no event and stays manual. The workbench and `outreach-record` now append canonical events; `outreach-record` refuses undated meeting/proposal/payment ticks. 5 mutations KILLED. Real gate: outreach_sent 50 → 71 (the legacy table only knew EXP-ACQ-0001; the log also holds EXP-ACQ-0006's 20 delivered sends and EXP-ACQ-0003's DM); every other counter agrees |
 | 4b · Experiment results reconciled with the log | TESTED | An experiment's sample is COMPUTED from delivered exposures (one per buyer, bounces excluded); a typed `--sample-size` that contradicts it is refused; the typed observed value is recorded as MANUAL_ANNOTATION. `age reconcile [--record]` compares every stored figure with the log and appends each disagreement once to an append-only ledger; experiment rows are never rewritten. Section 7 of the status report shows the computed sample. 5 mutations KILLED. Real store: EXP-ACQ-0001 MATCH (50/50); EXP-ACQ-0003 NOT_RECORDED (row 0, log 34) |
 | 5 · EXP-ACQ-0007 execution gate | TESTED | Append-only `experiment_gates` ledger; `age experiment-gate show/block/release`. While blocked the store refuses any canonical event, linked send or active campaign for the experiment; release is refused until the dependency's own staged verdict is past NOT_READY and records the status it saw. EXP-ACQ-0007 is PREREGISTERED_BLOCKED on EXP-ACQ-0006 (see `experiments/EXP-ACQ-0007/EXECUTION-GATE.md`); its preregistration is untouched. 5 mutations KILLED |
+| 6 · Generated state and docs-check | TESTED | `age snapshot` / `make snapshot` writes PII-free `docs/STATE.json` (counts, statuses, bases, event-log hash; no timestamp). Prose carries live figures only in `<!-- state:KEY -->` markers; `scripts/docs_check.py` (in `make gate`) fails on a wrong marker, a stale capability inventory, a missing HISTORICAL banner, or — where a local store exists — a stale store section, and says NOT CHECKED rather than passing without one. The retyped 180/75/19/86 figures are now markers (215/107/21/87); six contradicted narratives carry HISTORICAL banners. 4 mutations KILLED |
 
 ## Engineering backlog — recorded, not fixed
 

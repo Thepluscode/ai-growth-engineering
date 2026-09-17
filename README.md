@@ -35,7 +35,22 @@ workflows and customer evidence justify it.
 - **Primary channel:** Direct B2B outbound
 - **Primary outcome:** Evidence that the message earns qualified conversations
 
-## 30-day gate
+## Current state
+
+Generated, not typed: every figure below is a marker checked against `docs/STATE.json` by `make gate`
+(`make snapshot` regenerates it from the private store; `make docs-sync` rewrites the markers).
+
+| Figure | Value | Basis |
+| --- | ---: | --- |
+| Capabilities mapped | <!-- state:capabilities.total -->215<!-- /state --> | `capability_map.json` |
+| Implemented | <!-- state:capabilities.IMPLEMENTED -->107<!-- /state --> | `capability_map.json` |
+| Delivered sends (all experiments) | <!-- state:store.scoreboard.outreach_sent.value -->71<!-- /state --> | <!-- state:store.scoreboard.outreach_sent.basis -->COMPUTED<!-- /state --> |
+| Meaningful replies | <!-- state:store.scoreboard.meaningful_responses.value -->0<!-- /state --> | <!-- state:store.scoreboard.meaningful_responses.basis -->COMPUTED<!-- /state --> |
+| Paying customers | <!-- state:store.scoreboard.paying_customers.value -->0<!-- /state --> | <!-- state:store.scoreboard.paying_customers.basis -->COMPUTED<!-- /state --> |
+| EXP-ACQ-0003 delivered exposures | <!-- state:store.experiments.EXP-ACQ-0003.computed_sample -->34<!-- /state --> | computed |
+| EXP-ACQ-0007 execution | <!-- state:store.experiments.EXP-ACQ-0007.execution -->PREREGISTERED_BLOCKED<!-- /state --> | `experiment_gates` |
+
+## 30-day gate  (**HISTORICAL** — the EXP-ACQ-0001 launch plan as of 2026-08-30; live figures are above)
 
 Immediate market-test scoreboard:
 
@@ -169,7 +184,7 @@ python -m unittest discover -s tests -v
 ## Repository map
 
 ```text
-capability_map.json         full Digital Marketing scope, 180 capabilities with build status
+capability_map.json         full Digital Marketing scope, every capability with its build status
 src/ai_growth_engineering/  engineering layer: deterministic evidence core + CLI
                             GrowthOps operator, Command Center, registries and economics
 scripts/scope_gate.py       keeps the engine market-neutral (runs in make test + CI)
