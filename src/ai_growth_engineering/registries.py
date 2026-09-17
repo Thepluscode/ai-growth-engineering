@@ -307,6 +307,11 @@ def add(db_path: str, registry: str, record: dict) -> None:
     columns = [f for f in fields(registry) if f in record]
     placeholders = ", ".join("?" for _ in columns)
     with connect(db_path) as con:
+        if registry == "campaigns" and record.get("status") == "active" and record.get("experiment_id"):
+            from .execution_gate import blocked_message, open_blocks
+
+            if blockers := open_blocks(con, record["experiment_id"]):
+                raise ValueError(f"campaigns: {blocked_message(record['experiment_id'], blockers)}")
         con.execute(
             f"INSERT INTO {registry}({', '.join(columns)}) VALUES ({placeholders})",
             tuple(record[c] for c in columns),

@@ -295,6 +295,26 @@ BEGIN SELECT RAISE(ABORT, 'metric_reconciliations is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS metric_reconciliations_no_delete BEFORE DELETE ON metric_reconciliations
 BEGIN SELECT RAISE(ABORT, 'metric_reconciliations is append-only'); END;
 
+-- Sequencing holds on preregistered experiments. A BLOCK names the dependency whose mature verdict
+-- releases it; a RELEASE records the verdict status that was seen. Append-only.
+CREATE TABLE IF NOT EXISTS experiment_gates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
+    depends_on TEXT NOT NULL,
+    action TEXT NOT NULL CHECK(action IN ('BLOCK', 'RELEASE')),
+    rules_path TEXT NOT NULL DEFAULT '',
+    dependency_status TEXT NOT NULL DEFAULT '',
+    reason TEXT NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS experiment_gates_no_update BEFORE UPDATE ON experiment_gates
+BEGIN SELECT RAISE(ABORT, 'experiment_gates is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS experiment_gates_no_delete BEFORE DELETE ON experiment_gates
+BEGIN SELECT RAISE(ABORT, 'experiment_gates is append-only'); END;
+
 -- A person's reading of who an event reached. The event itself is never edited. Append-only.
 CREATE TABLE IF NOT EXISTS recipient_class_reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

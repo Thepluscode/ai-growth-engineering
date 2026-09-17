@@ -190,6 +190,11 @@ def record_event(db_path: str, values: Mapping[str, Any]) -> dict:
                         "status": "IDEMPOTENT_REPLAY"}
             conflict = (differing, stored)
         else:
+            if text["experiment_id"]:
+                from .execution_gate import blocked_message, open_blocks
+
+                if blockers := open_blocks(con, text["experiment_id"]):
+                    raise EventError("experiment_blocked", blocked_message(text["experiment_id"], blockers))
             con.execute(
                 """INSERT INTO funnel_events(
                      event_id, event_type, stage, occurred_at, person_id, company_id, company,

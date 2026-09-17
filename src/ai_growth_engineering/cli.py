@@ -662,6 +662,27 @@ def cmd_event_classify(args: argparse.Namespace) -> None:
     print(f"{result['event_id']}: recipient_class {result['recipient_class']} (reviewed)")
 
 
+def cmd_experiment_gate(args: argparse.Namespace) -> None:
+    import json
+    from datetime import date
+
+    from . import execution_gate as eg
+
+    try:
+        if args.action == "block":
+            result = eg.block_experiment(args.db, args.experiment_id, depends_on=args.depends_on,
+                                         rules_path=args.rules or f"experiments/{args.depends_on}/preregistered-gates.json",
+                                         reason=args.reason, recorded_by=args.by)
+        elif args.action == "release":
+            result = eg.release_experiment(args.db, args.experiment_id, depends_on=args.depends_on,
+                                           as_of=args.as_of or date.today().isoformat(), released_by=args.by)
+        else:
+            result = eg.execution_status(args.db, args.experiment_id)
+    except eg.GateError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(json.dumps(result, indent=2))
+
+
 def cmd_trust(args: argparse.Namespace) -> None:
     """Governed access to the existing trust writers. Every refusal is a printed REFUSED."""
     import json
@@ -984,6 +1005,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="founder")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_procedures)
+
+    p = sub.add_parser("experiment-gate", help="hold an experiment until another experiment's verdict is mature")
+    dbarg(p)
+    p.add_argument("action", choices=["show", "block", "release"])
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--depends-on", default="")
+    p.add_argument("--rules", default="", help="block: the dependency's preregistered-gates JSON")
+    p.add_argument("--reason", default="")
+    p.add_argument("--as-of", default="", help="release: the day the dependency's verdict is judged")
+    p.add_argument("--by", default="founder")
+    p.set_defaults(func=cmd_experiment_gate)
 
     p = sub.add_parser("reconcile", help="compare stored experiment figures with the event log")
     dbarg(p)

@@ -20,6 +20,7 @@ from typing import Iterable
 from .buyer_truth import CATEGORIES, MIN_OBSERVATION_WORDS, BuyerTruthError, record_commercial_evidence
 from .funnel_events import EventError, effective_events, event_id_for, record_event
 from .revenue_loop import entity
+from .execution_gate import blocked_message, open_blocks
 from .storage import connect, init_db
 
 
@@ -83,6 +84,8 @@ def link_outbound(db_path: str, records: Iterable[dict]) -> dict:
             if missing:
                 raise ReplyCaptureError("outbound_incomplete", f"outbound record lacks {missing}: a send without its "
                                         "source message cannot be linked, however it was counted elsewhere")
+            if blockers := open_blocks(con, values["experiment_id"]):
+                raise ReplyCaptureError("experiment_blocked", blocked_message(values["experiment_id"], blockers))
             values["sent_at"] = _iso(values["sent_at"])
             existing = con.execute("SELECT company, experiment_id FROM outbound_messages WHERE message_id = ?",
                                    (values["message_id"],)).fetchone()
