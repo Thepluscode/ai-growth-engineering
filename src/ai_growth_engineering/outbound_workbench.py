@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .registry import parse_recipient_class
-from .funnel_events import observed_time
+from .funnel_events import observed_time, record_event
 from .storage import connect, init_db
 
 
@@ -242,7 +242,21 @@ def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[s
                    WHERE id = ?""",
                 (outreach.lastrowid, sent_at, draft_id),
             )
+            first_send = True
+        else:
+            first_send = False
+    if first_send:
+        record_event(db_path, {**_draft_event(draft), "event_type": "message_sent", "occurred_at": sent_at})
     return get_draft(db_path, draft_id)
+
+
+def _draft_event(draft) -> dict[str, Any]:
+    """The canonical identity of a workbench draft's outcomes. The recipient class was chosen by the
+    operator when the draft was written, so it is observed."""
+    return {"company": draft["company"], "company_id": draft["prospect_id"],
+            "person_id": draft["recipient_identity"], "channel": draft["channel"],
+            "source": "workbench", "source_record_id": f"draft-{draft['id']}",
+            "provenance": "operator_recorded", "metadata": {"recipient_class": draft["recipient_class"]}}
 
 
 def record_meaningful_reply(db_path: str, draft_id: int, replied_at: Any = "") -> dict[str, Any]:
@@ -254,7 +268,8 @@ def record_meaningful_reply(db_path: str, draft_id: int, replied_at: Any = "") -
             raise WorkbenchError("send_required", "A sent draft is required before recording a reply")
         if replied_at[:10] < str(draft["sent_at"] or "")[:10]:
             raise WorkbenchError("reply_before_send", "a reply cannot arrive before the message it answers")
-        if draft["status"] == "sent":
+        first_reply = draft["status"] == "sent"
+        if first_reply:
             con.execute(
                 """UPDATE outreach
                    SET meaningful_reply = 1, stage = 'meaningful_reply'
@@ -267,6 +282,8 @@ def record_meaningful_reply(db_path: str, draft_id: int, replied_at: Any = "") -
                    WHERE id = ?""",
                 (replied_at, draft_id),
             )
+    if first_reply:
+        record_event(db_path, {**_draft_event(draft), "event_type": "reply_meaningful", "occurred_at": replied_at})
     return get_draft(db_path, draft_id)
 
 

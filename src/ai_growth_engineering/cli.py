@@ -54,14 +54,16 @@ def cmd_seed(args: argparse.Namespace) -> None:
 
 
 def cmd_scoreboard(args: argparse.Namespace) -> None:
+    from .registry import scoreboard_basis
+
     init_db(args.db)
-    values = scoreboard(args.db)
+    rows = {row["metric"]: row for row in scoreboard_basis(args.db)}
+    values = {metric: row["value"] for metric, row in rows.items()}
+    fmt = lambda key, n: _money(n) if key == "collected_revenue_pence" else str(n)  # noqa: E731
     for key, target in TARGETS.items():
-        actual = values[key]
-        if key == "collected_revenue_pence":
-            print(f"{key:28} {_money(actual):>12} / {_money(target)}")
-        else:
-            print(f"{key:28} {actual:>12} / {target}")
+        row = rows[key]
+        note = f"   manual {fmt(key, row['manual'])} (disagrees; the event log is authoritative)" if row["diverges"] else ""
+        print(f"{key:28} {fmt(key, row['value']):>12} / {fmt(key, target):<12} {row['basis']}{note}")
     # No target, and printed anyway: these are prospects nobody has qualified or
     # disqualified. They used to be counted as qualified, so leaving them off the
     # scoreboard would hide the queue rather than the inflation.
@@ -212,6 +214,12 @@ def cmd_outreach_record(args: argparse.Namespace) -> None:
         sent_at = observed_time(args.sent_at)
     except ValueError:
         raise SystemExit(f"REFUSED: --sent-at must be an ISO date or datetime, got {args.sent_at!r}")
+    undated = [flag for flag, on in (("--discovery", args.discovery), ("--proposal", args.proposal),
+                                      ("--paid", args.paid), ("--collected-revenue", args.collected_revenue))
+               if on]
+    if undated:
+        raise SystemExit(f"REFUSED: {', '.join(undated)} describe facts with their own dates and amounts; record "
+                         "them as canonical events with `age event-record`, not as ticks on a send")
     init_db(args.db)
     with connect(args.db) as con:
         suppressed = con.execute("SELECT 1 FROM suppression WHERE identity = ?", (args.identity,)).fetchone()
@@ -228,6 +236,13 @@ def cmd_outreach_record(args: argparse.Namespace) -> None:
                 round(args.collected_revenue * 100), args.notes,
             ),
         )
+    base = {"company": args.company, "person_id": args.identity, "source": "outreach-record",
+            "source_record_id": f"{args.company}|{sent_at}", "occurred_at": sent_at, "provenance": "operator_recorded"}
+    record_event(args.db, {**base, "event_type": "message_sent"})
+    if args.meaningful_reply:
+        # The reply's own date was not given; the send date stands in and says so.
+        record_event(args.db, {**base, "event_type": "reply_meaningful",
+                               "metadata": {"occurred_at_is_send_date": True}})
     print(f"recorded outreach for {args.company}")
 
 

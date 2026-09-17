@@ -327,7 +327,59 @@ def reply_rate_by_route(db_path: str) -> dict[str, dict[str, int]]:
     return routes
 
 
+# The revenue gate's counters that the canonical event log can compute. Where the log exists it
+# is the figure; the legacy `outreach` counter is kept and shown beside it as an annotation.
+CANONICAL_COUNTERS = ("outreach_sent", "meaningful_responses", "discovery_calls", "commercial_proposals",
+                      "paying_customers", "collected_revenue_pence")
+REGISTRY_COUNTERS = ("qualified_prospects", "unreviewed_prospects")
+
+
+def _canonical_counters(db_path: str) -> dict[str, int] | None:
+    from .funnel_events import effective_events
+    from .revenue_loop import entity, totals, undelivered_units
+
+    events = effective_events(db_path)
+    if not events:
+        return None
+    undelivered = undelivered_units(events)
+
+    def reached(event_type: str) -> set[tuple[str, str]]:
+        return {(entity(e), e["experiment_id"]) for e in events if e["event_type"] == event_type}
+
+    return {
+        "outreach_sent": len(reached("message_sent") - undelivered),
+        "meaningful_responses": len(reached("reply_meaningful")),
+        "discovery_calls": len(reached("meeting_held")),
+        "commercial_proposals": len(reached("proposal_sent")),
+        "paying_customers": len({entity(e) for e in events if e["event_type"] == "payment_received"}),
+        "collected_revenue_pence": totals(e for e in events if e["event_type"] in ("payment_received", "refund"))["revenue_pence"],
+    }
+
+
+def scoreboard_basis(db_path: str) -> list[dict]:
+    """Every gate counter with where its number came from: COMPUTED from canonical events, REGISTRY,
+    or MANUAL_ANNOTATION — and, where a hand-set counter exists beside a computed one, whether they agree."""
+    legacy = _legacy_counters(db_path)
+    computed = _canonical_counters(db_path)
+    rows = []
+    for metric, manual in legacy.items():
+        if metric in REGISTRY_COUNTERS:
+            rows.append({"metric": metric, "value": manual, "basis": "REGISTRY", "manual": None, "diverges": False})
+        elif metric in CANONICAL_COUNTERS and computed is not None:
+            value = computed[metric]
+            rows.append({"metric": metric, "value": value, "basis": "COMPUTED", "manual": manual,
+                         "diverges": manual != value})
+        else:
+            rows.append({"metric": metric, "value": manual, "basis": "MANUAL_ANNOTATION", "manual": manual,
+                         "diverges": False})
+    return rows
+
+
 def scoreboard(db_path: str) -> dict[str, int]:
+    return {row["metric"]: row["value"] for row in scoreboard_basis(db_path)}
+
+
+def _legacy_counters(db_path: str) -> dict[str, int]:
     with connect(db_path) as con:
         return {
             # A prospect counts as qualified only when it SAYS it is qualified.
