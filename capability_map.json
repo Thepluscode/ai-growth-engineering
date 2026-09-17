@@ -40,8 +40,6 @@
         "product_opportunity_analysis_workflow": "SPECIFIED",
         "evidence_governed_revenue_signal_store": "IMPLEMENTED",
         "signal_freshness_decay": "IMPLEMENTED",
-        "prospect_eligibility_gate": "IMPLEMENTED",
-        "intent_icp_priority_engine": "IMPLEMENTED",
         "identity_resolution_store": "IMPLEMENTED",
         "signal_to_revenue_lineage": "IMPLEMENTED",
         "public_hiring_signal_connector": "IMPLEMENTED",

@@ -14,10 +14,34 @@ class CapabilityMapTests(unittest.TestCase):
         capabilities.validate(self.data)
 
     def test_map_covers_the_whole_project(self):
-        # A map that shrank to a handful of entries is a failed load, not a clean pass.
+        # A map that shrank is a failed load, not a clean pass. `>= 140` could not see 180 become
+        # 215, nor 215 fall back to 141; the inventory must equal the committed, generated state,
+        # which changes only when someone regenerates it on purpose (`make snapshot`).
+        import json
+        from pathlib import Path
+
+        state = json.loads((Path(__file__).resolve().parents[1] / "docs" / "STATE.json").read_text(encoding="utf-8"))
         totals = capabilities.counts(self.data)
-        self.assertGreaterEqual(sum(totals.values()), 140)
+        self.assertEqual(sum(totals.values()), state["capabilities"]["total"])
         self.assertEqual(len(self.data["domains"]), 8)
+        for key, domain in self.data["domains"].items():
+            self.assertGreaterEqual(len(domain["capabilities"]), 3, key)
+
+    def test_a_duplicated_capability_key_is_refused_not_silently_merged(self):
+        """JSON keeps the last of two equal keys; a map that says a thing twice is malformed."""
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "map.json"
+            path.write_text('{"domains": {"d": {"title": "t", "capabilities": '
+                            '{"a": "IMPLEMENTED", "a": "HYPOTHESIS"}}}}', encoding="utf-8")
+            with self.assertRaises(ValueError) as ctx:
+                capabilities.load(path)
+            self.assertIn("'a'", str(ctx.exception))
+
+    def test_the_shipped_map_has_no_duplicated_key(self):
+        capabilities.load()  # raises on a duplicate
 
     def test_source_scope_is_first_class(self):
         required = {

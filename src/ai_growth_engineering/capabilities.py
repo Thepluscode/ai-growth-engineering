@@ -10,9 +10,18 @@ STATUSES = ("IMPLEMENTED", "SPECIFIED", "HYPOTHESIS")
 DEFAULT_MAP = Path(__file__).resolve().parents[2] / "capability_map.json"
 
 
+def _refuse_duplicates(pairs: list[tuple[str, object]]) -> dict:
+    # json keeps the last of two equal keys, so a map that declares a capability twice would
+    # silently lose one status and report a count the file does not contain.
+    duplicated = sorted(k for k, n in Counter(k for k, _ in pairs).items() if n > 1)
+    if duplicated:
+        raise ValueError(f"capability map declares {', '.join(repr(k) for k in duplicated)} more than once")
+    return dict(pairs)
+
+
 def load(path: str | Path | None = None) -> dict:
     with open(path or DEFAULT_MAP, encoding="utf-8") as handle:
-        return json.load(handle)
+        return json.load(handle, object_pairs_hook=_refuse_duplicates)
 
 
 def validate(data: dict) -> None:
