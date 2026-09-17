@@ -96,8 +96,10 @@ def _review_state(db_path: str, experiment_id: str) -> tuple[int, int, str | Non
     from .reply_capture import review
 
     with connect(db_path) as con:
-        threads = {r["thread_id"] for r in con.execute("SELECT thread_id FROM outbound_messages WHERE experiment_id = ?",
-                                                       (experiment_id,))}
+        thread_owners: dict[str, set[str]] = defaultdict(set)
+        for r in con.execute("SELECT thread_id, experiment_id FROM outbound_messages"):
+            thread_owners[r["thread_id"]].add(r["experiment_id"])
+        threads = {t for t, owners in thread_owners.items() if experiment_id in owners}
         recipients = {r["recipient"] for r in con.execute("SELECT recipient FROM outbound_messages WHERE experiment_id = ?",
                                                           (experiment_id,))}
         automated = con.execute(
@@ -105,7 +107,15 @@ def _review_state(db_path: str, experiment_id: str) -> tuple[int, int, str | Non
             f"source_thread_id IN ({','.join('?' * len(threads)) or 'NULL'})", tuple(threads)).fetchone()[0]
         last_check = con.execute("SELECT MAX(checked_at) FROM reply_checks WHERE experiment_id = ?",
                                  (experiment_id,)).fetchone()[0]
-    pending = sum(1 for c in review(db_path)["pending"] if c["source_thread_id"] in threads or c["sender"] in recipients)
+    def belongs(candidate: dict) -> bool:
+        # Thread lineage decides. A reply in a thread some experiment owns belongs to that experiment
+        # only; the sender is consulted only for a reply outside every known thread.
+        owners = thread_owners.get(candidate["source_thread_id"])
+        if owners:
+            return experiment_id in owners
+        return candidate["sender"] in recipients
+
+    pending = sum(1 for c in review(db_path)["pending"] if belongs(c))
     return pending, automated, last_check
 
 

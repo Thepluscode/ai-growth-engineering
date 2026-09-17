@@ -409,6 +409,14 @@ BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
 CREATE TRIGGER IF NOT EXISTS reply_decisions_no_delete BEFORE DELETE ON reply_decisions
 BEGIN SELECT RAISE(ABORT, 'reply decisions are append-only'); END;
 
+-- A pending review is resolved by a decision, never by removing the candidate; a reply check that
+-- ran is a fact a verdict depends on. Neither may be deleted.
+CREATE TRIGGER IF NOT EXISTS reply_candidates_no_delete BEFORE DELETE ON reply_candidates
+BEGIN SELECT RAISE(ABORT, 'reply_candidates is append-only: record a decision instead'); END;
+
+CREATE TRIGGER IF NOT EXISTS reply_checks_no_delete BEFORE DELETE ON reply_checks
+BEGIN SELECT RAISE(ABORT, 'reply_checks is append-only'); END;
+
 -- Which exact procedure version an experiment declared, before its first exposure: the variable of
 -- one arm, or an input held constant across every arm (arm ''). Frozen once written.
 CREATE TABLE IF NOT EXISTS experiment_procedures (
