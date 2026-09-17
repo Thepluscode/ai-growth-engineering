@@ -190,7 +190,7 @@
       "kind": "observation",
       "confidence": 0.9,
       "observed": true,
-      "statement": "Every apparent named-buyer address in the discovery run came from an enrichment aggregator and none survived first-party verification. pjob@intergence.com was reported by a search summariser as listed in Intergence's official contact details; the contact page carries only contact@, support@ and itsupport@, and the leadership page names six people and publishes no address. Others were masked (m*****@zenzero.co.uk, l******@ramsac.com), inferred from a stated format, or mutually inconsistent (three different addresses for Wavex's CEO). An inferred address is a hypothesis about a mail server, which is where four of EXP-ACQ-0001's five lost sends died.",
+      "statement": "Every apparent named-buyer address in the discovery run came from an enrichment aggregator and none survived first-party verification. REDACTED_PERSONAL_ADDRESS was reported by a search summariser as listed in Intergence's official contact details; the contact page carries only contact@, support@ and itsupport@, and the leadership page names six people and publishes no address. Others were masked (m*****@zenzero.co.uk, l******@ramsac.com), inferred from a stated format, or mutually inconsistent (three different addresses for Wavex's CEO). An inferred address is a hypothesis about a mail server, which is where four of EXP-ACQ-0001's five lost sends died.",
       "source": "WebFetch of intergence.com/contact and /why-intergence versus search summaries, 2026-08-27"
     },
     {
@@ -198,7 +198,7 @@
       "kind": "observation",
       "confidence": 0.75,
       "observed": true,
-      "statement": "EXP-ACQ-0001's first outreach row names 'John Hosegood, Head of Sales' at CloudTech24. Public sources show him as the author of a customer review of CloudTech24, not as an employee. The send went to sales@cloudtech24.com so the counted sample is unaffected, but the row names a buyer who was never at the company and must not be reused.",
+      "statement": "EXP-ACQ-0001's first outreach row names 'P-01, Head of Sales' at CloudTech24. Public sources show him as the author of a customer review of CloudTech24, not as an employee. The send went to sales@cloudtech24.com so the counted sample is unaffected, but the row names a buyer who was never at the company and must not be reused.",
       "source": "web search during EXP-ACQ-0002 contact discovery, 2026-08-27"
     },
     {
@@ -310,7 +310,7 @@
       "kind": "observation",
       "confidence": 0.95,
       "observed": true,
-      "statement": "Every call to action on the homepage and the paid-offer page resolves to mailto:ogievatheophilus@gmail.com, and the sprint page footer reads 'Confidential enquiries to ogievatheophilus@gmail.com'. The offer is evidence, compliance and security posture sold to regulated buyers, so the word confidential beside a personal Gmail address undercuts the argument before the page is read. The domain already runs Google Workspace (v=spf1 include:_spf.google.com on theplus-tech.com), so a domain mailbox is likely already available or one console action away - cheap to fix rather than a project.",
+      "statement": "Every call to action on the homepage and the paid-offer page resolves to mailto:<owner-contact>, and the sprint page footer reads 'Confidential enquiries to <owner-contact>'. The offer is evidence, compliance and security posture sold to regulated buyers, so the word confidential beside a personal Gmail address undercuts the argument before the page is read. The domain already runs Google Workspace (v=spf1 include:_spf.google.com on theplus-tech.com), so a domain mailbox is likely already available or one console action away - cheap to fix rather than a project.",
       "source": "Playwright mailto extraction + dig TXT theplus-tech.com, 2026-08-29"
     },
     {

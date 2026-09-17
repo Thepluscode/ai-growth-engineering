@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK boutique information-security consultancy focused on ISO 27001, GDPR, training, internal audit, fractional DPO and fractional CISO. Andy Larkum is named Managing Director.
+- **Observed:** UK boutique information-security consultancy focused on ISO 27001, GDPR, training, internal audit, fractional DPO and fractional CISO. P-05 is named Managing Director.
 - **Inferred:** Good fit for the cybersecurity-consultancy side of the wedge; narrower and more specialised than an MSP.
 
 ## Current offer

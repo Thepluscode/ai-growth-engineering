@@ -6,7 +6,7 @@ Replacement note: promoted from seeded priority B because Foresite failed the UK
 
 ## ICP fit
 
-- **Observed:** London security-first MSP serving UK SMEs, led by Managing Director Roger Eales.
+- **Observed:** London security-first MSP serving UK SMEs, led by Managing Director P-10.
 - **Inferred:** Strong fit.
 
 ## Current offer

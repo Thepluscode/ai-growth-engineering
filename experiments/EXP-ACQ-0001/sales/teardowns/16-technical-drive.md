@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** Published support metrics, customer reviews, accreditations, named cases and a current service guide naming Managing Director Simon Cole.
+- **Observed:** Published support metrics, customer reviews, accreditations, named cases and a current service guide naming Managing Director P-12.
 
 ## Likely commercial leak
 

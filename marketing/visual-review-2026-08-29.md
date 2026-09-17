@@ -83,10 +83,10 @@ decision, and rewriting it would be inventing the answer rather than surfacing t
 Every call to action on both pages resolves to one `mailto:`:
 
 ```
-mailto:ogievatheophilus@gmail.com
+mailto:<owner-contact>
 ```
 
-The sprint page's footer reads *"Confidential enquiries to ogievatheophilus@gmail.com"*. The offer is
+The sprint page's footer reads *"Confidential enquiries to <owner-contact>"*. The offer is
 evidence, compliance and security posture, sold to regulated buyers; the word *confidential* sitting
 next to a personal Gmail address undercuts the argument before the page is read. This was already
 open question 2 in the website tracker; seeing it in place makes it worse than it reads as a note.

@@ -99,14 +99,14 @@ class CaptureTests(ReplyCaptureCase):
         self.assertEqual((self.get("m1")["proposals"], review(self.db)["pending"]), ([], []))
 
     def test_a_bounce_maps_to_the_bounce_event_not_a_reply(self):
-        bounce = message("m1", "t-beta", "mailer-daemon@googlemail.com", "Your message wasn't delivered to info@beta.test.",
+        bounce = message("m1", "t-beta", "operator@example.com", "Your message wasn't delivered to info@beta.test.",
                          subject="Delivery Status Notification (Failure)")
         self.run_capture(bounce)
         self.assertEqual((self.get("m1")["kind"], list(self.items("m1"))), ("BOUNCE", ["bounce"]))
         import_outbound_sends(self.db, "EXP-ACQ-0006")
         approve(self.db, self.get("m1")["candidate_id"])
         self.assertEqual([(e["event_type"], e["company"]) for e in self.outcomes()], [("message_bounced", "Beta Ltd")])
-        self.run_capture(message("m2", "t-beta", "mailer-daemon@googlemail.com", "Still undelivered.",
+        self.run_capture(message("m2", "t-beta", "operator@example.com", "Still undelivered.",
                                  subject="Delivery Status Notification (Failure)"))
         self.assertEqual(self.get("m2")["proposals"], [])
 
@@ -222,7 +222,7 @@ class SendLineageTests(ReplyCaptureCase):
 
     def test_a_bounce_is_an_attempt_not_a_delivery_and_never_a_reply(self):
         import_outbound_sends(self.db, "EXP-ACQ-0006")
-        self.run_capture(message("b1", "t-beta", "mailer-daemon@googlemail.com", "Address not found.",
+        self.run_capture(message("b1", "t-beta", "operator@example.com", "Address not found.",
                                  subject="Delivery Status Notification (Failure)", date="2026-09-08T07:01:30Z"))
         approve(self.db, self.get("b1")["candidate_id"])
         events = [e for e in effective_events(self.db) if e["experiment_id"] == "EXP-ACQ-0006"]
@@ -282,7 +282,7 @@ class ReplyCheckTests(ReplyCaptureCase):
         import_outbound_sends(self.db, "EXP-ACQ-0006")
         self.payload = {"threads": [
             {"id": "t-acme", "messages": [message("r1", "t-acme", "buyer@acme.test", INTERESTED)]},
-            {"id": "t-beta", "messages": [message("r2", "t-beta", "mailer-daemon@googlemail.com", "Address not found.",
+            {"id": "t-beta", "messages": [message("r2", "t-beta", "operator@example.com", "Address not found.",
                                                    subject="Delivery Status Notification (Failure)", labels=("TRASH",))]},
             {"id": "t-gamma-1", "messages": [message("r3", "t-gamma-1", "shared@gamma.test", "I am out of the office until Monday.",
                                                       subject="Automatic reply", labels=("TRASH",))]},

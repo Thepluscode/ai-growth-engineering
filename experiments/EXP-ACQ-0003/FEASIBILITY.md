@@ -72,10 +72,10 @@ bounce either — it is a silent non-event with no signal at all. So:
 ## Supply — partially checked
 
 Named commercial decision-makers with public LinkedIn profiles were found for **10 of 10** accounts
-looked at during `EXP-ACQ-0002`'s discovery: Netitude/Adam Harling, Zenzero/Michael Bateman,
-Intergence/Peter Job, Transputec/Sonny Sehgal, Wavex/Gavin Russell, Nviron/Jamie Platt,
-Wanstor/Peter Lukes, Cheeky Munkey/Graham Lane, totality services/Luis Navarro,
-Grant McGregor/David Lawrence.
+looked at during `EXP-ACQ-0002`'s discovery: Netitude/P-04, Zenzero/P-15,
+Intergence/P-11, Transputec/P-08, Wavex/P-06, Nviron/P-42,
+Wanstor/P-43, Cheeky Munkey/P-44, totality services/P-45,
+Grant McGregor/P-46.
 
 10 of 10 is encouraging and is **not** 30 verified. Verifying 30 is the next step, and it is
 deliberately not taken yet: the spend decision below gates it, and researching 30 profiles for an

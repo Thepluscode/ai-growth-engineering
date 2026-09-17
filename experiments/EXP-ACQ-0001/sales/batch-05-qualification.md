@@ -40,7 +40,7 @@ Use the same current-evidence, UK-market, observable-route and credible-proof ru
 - **Observed route/proof:** managed vulnerability assessment, patching and compliance support are
   described in detail; the firm has operated since 2005, publishes multi-discipline proof and lists
   a public procurement contact.
-- **Buyer route:** use public G-Cloud contact `matt.kerley@bluefrontier.co.uk` and request routing to
+- **Buyer route:** use public G-Cloud contact `REDACTED_PERSONAL_ADDRESS` and request routing to
   the IT and cyber commercial owner.
 - **Research hypothesis:** determine whether cyber-service intent survives the portfolio-wide
   “Discuss a project” handoff.
@@ -109,7 +109,7 @@ Use the same current-evidence, UK-market, observable-route and credible-proof ru
 - **Observed route/proof:** a free health check promises a plain-English posture snapshot, ranked risks
   and optional review call; multiple named cases quantify cost, downtime and operational outcomes;
   `hello@ajt.support` is public.
-- **Buyer route:** route through the published company inbox to Managing Director Russell Walker or
+- **Buyer route:** route through the published company inbox to Managing Director P-27 or
   the commercial owner.
 - **Research hypothesis:** determine whether making the risk-review call the immediate result-aware
   next step improves qualified conversations.

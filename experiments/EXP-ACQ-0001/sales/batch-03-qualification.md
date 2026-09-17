@@ -29,7 +29,7 @@ separate.
   managed IT, cloud, applications and cyber security.
 - **Observed route/proof:** free Cyber Security Assessment, Free Secure Score Assessment, direct MDR
   handoff to that assessment, six Microsoft designations and `info@bcn.co.uk`.
-- **Buyer route:** Rob Davies is the current named CEO; route through the published commercial inbox.
+- **Buyer route:** P-17 is the current named CEO; route through the published commercial inbox.
 - **Research hypothesis:** determine whether the two public names for the free assessment fragment
   buyer expectation or attribution.
 - **Sources:** [assessment](https://bcn.co.uk/cyber-security/cyber-security-assessment/), [MDR](https://bcn.co.uk/cyber-security/managed-detection-response/), [leadership](https://bcn.co.uk/our-team/)
@@ -39,8 +39,8 @@ separate.
 - **Observed fit:** UK-headquartered business technology provider offering managed IT, cyber, cloud,
   data/AI and applications to mid-market and enterprise organisations.
 - **Observed route/proof:** bounded Secure 365 Assessment, broader Cyber Incident Baseline, 350+ IT
-  operations staff, 120+ cyber practitioners, `hello@acora.com` and named CEO David Rabson.
-- **Buyer route:** route to David Rabson or the cyber commercial owner through the published inbox.
+  operations staff, 120+ cyber practitioners, `hello@acora.com` and named CEO P-18.
+- **Buyer route:** route to P-18 or the cyber commercial owner through the published inbox.
 - **Research hypothesis:** determine whether buyers can distinguish the M365-specific assessment from
   the wider incident baseline before entering the common contact route.
 - **Sources:** [Secure 365](https://acora.com/our-services/professional-services/secure-365-assessment-service/), [services](https://acora.com/our-services/), [contact](https://acora.com/)
@@ -51,7 +51,7 @@ separate.
   consultancy, Cyber Essentials and board training.
 - **Observed route/proof:** proprietary Cyber Resilience Assessment and Bronze/Silver/Gold
   certification, 30+ years, ISO and Cyber Essentials Plus, named leadership and a no-obligation review.
-- **Buyer route:** Louise Howland is the named Marketing and Communications Manager; Dan May is the
+- **Buyer route:** P-19 is the named Marketing and Communications Manager; P-37 is the
   current Managing Director. Route through the published company contact channel.
 - **Research hypothesis:** determine whether assessment, certification and service-tier labels create
   avoidable choice before a buyer understands the recommended starting point.
@@ -63,7 +63,7 @@ separate.
   IT, strategic advisory and enterprise-grade cyber security.
 - **Observed route/proof:** three cyber tiers, Cyber Readiness Assessment, free initial assessment,
   ISO 27001, nearly 35 years, around 100 staff and `enquiries@quiss.co.uk`.
-- **Buyer route:** David Ricketts is Head of Business Development; Clive Taylor is Managing Director.
+- **Buyer route:** P-20 is Head of Business Development; P-38 is Managing Director.
 - **Research hypothesis:** determine whether different assessment labels across general and sector
   journeys dilute a single measurable entry offer.
 - **Sources:** [cyber security](https://www.quiss.co.uk/cyber-security/), [about and team](https://www.quiss.co.uk/about-us/)
@@ -74,7 +74,7 @@ separate.
   businesses through London and Midlands offices.
 - **Observed route/proof:** free IT & Communications audit, public customer reviews and case evidence,
   9.7 stated CSAT, general enquiry form and `info@bluecubecloud.com`.
-- **Buyer route:** Jack Waby is Sales Director and Paul Reames is co-founder/Managing Director.
+- **Buyer route:** P-21 is Sales Director and P-39 is co-founder/Managing Director.
 - **Research hypothesis:** determine whether the broad audit is sufficiently specific for buyers who
   arrive with a cyber-security trigger.
 - **Sources:** [IT services and audit](https://bluecubecloud.com/it-services/), [leadership](https://bluecubecloud.com/about-bluecube/), [contact](https://bluecubecloud.com/contact-us/)
@@ -85,7 +85,7 @@ separate.
   compliance and 24/7 cybersecurity to SMEs and mid-market organisations.
 - **Observed route/proof:** explicit Audit → Consultation → Onboarding sequence, detailed audit report,
   ISO 27001, Cyber Essentials Plus, client cases and `enquiries@fifosys.com`.
-- **Buyer route:** Mitesh Patel is founder and Managing Director; Jordan Stewart is Marketing Manager.
+- **Buyer route:** P-22 is founder and Managing Director; P-40 is Marketing Manager.
 - **Research hypothesis:** determine whether the concrete audit output is visible early enough in the
   main managed-services journey to outperform a generic conversation CTA.
 - **Sources:** [managed services](https://www.fifosys.com/managed-services), [auditing](https://www.fifosys.com/auditing), [leadership](https://www.fifosys.com/about-fifosys)
@@ -95,8 +95,8 @@ separate.
 - **Observed fit:** UK MSSP serving mid-market and enterprise organisations across MDR, exposure
   management, incident response, GRC and data protection.
 - **Observed route/proof:** quantified Cyber Resilience Score, named Focal Analyst model, CREST UK SOC,
-  detailed customer outcomes, `info@normcyber.com` and named CEO Wayne Churchill.
-- **Buyer route:** route to Wayne Churchill or the current revenue/marketing owner through the
+  detailed customer outcomes, `info@normcyber.com` and named CEO P-23.
+- **Buyer route:** route to P-23 or the current revenue/marketing owner through the
   published commercial inbox.
 - **Research hypothesis:** determine whether the same commercial route preserves whether interest
   originated in the score, Focal Analyst or SOC proposition.
@@ -107,8 +107,8 @@ separate.
 - **Observed fit:** UK and Jersey cyber-certification and services provider focused on SMEs, Cyber
   Essentials, Cyber Assurance, vulnerability management, pen testing and partner delivery.
 - **Observed route/proof:** visible Solo, Guided and Plus packages with starting prices, assessor-led
-  support, extensive customer feedback, `contact@cybertecsecurity.com` and named founder/CEO Mike Ralston.
-- **Buyer route:** route to Mike Ralston through the published commercial inbox.
+  support, extensive customer feedback, `contact@cybertecsecurity.com` and named founder/CEO P-24.
+- **Buyer route:** route to P-24 through the published commercial inbox.
 - **Research hypothesis:** determine whether distinct self-serve and expert-assisted buyer states are
   preserved consistently across “Get started,” quote and expert CTAs.
 - **Sources:** [home and packages](https://www.cybertecsecurity.com/), [about](https://www.cybertecsecurity.com/about-us/), [contact](https://www.cybertecsecurity.com/contact-us/)
@@ -119,7 +119,7 @@ separate.
   regulated organisations with independent assessment, controls and ongoing assurance.
 - **Observed route/proof:** sector-specific content, board-level risk framing, public commercial form,
   `info@mitigogroup.com` and named leadership across legal, technical and commercial disciplines.
-- **Buyer route:** Peter Redgate is Chief Commercial Officer and Lindsay Hill is CEO.
+- **Buyer route:** P-25 is Chief Commercial Officer and P-41 is CEO.
 - **Research hypothesis:** determine whether sector intent and the promised assessment output survive
   the general enquiry-form handoff.
 - **Sources:** [about and board](https://mitigogroup.com/about-us/), [contact](https://mitigogroup.com/contact-us/), [risk-assessment example](https://mitigogroup.com/facing-down-cyber-risk-senior-chambers-leaders-must-step-up-to-counter-a-growing-threat/)

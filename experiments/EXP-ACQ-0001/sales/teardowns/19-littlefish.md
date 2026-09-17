@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** CREST and ISO evidence, UK operations, stated incident volumes, NPS 81, CSAT 95, named customers and Cyber Services Director Sean Tickle.
+- **Observed:** CREST and ISO evidence, UK operations, stated incident volumes, NPS 81, CSAT 95, named customers and Cyber Services Director P-14.
 
 ## Likely commercial leak
 
@@ -49,5 +49,5 @@ On one assessment-relevant cyber page, test “Map your crown jewels” against 
 ## Sources
 
 - [Managed cyber services](https://www.littlefish.co.uk/cyber-services/)
-- [Sean Tickle](https://www.littlefish.co.uk/team/sean-tickle/)
+- [P-14](https://www.littlefish.co.uk/team/P-14/)
 - [Secure working environment](https://www.littlefish.co.uk/cyber-services/secure-working-environment/)

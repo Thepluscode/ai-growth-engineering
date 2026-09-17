@@ -13,6 +13,8 @@ gate:
 	$(PY) scripts/build_tree.py --check
 	$(PY) scripts/scope_gate.py --selftest
 	$(PY) scripts/scope_gate.py
+	$(PY) scripts/pii_guard.py --selftest
+	$(PY) scripts/pii_guard.py
 
 test: gate
 	PYTHONPATH=$(PYTHONPATH) $(PY) -m unittest discover -s tests -v

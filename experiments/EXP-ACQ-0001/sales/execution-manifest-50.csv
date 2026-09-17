@@ -1,32 +1,32 @@
 send_number,company,channel,destination,action_id,status,verification_required
 20,Slink,contact_form,https://slink.co.uk/contact,form_submission,pending_execute,observe success state then add one outreach row
-21,Air IT,email,enquiries@airit.co.uk,r3926237513695589606,sent_verified,SENT label and message id confirmed; outreach row added
-22,BCN Group,email,info@bcn.co.uk,r-8369975613069330128,sent_verified,SENT label and message id confirmed; outreach row added
-23,Acora,email,hello@acora.com,r-3986609173224466130,sent_verified,SENT label and message id confirmed; outreach row added
-24,ramsac,email,info@ramsac.com,r2579741333954511468,sent_verified,SENT label and message id confirmed; outreach row added
-25,Quiss,email,enquiries@quiss.co.uk,r6204181714263347832,sent_verified,SENT label and message id confirmed; outreach row added
-26,Bluecube,email,info@bluecubecloud.com,r235216689887140973,sent_verified,SENT label and message id confirmed; outreach row added
-27,Fifosys,email,enquiries@fifosys.com,r-8551669577026169797,sent_verified,SENT label and message id confirmed; outreach row added
-28,NormCyber,email,info@normcyber.com,r-871962225379331321,sent_verified,SENT label and message id confirmed; outreach row added
-29,Cyber Tec Security,email,contact@cybertecsecurity.com,r-4806526583295846492,sent_verified,SENT label and message id confirmed; outreach row added
-30,Mitigo,email,info@mitigogroup.com,r-8228979472960548403,sent_verified,SENT label and message id confirmed; outreach row added
-31,Central Technology,email,sales@ct.uk,r-8444531875245170268,sent_verified,SENT label and message id confirmed; outreach row added
-32,Xperience,email,enquiries@xperience-group.com,r2920520625539957103,sent_verified,SENT label and message id confirmed; outreach row added
-33,totality services,email,info@totalityservices.co.uk,r6757850058426108163,sent_verified,SENT label and message id confirmed; outreach row added
-34,Carden IT Group,email,hello@cardenitgroup.com,r2173932109321888278,sent_verified,SENT label and message id confirmed; outreach row added
-35,OryxAlign,email,hello@oryxalign.com,r-765764401427973855,sent_verified,SENT label and message id confirmed; outreach row added
-36,Neuways,email,hello@neuways.com,r-5668681198493584494,sent_verified,SENT label and message id confirmed; outreach row added
-37,CyberLab,email,enquiries@cyberlab.co.uk,r7087177006325033896,sent_verified,SENT label and message id confirmed; outreach row added
-38,Waterstons,email,cyber@waterstons.com,r6614729772422997415,sent_verified,SENT label and message id confirmed; outreach row added
-39,Brightsolid,email,enquiries@brightsolid.com,r-6293937639728631633,sent_verified,SENT label and message id confirmed; outreach row added
-40,Probrand,email,cra@probrand.co.uk,r7190610565379882857,sent_verified,SENT label and message id confirmed; outreach row added
-41,M247,email,sales@m247.com,r-9164713550793873658,sent_verified,SENT label and message id confirmed; outreach row added
-42,Atlas Cloud,email,hello@atlascloud.co.uk,r-7322476806208863368,sent_verified,SENT label and message id confirmed; outreach row added
-43,Blue Frontier,email,matt.kerley@bluefrontier.co.uk,r-1963381529823322701,sent_verified,SENT label and message id confirmed; outreach row added
-44,KHIPU Networks,email,sales@khipu-networks.com,r4965674269634332495,sent_verified,SENT label and message id confirmed; outreach row added
-45,DSI Ltd,email,uksales@dsiltd.co.uk,r-5361187130296949851,sent_verified,SENT label and message id confirmed; outreach row added
-46,ADM Computing,email,sales@adm-computing.co.uk,r-6833436333503673828,sent_verified,SENT label and message id confirmed; outreach row added
-47,System Force IT,email,sales@systemforce.co.uk,r2484735388869708891,sent_verified,SENT label and message id confirmed; outreach row added
-48,Foresight IT Services,email,sales@foresightuk.com,r7701002971925270017,sent_verified,SENT label and message id confirmed; outreach row added
-49,AJT Managed IT Services,email,hello@ajt.support,r-1717401131239114026,sent_verified,SENT label and message id confirmed; outreach row added
-50,Inology IT,email,hello@inology.co.uk,r1662544722822652476,sent_verified,SENT label and message id confirmed; outreach row added
+21,Air IT,email,ROLE_INBOX,r3926237513695589606,sent_verified,SENT label and message id confirmed; outreach row added
+22,BCN Group,email,ROLE_INBOX,r-8369975613069330128,sent_verified,SENT label and message id confirmed; outreach row added
+23,Acora,email,ROLE_INBOX,r-3986609173224466130,sent_verified,SENT label and message id confirmed; outreach row added
+24,ramsac,email,ROLE_INBOX,r2579741333954511468,sent_verified,SENT label and message id confirmed; outreach row added
+25,Quiss,email,ROLE_INBOX,r6204181714263347832,sent_verified,SENT label and message id confirmed; outreach row added
+26,Bluecube,email,ROLE_INBOX,r235216689887140973,sent_verified,SENT label and message id confirmed; outreach row added
+27,Fifosys,email,ROLE_INBOX,r-8551669577026169797,sent_verified,SENT label and message id confirmed; outreach row added
+28,NormCyber,email,ROLE_INBOX,r-871962225379331321,sent_verified,SENT label and message id confirmed; outreach row added
+29,Cyber Tec Security,email,ROLE_INBOX,r-4806526583295846492,sent_verified,SENT label and message id confirmed; outreach row added
+30,Mitigo,email,ROLE_INBOX,r-8228979472960548403,sent_verified,SENT label and message id confirmed; outreach row added
+31,Central Technology,email,ROLE_INBOX,r-8444531875245170268,sent_verified,SENT label and message id confirmed; outreach row added
+32,Xperience,email,ROLE_INBOX,r2920520625539957103,sent_verified,SENT label and message id confirmed; outreach row added
+33,totality services,email,ROLE_INBOX,r6757850058426108163,sent_verified,SENT label and message id confirmed; outreach row added
+34,Carden IT Group,email,ROLE_INBOX,r2173932109321888278,sent_verified,SENT label and message id confirmed; outreach row added
+35,OryxAlign,email,ROLE_INBOX,r-765764401427973855,sent_verified,SENT label and message id confirmed; outreach row added
+36,Neuways,email,ROLE_INBOX,r-5668681198493584494,sent_verified,SENT label and message id confirmed; outreach row added
+37,CyberLab,email,ROLE_INBOX,r7087177006325033896,sent_verified,SENT label and message id confirmed; outreach row added
+38,Waterstons,email,ROLE_INBOX,r6614729772422997415,sent_verified,SENT label and message id confirmed; outreach row added
+39,Brightsolid,email,ROLE_INBOX,r-6293937639728631633,sent_verified,SENT label and message id confirmed; outreach row added
+40,Probrand,email,ROLE_INBOX,r7190610565379882857,sent_verified,SENT label and message id confirmed; outreach row added
+41,M247,email,ROLE_INBOX,r-9164713550793873658,sent_verified,SENT label and message id confirmed; outreach row added
+42,Atlas Cloud,email,ROLE_INBOX,r-7322476806208863368,sent_verified,SENT label and message id confirmed; outreach row added
+43,Blue Frontier,email,P-26,r-1963381529823322701,sent_verified,SENT label and message id confirmed; outreach row added
+44,KHIPU Networks,email,ROLE_INBOX,r4965674269634332495,sent_verified,SENT label and message id confirmed; outreach row added
+45,DSI Ltd,email,ROLE_INBOX,r-5361187130296949851,sent_verified,SENT label and message id confirmed; outreach row added
+46,ADM Computing,email,ROLE_INBOX,r-6833436333503673828,sent_verified,SENT label and message id confirmed; outreach row added
+47,System Force IT,email,ROLE_INBOX,r2484735388869708891,sent_verified,SENT label and message id confirmed; outreach row added
+48,Foresight IT Services,email,ROLE_INBOX,r7701002971925270017,sent_verified,SENT label and message id confirmed; outreach row added
+49,AJT Managed IT Services,email,ROLE_INBOX,r-1717401131239114026,sent_verified,SENT label and message id confirmed; outreach row added
+50,Inology IT,email,ROLE_INBOX,r1662544722822652476,sent_verified,SENT label and message id confirmed; outreach row added

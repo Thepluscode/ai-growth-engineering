@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK managed IT, cybersecurity, cloud, modern workplace, consultancy, and AI provider serving mid-market and international organisations. The site names CEO Sonny Sehgal and a senior operating team.
+- **Observed:** UK managed IT, cybersecurity, cloud, modern workplace, consultancy, and AI provider serving mid-market and international organisations. The site names CEO P-08 and a senior operating team.
 - **Inferred:** Strong fit, though larger and more enterprise-facing than several queue accounts.
 
 ## Current offer

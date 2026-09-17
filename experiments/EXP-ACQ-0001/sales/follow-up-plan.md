@@ -33,7 +33,7 @@ Worth sending the one-page outline?
 The test is limited to the Cyber Essentials page: a readiness-map CTA beside the most relevant cyber
 case study, measured on qualified calls rather than form fills.
 
-Would that be useful for Hugh or Andrea to review?
+Would that be useful for P-03 or P-28 to review?
 
 ### Netitude
 

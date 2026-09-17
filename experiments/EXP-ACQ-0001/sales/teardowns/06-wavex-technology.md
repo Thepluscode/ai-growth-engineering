@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** London MSP serving small to mid-market organisations across managed IT, cybersecurity, compliance, cloud, and AI. Gavin Russell is named CEO and Founder.
+- **Observed:** London MSP serving small to mid-market organisations across managed IT, cybersecurity, compliance, cloud, and AI. P-06 is named CEO and Founder.
 - **Inferred:** Strong fit.
 
 ## Current offer

@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** MISA/Microsoft, ISO and Cyber Essentials Plus evidence; named customers; public MTTA, MTTC and automation metrics; named CEO Nicola Saner.
+- **Observed:** MISA/Microsoft, ISO and Cyber Essentials Plus evidence; named customers; public MTTA, MTTC and automation metrics; named CEO P-16.
 
 ## Likely commercial leak
 

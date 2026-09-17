@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK MSP serving growing businesses with managed IT and cybersecurity. Founder/Managing Director Adam Harling and Client Strategy Director Michael Hamer are named on the site.
+- **Observed:** UK MSP serving growing businesses with managed IT and cybersecurity. Founder/Managing Director P-04 and Client Strategy Director P-29 are named on the site.
 - **Inferred:** Strong fit.
 
 ## Current offer

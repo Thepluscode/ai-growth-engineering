@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK-based MSSP for SMEs and regulated firms, headquartered in Chesterfield. Current pages focus on managed security, VMaaS, testing, compliance, and UK delivery. Tim Brennan is named CEO/Director on a company page and linked to the company on LinkedIn.
+- **Observed:** UK-based MSSP for SMEs and regulated firms, headquartered in Chesterfield. Current pages focus on managed security, VMaaS, testing, compliance, and UK delivery. P-09 is named CEO/Director on a company page and linked to the company on LinkedIn.
 - **Inferred:** Strong fit, subject to final role verification before sending.
 
 ## Current offer
@@ -53,4 +53,4 @@ First measure visits, exits, and enquiries attributable to `/about-us/`. Then 30
 - [Current about page](https://securechaingroup.com/about)
 - [Older indexed about page](https://securechaingroup.com/about-us/)
 - [Privacy/contact identity](https://securechaingroup.com/privacy)
-- [Tim Brennan LinkedIn](https://uk.linkedin.com/in/tim-brennan-998533270)
+- [P-09 LinkedIn](https://www.linkedin.com/in/example-buyer-01)

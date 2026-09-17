@@ -5,7 +5,7 @@ Research date: 2026-08-19
 ## ICP fit
 
 - **Observed:** London-headquartered MSP offering IT support and cybersecurity to scaling SMEs; the site reports 300+ clients and substantial UK/South East coverage.
-- **Inferred:** Strong fit. CEO Paolo Sartori is a named commercial decision-maker and is described as hands-on with clients.
+- **Inferred:** Strong fit. CEO P-02 is a named commercial decision-maker and is described as hands-on with clients.
 
 ## Current offer
 

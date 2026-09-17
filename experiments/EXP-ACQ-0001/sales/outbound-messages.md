@@ -3,7 +3,7 @@
 Status: sent through the authenticated Gmail account on 2026-08-19. All 10 messages were verified in
 the Sent folder and recorded in `sales/outreach.csv`. No immediate delivery failure matched this batch.
 
-## 1. CloudTech24 — John Hosegood, Head of Sales
+## 1. CloudTech24 — P-01, Head of Sales
 
 I noticed CloudTech24 already has concrete assessment offers—including Microsoft 365 and broader cyber assessments—but those routes still ask the visitor to book a general discovery call.
 
@@ -11,7 +11,7 @@ I’d test whether making the assessment deliverable explicit would convert more
 
 I mapped the one-page experiment using your current assessment and proof routes. Want me to send it?
 
-## 2. TWC IT Solutions — Paolo Sartori, CEO
+## 2. TWC IT Solutions — P-02, CEO
 
 I noticed TWC’s cyber page ultimately routes buyers into a contact form spanning six solution families and a long list of service choices.
 
@@ -19,7 +19,7 @@ I’d test whether that breadth is suppressing completed, well-qualified cyber e
 
 I mapped a short cyber-only test in a one-page teardown. Want me to send it?
 
-## 3. Texaport — Hugh Caldwell, Founder and CEO
+## 3. Texaport — P-03, Founder and CEO
 
 I noticed Texaport has strong cyber proof and specific routes for Cyber Essentials, vulnerability assessments, and regulated sectors, but the next step is usually “Get in touch” or “Tell us what you need.”
 
@@ -27,7 +27,7 @@ I’d test whether a bounded readiness-map CTA would turn more of that high-inte
 
 I’ve mapped the experiment in a one-page teardown. Want me to send it?
 
-## 4. Netitude — Adam Harling, Managing Director
+## 4. Netitude — P-04, Managing Director
 
 I noticed Netitude has a strong assessment-led entry offer, but it appears under several labels: Net9 audit, IT audit, IT security audit, free consultation, and speak to an expert.
 
@@ -35,7 +35,7 @@ I’d test whether unifying that first step around the Net9 report and roadmap i
 
 I mapped the smallest valid test in a one-page teardown. Want me to send it?
 
-## 5. ADL Consulting — Andy Larkum, Managing Director
+## 5. ADL Consulting — P-05, Managing Director
 
 I noticed ADL’s ISO offer is unusually specific, but early explorers, urgent internal-audit buyers, and implementation prospects all meet the same “Get in touch” next step.
 
@@ -43,7 +43,7 @@ I’d test whether a stage-specific ISO readiness route captures more time-bound
 
 I’ve mapped the test in a one-page teardown. Want me to send it?
 
-## 6. Wavex Technology — Gavin Russell, CEO and Founder
+## 6. Wavex Technology — P-06, CEO and Founder
 
 I noticed Wavex has concrete differentiation through APEX, CIS-aligned risk management, and live reporting, while the public next step is still framed as a general free consultation.
 
@@ -51,7 +51,7 @@ I’d test whether giving that conversation a tangible CIS risk-snapshot output 
 
 I mapped the experiment in a one-page teardown. Want me to send it?
 
-## 7. The HBP Group — Phil Denham, Chief Marketing Officer
+## 7. The HBP Group — P-07, Chief Marketing Officer
 
 I noticed HBP already has a compelling 360° Assessment and executive-roadmap story, but it sits beneath a broad combined IT-and-ERP catalogue rather than acting as the clear managed-IT entry point.
 
@@ -59,7 +59,7 @@ I’d test whether surfacing that assessment on managed-IT routes earns more qua
 
 I’ve mapped the smallest test in a one-page teardown. Want me to send it?
 
-## 8. Transputec — Sonny Sehgal, Chief Executive Officer
+## 8. Transputec — P-08, Chief Executive Officer
 
 I noticed Transputec’s managed-IT route already does most things well: fixed-fee detail, transition proof, operational metrics, and a service-specific consultation.
 
@@ -67,7 +67,7 @@ The narrower hypothesis I’d test is whether active MSP switchers respond bette
 
 I mapped that bounded experiment in a one-page teardown. Want me to send it?
 
-## 9. Secure Chain — Tim Brennan, CEO and Director
+## 9. Secure Chain — P-09, CEO and Director
 
 I noticed Secure Chain’s current site has a strong posture-assessment path, but an older indexed `/about-us/` page is still live alongside `/about` and includes a placeholder email address.
 
@@ -75,7 +75,7 @@ For a security buyer doing due diligence, I’d test whether consolidating those
 
 I mapped the measurement and redirect experiment in a one-page teardown. Want me to send it?
 
-## 10. Morcan IT Solutions — Roger Eales, Managing Director
+## 10. Morcan IT Solutions — P-10, Managing Director
 
 I noticed Morcan’s homepage offers a migration assessment, posture assessment, security review, and security assessment—each concrete, but partly overlapping.
 

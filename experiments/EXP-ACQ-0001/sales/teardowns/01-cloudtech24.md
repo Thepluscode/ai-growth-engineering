@@ -5,7 +5,7 @@ Research date: 2026-08-19
 ## ICP fit
 
 - **Observed:** UK-headquartered managed IT and cybersecurity provider serving SMEs and international clients; the site reports 250+ customers across 10+ countries.
-- **Inferred:** Strong fit for the UK cyber/MSP wedge. Head of Sales John Hosegood is the most relevant named commercial recipient.
+- **Inferred:** Strong fit for the UK cyber/MSP wedge. Head of Sales P-01 is the most relevant named commercial recipient.
 
 ## Current offer
 

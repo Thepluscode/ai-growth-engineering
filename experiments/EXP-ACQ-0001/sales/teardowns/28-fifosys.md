@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** Explicit four-step process, detailed report output, ISO 27001 since 2013, Cyber Essentials Plus, ten MSP 501 appearances, named customers and founder/MD Mitesh Patel.
+- **Observed:** Explicit four-step process, detailed report output, ISO 27001 since 2013, Cyber Essentials Plus, ten MSP 501 appearances, named customers and founder/MD P-22.
 
 ## Likely commercial leak
 

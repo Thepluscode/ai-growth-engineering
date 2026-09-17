@@ -30,7 +30,7 @@ separate.
   risk-management projects and retainers.
 - **Observed route/proof:** free-consultation CTA, published monthly and project pricing, 15+ years of
   stated experience, and `hello@fortitudecyber.co.uk`.
-- **Buyer route:** verify David Atkinson as the current operating founder/decision maker before
+- **Buyer route:** verify P-33 as the current operating founder/decision maker before
   outreach.
 - **Research hypothesis:** determine whether visitors can select the right paid tier from the broad
   consultation route without needing to diagnose their own maturity level.
@@ -77,7 +77,7 @@ separate.
   public-sector organisations across managed IT and cybersecurity.
 - **Observed route/proof:** “Speak to a consultant,” 1,000+ stated customers, 97.5% CSAT, 99.2% P1
   first-time-fix, B Corp status and extensive customer evidence.
-- **Buyer route:** Michael O’Donnell is the named founder/CEO; verify whether the managed IT/cyber
+- **Buyer route:** P-35 is the named founder/CEO; verify whether the managed IT/cyber
   commercial owner is a better recipient.
 - **Research hypothesis:** determine whether buyers arriving for managed IT or cyber receive a specific
   diagnostic next step within the broad multi-service portfolio.
@@ -101,19 +101,19 @@ separate.
   organisations with managed/co-managed services and a UK security operation.
 - **Observed route/proof:** comprehensive cyber assessments, named enterprise/public-sector customer
   stories, certifications, quantified security context and a service-specific enquiry form.
-- **Buyer route:** Sean Tickle is publicly named Cyber Services Director; verify the appropriate
+- **Buyer route:** P-14 is publicly named Cyber Services Director; verify the appropriate
   commercial contact route before outreach.
 - **Research hypothesis:** determine whether the assessment page’s detailed value proposition converts
   into a suitably specific enquiry and expectation-setting flow.
-- **Sources:** [cyber assessment](https://www.littlefish.co.uk/our-services/cyber-security-services/cyber-assessment/), [Sean Tickle](https://www.littlefish.co.uk/team/sean-tickle/)
+- **Sources:** [cyber assessment](https://www.littlefish.co.uk/our-services/cyber-security-services/cyber-assessment/), [P-14](https://www.littlefish.co.uk/team/P-14/)
 
 ## 9. Zenzero
 
 - **Observed fit:** UK-headquartered MSP spanning managed IT, cyber security, data and AI for
   mid-market and regulated organisations.
 - **Observed route/proof:** outcome-led cyber navigation, Microsoft designations, B Corp and award
-  evidence, quantified cases, named CEO Michael Bateman and `hello@zenzero.co.uk`.
-- **Buyer route:** route to Michael Bateman through the published general enquiry address.
+  evidence, quantified cases, named CEO P-15 and `hello@zenzero.co.uk`.
+- **Buyer route:** route to P-15 through the published general enquiry address.
 - **Research hypothesis:** determine whether cyber outcome selected in navigation remains visible in
   the generic consultation route.
 - **Sources:** [Zenzero](https://zenzero.co.uk/), [cyber security](https://zenzero.co.uk/cyber-security), [CEO and contact](https://zenzero.co.uk/news/video-interview-zenzero-at-the-world-economic-forum)
@@ -122,9 +122,9 @@ separate.
 
 - **Observed fit:** UK-headquartered Microsoft-focused MSP/MSSP serving SMB and mid-market organisations
   through managed IT, managed cyber and Microsoft consulting.
-- **Observed route/proof:** `hello@chorus.co.uk`, named CEO Nicola Saner, Microsoft/MISA credentials,
+- **Observed route/proof:** `hello@chorus.co.uk`, named CEO P-16, Microsoft/MISA credentials,
   named customers, managed-SOC proposal CTA, and public MTTA/MTTC and automation metrics.
-- **Buyer route:** verify whether Nicola Saner or the marketing/commercial owner is the appropriate
+- **Buyer route:** verify whether P-16 or the marketing/commercial owner is the appropriate
   recipient.
 - **Research hypothesis:** determine whether buyers can select between MDR, MXDR and a managed-SOC
   proposal without excess technical choice at the enquiry point.

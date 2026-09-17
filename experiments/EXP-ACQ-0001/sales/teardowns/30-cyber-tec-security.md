@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** IASME certification-body status, visible prices and inclusions, named founder/CEO Mike Ralston, extensive customer feedback and assessor-led process detail.
+- **Observed:** IASME certification-body status, visible prices and inclusions, named founder/CEO P-24, extensive customer feedback and assessor-led process detail.
 
 ## Likely commercial leak
 

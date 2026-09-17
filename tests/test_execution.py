@@ -49,7 +49,7 @@ class LineageTests(unittest.TestCase):
         self._prospect(4, "Research Co", "research")
         self._prospect(5, "Rejected Co", "disqualified_market_fit")
         for pid in (1, 2, 3, 4, 5):
-            self._identity(pid, f"https://uk.linkedin.com/in/person{pid}")
+            self._identity(pid, f"https://uk.linkedin.com/in/example-buyer-01{pid}")
         frozen = freeze_execution_cohort(self.db, "C1")
         self.assertEqual(frozen["size"], 1, "only the qualified account may enter the cohort")
         self.assertEqual(frozen["members"][0]["company"], "Qualified Co")
@@ -60,17 +60,17 @@ class LineageTests(unittest.TestCase):
 
     def test_one_invitation_per_account_however_many_identities(self):
         self._prospect(1, "Two Directors Co", "qualified_batch_07")
-        self._identity(1, "https://uk.linkedin.com/in/first", 0.6)
-        self._identity(1, "https://uk.linkedin.com/in/second", 0.8)
+        self._identity(1, "https://uk.linkedin.com/in/example-buyer-02", 0.6)
+        self._identity(1, "https://uk.linkedin.com/in/example-buyer-03", 0.8)
         frozen = freeze_execution_cohort(self.db, "C1")
         self.assertEqual(frozen["size"], 1)
         # The stronger identity is the one frozen.
-        self.assertEqual(frozen["members"][0]["identity_value"], "https://uk.linkedin.com/in/second")
+        self.assertEqual(frozen["members"][0]["identity_value"], "https://uk.linkedin.com/in/example-buyer-03")
         self.assertEqual(frozen["members"][0]["identity_sourcing"], "two_source")
 
     def test_an_account_outside_the_cohort_cannot_record_access(self):
         self._prospect(1, "In Co", "qualified_batch_07")
-        self._identity(1, "https://uk.linkedin.com/in/in")
+        self._identity(1, "https://uk.linkedin.com/in/example-buyer-04")
         self._prospect(2, "Out Co", "sourced_candidate_unqualified")
         freeze_execution_cohort(self.db, "C1")
         with self.assertRaises(ExecutionError) as ctx:
@@ -79,10 +79,10 @@ class LineageTests(unittest.TestCase):
 
     def test_a_frozen_cohort_cannot_be_refrozen(self):
         self._prospect(1, "In Co", "qualified_batch_07")
-        self._identity(1, "https://uk.linkedin.com/in/in")
+        self._identity(1, "https://uk.linkedin.com/in/example-buyer-04")
         freeze_execution_cohort(self.db, "C1")
         self._prospect(2, "Late Co", "qualified_batch_07")
-        self._identity(2, "https://uk.linkedin.com/in/late")
+        self._identity(2, "https://uk.linkedin.com/in/example-buyer-05")
         with self.assertRaises(ExecutionError) as ctx:
             freeze_execution_cohort(self.db, "C1")
         self.assertEqual(ctx.exception.code, "cohort_frozen")
@@ -104,9 +104,9 @@ class AccessIsNotDemandTests(unittest.TestCase):
                     (pid, f"Co {pid}"))
         for pid in range(1, 40):
             add_identity(self.db, {"prospect_id": pid, "identity_type": "linkedin",
-                                   "value": f"https://uk.linkedin.com/in/p{pid}", "provider": "test",
+                                   "value": f"https://uk.linkedin.com/in/example-buyer-06{pid}", "provider": "test",
                                    "verification_status": "observed_published",
-                                   "source_url": f"https://uk.linkedin.com/in/p{pid}",
+                                   "source_url": f"https://uk.linkedin.com/in/example-buyer-06{pid}",
                                    "observed_at": NOW, "confidence": 0.8})
         freeze_execution_cohort(self.db, "C1")
 
@@ -156,9 +156,9 @@ class AccessIsNotDemandTests(unittest.TestCase):
                             (pid, f"Co {pid}"))
                 for pid in range(1, 40):
                     add_identity(db, {"prospect_id": pid, "identity_type": "linkedin",
-                                      "value": f"https://uk.linkedin.com/in/p{pid}", "provider": "test",
+                                      "value": f"https://uk.linkedin.com/in/example-buyer-06{pid}", "provider": "test",
                                       "verification_status": "observed_published",
-                                      "source_url": f"https://uk.linkedin.com/in/p{pid}",
+                                      "source_url": f"https://uk.linkedin.com/in/example-buyer-06{pid}",
                                       "observed_at": NOW, "confidence": 0.8})
                 freeze_execution_cohort(db, "C1")
                 for pid in range(1, 40):
@@ -192,9 +192,9 @@ class AccessIsNotDemandTests(unittest.TestCase):
                     'https://x.test/a','qualified_batch_07')""", (pid, f"Co {pid}"))
         for pid in (1, 2):
             add_identity(db2, {"prospect_id": pid, "identity_type": "linkedin",
-                               "value": f"https://uk.linkedin.com/in/q{pid}", "provider": "test",
+                               "value": f"https://uk.linkedin.com/in/example-buyer-07{pid}", "provider": "test",
                                "verification_status": "observed_published",
-                               "source_url": f"https://uk.linkedin.com/in/q{pid}",
+                               "source_url": f"https://uk.linkedin.com/in/example-buyer-07{pid}",
                                "observed_at": NOW, "confidence": 0.8})
         freeze_execution_cohort(db2, "C2")
         record_invitation(db2, "C2", 1, {"outcome": "accepted", "submitted_at": NOW,

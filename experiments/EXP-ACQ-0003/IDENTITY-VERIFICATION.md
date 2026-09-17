@@ -30,13 +30,13 @@ terms**, twice:
 
 | Account | Search alone proposed | Register + profile | |
 |---|---|---|---|
-| ADL Consulting | Andrew Landells, **New Zealand** | Andy Larkum, `andy-larkum-925660b` | search was wrong |
-| Technical Drive | Amie Johnson, "digital director" | Simon Cole, `simon-cole-7a013042` | not a director at all |
+| ADL Consulting | P-30, **New Zealand** | P-05, `example-buyer-02` | search was wrong |
+| Technical Drive | P-34, "digital director" | P-12, `example-buyer-03` | not a director at all |
 
 Search alone also proposed rival entities for Wavex (Indian and Australian "WaveX"), HBP
 (US and South African), TWC (Dutch), BCN (Indian) and Blue Frontier (a US air-conditioning
 firm). The register removed all of them. Where the register **disagreed** — Chorus returns
-Nicola Saner as MD while the register lists Anjali Kalpeshkumar Karia — the record is kept
+P-16 as MD while the register lists P-36 — the record is kept
 single-source rather than promoted.
 
 ## Effect on the contract

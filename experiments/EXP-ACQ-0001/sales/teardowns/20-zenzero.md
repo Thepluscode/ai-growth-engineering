@@ -28,7 +28,7 @@ Replacement note: QuoStar was disqualified after its domain began redirecting to
 
 ## Proof
 
-- **Observed:** Microsoft designations, B Corp, awards, quantified cases, NCSC incident-response positioning, CEO Michael Bateman and a published contact email.
+- **Observed:** Microsoft designations, B Corp, awards, quantified cases, NCSC incident-response positioning, CEO P-15 and a published contact email.
 
 ## Likely commercial leak
 

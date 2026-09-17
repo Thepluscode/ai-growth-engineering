@@ -4,7 +4,7 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK strategic IT, managed-services, and cybersecurity provider for growing businesses, with UK regional pages and a named Founder/CEO, Hugh Caldwell.
+- **Observed:** UK strategic IT, managed-services, and cybersecurity provider for growing businesses, with UK regional pages and a named Founder/CEO, P-03.
 - **Inferred:** Strong fit for the wedge.
 
 ## Current offer

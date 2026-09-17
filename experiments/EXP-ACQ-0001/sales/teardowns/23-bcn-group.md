@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** Microsoft Solutions Partner with all six designations, named CEO Rob Davies, defined assessment outputs and an end-to-end route from assessment through managed protection.
+- **Observed:** Microsoft Solutions Partner with all six designations, named CEO P-17, defined assessment outputs and an end-to-end route from assessment through managed protection.
 
 ## Likely commercial leak
 

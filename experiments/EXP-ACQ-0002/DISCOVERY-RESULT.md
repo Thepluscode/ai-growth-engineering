@@ -19,7 +19,7 @@ named commercial decision-maker published on a first-party source.
 | P(observing 0 in 18 if the rate were 54.5%) | **7 x 10^-7** |
 
 The historical record agrees. `EXP-ACQ-0001` named a person at 27 accounts and found a personal
-address at exactly two — Blue Frontier's `matt.kerley@` and Technical Drive's — a 7.4% rate whose
+address at exactly two — Blue Frontier's `REDACTED_PERSONAL_ADDRESS` and Technical Drive's — a 7.4% rate whose
 95% interval tops out at 23.4%, or 13 accounts. Two independent readings, both an order of
 magnitude short of 30.
 
@@ -41,7 +41,7 @@ manufacture evidence for the conclusion this document reaches.
 
 ## The one candidate, and why it failed
 
-A search summariser reported `pjob@intergence.com` as "listed in Intergence's official contact
+A search summariser reported `REDACTED_PERSONAL_ADDRESS` as "listed in Intergence's official contact
 details". It is not. The contact page carries `contact@`, `support@` and `itsupport@`; the
 leadership page names six people and publishes no address at all. The claim was checked against the
 site rather than accepted, and it did not survive.
@@ -54,7 +54,7 @@ addresses for the same person. An inferred address is a hypothesis about a mail 
 
 ## Separate finding: a qualification defect in send 1
 
-`EXP-ACQ-0001`'s first send is recorded to "John Hosegood, Head of Sales" at CloudTech24. He appears
+`EXP-ACQ-0001`'s first send is recorded to "P-01, Head of Sales" at CloudTech24. He appears
 in public sources as the author of a customer review of CloudTech24, not as an employee. The send
 itself went to `sales@cloudtech24.com`, so the counted sample is unaffected — but the row names a
 buyer who was never at the company, and it should not be reused.
@@ -62,9 +62,9 @@ buyer who was never at the company, and it should not be reused.
 ## What is reachable
 
 Named decision-makers were found for essentially every account inspected, with public LinkedIn
-profiles: Netitude/Adam Harling, Zenzero/Michael Bateman, Intergence/Peter Job, Transputec/Sonny
-Sehgal, Wavex/Gavin Russell, Nviron/Jamie Platt, Wanstor/Peter Lukes, Cheeky Munkey/Graham Lane,
-totality services/Luis Navarro, Grant McGregor/David Lawrence.
+profiles: Netitude/P-04, Zenzero/P-15, Intergence/P-11, Transputec/P-08
+P-08, Wavex/P-06, Nviron/P-42, Wanstor/P-43, Cheeky Munkey/P-44,
+totality services/P-45, Grant McGregor/P-46.
 
 **The constraint is the mailbox, not the person.** Names are public; addresses are not.
 

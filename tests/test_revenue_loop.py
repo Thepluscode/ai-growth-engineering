@@ -53,7 +53,7 @@ class StoreCase(unittest.TestCase):
     def freeze_supply(self, cohort_id):
         with connect(self.db) as con:
             con.execute("INSERT INTO prospects(id, company, status) VALUES (1, 'Acme', 'qualified_batch_01')")
-        url = "https://www.linkedin.com/in/acme-md"
+        url = "https://www.linkedin.com/in/example-buyer-09"
         add_identity(self.db, {"prospect_id": 1, "identity_type": "linkedin", "value": url,
                                "provider": "test", "verification_status": "observed_published",
                                "source_url": url, "observed_at": "2026-09-01T00:00:00+00:00",

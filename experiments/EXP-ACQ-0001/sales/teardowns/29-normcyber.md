@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** NCSC CAF-based score, CREST-accredited SOC, named Focal Analyst process, detailed customer outcomes, awards, named CEO Wayne Churchill and public performance claims tied to cases.
+- **Observed:** NCSC CAF-based score, CREST-accredited SOC, named Focal Analyst process, detailed customer outcomes, awards, named CEO P-23 and public performance claims tied to cases.
 
 ## Likely commercial leak
 

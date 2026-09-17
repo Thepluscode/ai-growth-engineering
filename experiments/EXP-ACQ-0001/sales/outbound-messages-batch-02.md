@@ -26,7 +26,7 @@ I’d test whether exposing the health check at the point of service-page intent
 
 I mapped the test in a one-page teardown. Want me to send it?
 
-## 4. Intergence — Peter Job, Founder and CEO
+## 4. Intergence — P-11, Founder and CEO
 
 I noticed Intergence has a strong infrastructure and breach-assessment offer, but it appears alongside several labels—free assessment, free consultation, report and general sales contact.
 
@@ -34,7 +34,7 @@ I’d test whether one named report and consistent expectation improves qualifie
 
 I mapped the smallest valid experiment in a one-page teardown. Want me to send it?
 
-## 5. Technical Drive — Simon Cole, Managing Director
+## 5. Technical Drive — P-12, Managing Director
 
 I noticed Technical Drive’s two-minute cyber calculator already leads naturally to a free audit, but the handoff rejoins a general form and the page also carries an unrelated SharePoint meeting prompt.
 
@@ -42,7 +42,7 @@ I’d test whether a score-aware “Review my score” booking produces more qua
 
 I mapped the handoff experiment in a one-page teardown. Want me to send it?
 
-## 6. Opus Technology — Nikki Laker, Marketing Director
+## 6. Opus Technology — P-13, Marketing Director
 
 I noticed Opus has strong cyber proof and a wide security offer, while the next step remains the same broad “Speak to a consultant” action used across a much larger technology portfolio.
 
@@ -58,7 +58,7 @@ I’d test whether carrying that one-click intent into the conversation improves
 
 I mapped the smallest version in a one-page teardown. Want me to send it?
 
-## 8. Littlefish — Sean Tickle, Cyber Services Director
+## 8. Littlefish — P-14, Cyber Services Director
 
 I noticed Littlefish has a concrete Crown Jewels analysis inside its cyber content, while the main service journey still asks buyers to talk generally about managed cyber security.
 
@@ -66,7 +66,7 @@ I’d test whether surfacing that bounded analysis converts more risk-aware visi
 
 I mapped the experiment in a one-page teardown. Want me to send it?
 
-## 9. Zenzero — Michael Bateman, CEO
+## 9. Zenzero — P-15, CEO
 
 I noticed Zenzero’s cyber navigation is usefully organised around outcomes—certification, risk exposure, detection and incident response—but those routes converge on generic consultation labels.
 
@@ -74,7 +74,7 @@ I’d test whether preserving the selected outcome into the meeting form improve
 
 I mapped the one-field experiment in a one-page teardown. Want me to send it?
 
-## 10. Chorus — Nicola Saner, CEO
+## 10. Chorus — P-16, CEO
 
 I noticed Chorus explains MDR and MXDR clearly and later offers a Managed SOC Proposal, while both service levels ultimately rely on the same free-text enquiry path.
 

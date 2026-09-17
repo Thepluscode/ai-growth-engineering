@@ -26,7 +26,7 @@ Research date: 2026-08-19
 
 ## Proof
 
-- **Observed:** 350+ IT operations staff, 120+ cyber practitioners, 150+ cyber incidents handled in five years, all six Microsoft solution designations, detailed assessment steps and named CEO David Rabson.
+- **Observed:** 350+ IT operations staff, 120+ cyber practitioners, 150+ cyber incidents handled in five years, all six Microsoft solution designations, detailed assessment steps and named CEO P-18.
 
 ## Likely commercial leak
 

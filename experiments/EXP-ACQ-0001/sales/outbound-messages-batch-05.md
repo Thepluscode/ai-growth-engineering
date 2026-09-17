@@ -67,7 +67,7 @@ I'd test whether a simple three-choice layer improves buyer self-selection and a
 
 I mapped the chooser experiment in a one-page teardown. Want me to send it?
 
-## 9. AJT Managed IT Services — Russell Walker / commercial owner
+## 9. AJT Managed IT Services — P-27 / commercial owner
 
 I noticed AJT's free cyber health check promises a plain-English snapshot and ranked risks, while the findings call is positioned as optional after delivery.
 

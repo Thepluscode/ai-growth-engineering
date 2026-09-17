@@ -13,3 +13,8 @@ __pycache__/
 # Local-only imports of other repositories. They hold personal data and this
 # repository is public. Kept out of .age/ because `make clean` deletes .age/.
 imports/
+
+# Identity-bearing operational records. This repository is public; natural-person data
+# (names, personal addresses, individual profile URLs) lives here and is never committed.
+# Kept outside .age/ because `make clean` deletes .age/.
+private/

@@ -98,7 +98,7 @@ class CommandCenterServerTests(unittest.TestCase):
             {
                 "prospect_id": 1,
                 "identity_type": "linkedin",
-                "value": "https://www.linkedin.com/in/blocked-buyer",
+                "value": "https://www.linkedin.com/in/example-buyer-08",
                 "provider": "operator_research",
                 "verification_status": "verified",
                 "source_url": "https://blocked.example/team",

@@ -4,8 +4,8 @@ Research date: 2026-08-19
 
 ## ICP fit
 
-- **Observed:** UK provider of managed IT, cybersecurity, and ERP to growth-focused SMEs with 30–500 employees. The leadership page names CEO Joanne Partridge, CCO George Smith, and CMO Phil Denham.
-- **Inferred:** Strong fit; Phil Denham is the most relevant named recipient for acquisition-path feedback.
+- **Observed:** UK provider of managed IT, cybersecurity, and ERP to growth-focused SMEs with 30–500 employees. The leadership page names CEO P-31, CCO P-32, and CMO P-07.
+- **Inferred:** Strong fit; P-07 is the most relevant named recipient for acquisition-path feedback.
 
 ## Current offer
 
