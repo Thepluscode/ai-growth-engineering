@@ -17,7 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from .buyer_truth import buyer_evidence
-from .funnel_events import effective_events
+from .funnel_events import effective_events, recipient_class
 from .revenue_loop import entity, undelivered_units
 from .storage import connect, init_db
 
@@ -161,7 +161,7 @@ def verdict(db_path: str, rules: dict, *, as_of: str) -> dict:
     mature = today >= window
     checked_after_window = bool(last_check) and last_check[:10] >= window
     resolved = mature and checked_after_window and not pending
-    clean = (sum(1 for e in delivered if (e["metadata"] or {}).get("recipient_class") == "named_buyer")
+    clean = (sum(1 for e in delivered if recipient_class(e["metadata"]) == "named_buyer")
              if rules["demand_exposure_counted"] else 0)
     access, access_reasons = _access(rules, r["route_confirmed"], len(sends), resolved)
     demand, demand_reasons = _demand(rules, clean, r)

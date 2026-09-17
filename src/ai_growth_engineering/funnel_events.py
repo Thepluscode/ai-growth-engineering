@@ -61,6 +61,46 @@ class EventError(ValueError):
         self.code = code
 
 
+# A recipient class may reach a denominator only when observed: recorded by an operator, or
+# confirmed by a person's review. A word-list guess written before this rule is INFERRED_LEGACY;
+# a proposal written after it is stored beside an UNKNOWN class and never counts.
+OBSERVED_RECIPIENT_CLASSES = ("named_buyer", "role_inbox", "other")
+INFERRED_BASES = frozenset({"recipient address local part"})
+
+
+def recipient_class(metadata: Mapping[str, Any] | None) -> str:
+    meta = metadata or {}
+    reviewed = meta.get("recipient_class_review")
+    if reviewed in OBSERVED_RECIPIENT_CLASSES:
+        return reviewed
+    value = str(meta.get("recipient_class") or "").strip()
+    if value in OBSERVED_RECIPIENT_CLASSES:
+        return "INFERRED_LEGACY" if meta.get("recipient_class_basis") in INFERRED_BASES else value
+    return "UNKNOWN"
+
+
+def review_recipient_class(db_path: str, event_id: str, value: str, *, reason: str,
+                           reviewed_by: str = "operator") -> dict:
+    """A person's reading of who an event reached. Append-only; the latest review is the one used."""
+    init_db(db_path)
+    if value not in OBSERVED_RECIPIENT_CLASSES:
+        raise EventError("invalid_recipient_class",
+                         f"a review records an observed class: one of {', '.join(OBSERVED_RECIPIENT_CLASSES)}")
+    if not reason.strip():
+        raise EventError("reason_required", "a review must say what was observed")
+    with connect(db_path) as con:
+        live = con.execute(
+            """SELECT 1 FROM funnel_events e WHERE e.event_id = ? AND e.event_type != 'correction'
+                 AND NOT EXISTS (SELECT 1 FROM funnel_events c WHERE c.corrects_event_id = e.event_id)""",
+            (event_id,)).fetchone()
+        if live is None:
+            raise EventError("not_found", f"no live event {event_id}")
+        con.execute(
+            """INSERT INTO recipient_class_reviews(event_id, recipient_class, reason, reviewed_by, reviewed_at)
+               VALUES (?, ?, ?, ?, ?)""", (event_id, value, reason.strip(), reviewed_by, _utc_now()))
+    return {"event_id": event_id, "recipient_class": value}
+
+
 def event_id_for(source: str, source_record_id: str, event_type: str) -> str:
     """Deterministic, so re-importing the same source record lands on the same event."""
     digest = hashlib.sha256(f"{source}\x1f{source_record_id}\x1f{event_type}".encode()).hexdigest()
@@ -216,10 +256,14 @@ def effective_events(db_path: str, *, include_synthetic: bool = False) -> list[d
                  AND NOT EXISTS (SELECT 1 FROM funnel_events c WHERE c.corrects_event_id = e.event_id)
                  AND (? OR e.provenance != 'synthetic_fixture')
                ORDER BY e.occurred_at, e.event_id""", (int(include_synthetic),)).fetchall()
+        reviews = {r["event_id"]: r["recipient_class"] for r in con.execute(
+            "SELECT event_id, recipient_class FROM recipient_class_reviews ORDER BY id")}
     events = []
     for row in rows:
         event = dict(row)
         event["metadata"] = json.loads(event.pop("metadata_json") or "{}")
+        if event["event_id"] in reviews:
+            event["metadata"]["recipient_class_review"] = reviews[event["event_id"]]
         events.append(event)
     return events
 

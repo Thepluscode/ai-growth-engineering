@@ -215,8 +215,11 @@ class SendLineageTests(ReplyCaptureCase):
         self.assertEqual((acme["source"], acme["source_record_id"], acme["occurred_at"], acme["experiment_id"],
                           acme["campaign_id"], acme["channel"], acme["provenance"]),
                          ("gmail", "out-1", "2026-09-08T07:00:00+00:00", "EXP-ACQ-0006", "CMP-6", "email", "platform_export"))
+        # A mailbox name only proposes a class; nothing is observed until a person reviews it.
         self.assertEqual((acme["metadata"]["source_thread_id"], acme["metadata"]["recipient_class"],
-                          by_company["Beta Ltd"]["metadata"]["recipient_class"]), ("t-acme", "named_buyer", "role_inbox"))
+                          acme["metadata"]["recipient_class_proposed"],
+                          by_company["Beta Ltd"]["metadata"]["recipient_class_proposed"]),
+                         ("t-acme", "UNKNOWN", "named_buyer", "role_inbox"))
         self.assertEqual(import_outbound_sends(self.db, "EXP-ACQ-0006")["inserted"], 0)
         self.assertEqual(len(self.sends()), 3)
 

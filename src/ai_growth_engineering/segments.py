@@ -11,6 +11,7 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from . import registries
+from .funnel_events import recipient_class
 from .buyer_truth import PROBLEM_CATEGORIES, _themes, buyer_evidence, scope, willingness_to_pay
 from .revenue_loop import compute_metrics, entity, totals
 
@@ -75,7 +76,11 @@ def _attributes(event: dict, registry: dict) -> dict:
     campaign = registry["campaigns"].get(event["campaign_id"]) or {}
     offer = registry["offers"].get(campaign.get("offer_id", "")) or {}
     # An invitation is addressed to one named person's own profile; a send records its recipient class.
-    route = meta.get("recipient_class") or ("named_buyer_connection" if event["event_type"].startswith("invitation") else "")
+    if event["event_type"].startswith("invitation"):
+        route = "named_buyer_connection"
+    else:
+        observed = recipient_class(meta)
+        route = "" if observed == UNKNOWN else observed
     values = {
         "experiment": event["experiment_id"], "campaign": event["campaign_id"], "channel": event["channel"],
         "recipient_route": route,

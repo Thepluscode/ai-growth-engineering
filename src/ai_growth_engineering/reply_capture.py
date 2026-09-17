@@ -135,9 +135,13 @@ def import_outbound_sends(db_path: str, experiment_id: str) -> dict:
                             "reason": "this buyer's send is already in the funnel from another source"})
             continue
         campaign = row["campaign_id"] or (next(iter(campaigns)) if len(campaigns) == 1 else "")
-        metadata = {"source_thread_id": row["thread_id"],
-                    "recipient_class": "role_inbox" if row["recipient"].partition("@")[0] in ROLE_INBOXES else "named_buyer",
-                    "recipient_class_basis": "recipient address local part", "offer_id": campaigns.get(campaign, "")}
+        # A mailbox name is a guess about who reads it. Stored as a proposal beside UNKNOWN; only a
+        # review (`age event-classify`) turns it into a class a denominator may use.
+        metadata = {"source_thread_id": row["thread_id"], "recipient_class": "UNKNOWN",
+                    "recipient_class_proposed": "role_inbox" if row["recipient"].partition("@")[0] in ROLE_INBOXES
+                    else "named_buyer",
+                    "recipient_class_basis": "proposed from the recipient address local part; not observed",
+                    "offer_id": campaigns.get(campaign, "")}
         if campaign and not row["campaign_id"]:
             metadata["campaign_linked_by"] = "experiment_id"
         result = record_event(db_path, {

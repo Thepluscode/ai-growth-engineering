@@ -620,6 +620,18 @@ def cmd_procedures(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, default=str))
 
 
+def cmd_event_classify(args: argparse.Namespace) -> None:
+    """Record who an event reached, as a person observed it. The event itself is not edited."""
+    from .funnel_events import review_recipient_class
+
+    try:
+        result = review_recipient_class(args.db, args.event_id, args.recipient_class,
+                                        reason=args.reason, reviewed_by=args.by)
+    except EventError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(f"{result['event_id']}: recipient_class {result['recipient_class']} (reviewed)")
+
+
 def cmd_trust(args: argparse.Namespace) -> None:
     """Governed access to the existing trust writers. Every refusal is a printed REFUSED."""
     import json
@@ -942,6 +954,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="founder")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_procedures)
+
+    p = sub.add_parser("event-classify", help="record the observed recipient class of one event")
+    dbarg(p)
+    p.add_argument("--event-id", required=True)
+    p.add_argument("--recipient-class", required=True, choices=["named_buyer", "role_inbox", "other"])
+    p.add_argument("--reason", required=True, help="what was observed")
+    p.add_argument("--by", default="founder")
+    p.set_defaults(func=cmd_event_classify)
 
     p = sub.add_parser("trust", help="declare, exempt, observe or show an experiment's trust policy")
     dbarg(p)

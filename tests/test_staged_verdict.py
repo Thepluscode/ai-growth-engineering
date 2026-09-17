@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from ai_growth_engineering.buyer_truth import interpret, record_commercial_evidence
-from ai_growth_engineering.funnel_events import record_event
+from ai_growth_engineering.funnel_events import effective_events, record_event, review_recipient_class
 from ai_growth_engineering.reply_capture import capture, check, gmail_messages, import_outbound_sends, link_outbound
 from ai_growth_engineering.staged_verdict import render_verdict, verdict
 from ai_growth_engineering.storage import init_db
@@ -154,6 +154,11 @@ class GateTests(VerdictCase):
         counted = copy.deepcopy(RULES)
         counted["demand_exposure_counted"] = True
         counted["demand"]["min_clean_deliveries"] = 20
+        # The import only proposes a class; unreviewed, no send is a clean named-buyer delivery.
+        self.assertEqual(self.run_verdict(rules=counted)["clean_deliveries_to_named_buyers"], 0)
+        for event in effective_events(self.db):
+            if event["event_type"] == "message_sent" and event["company"] != "Company 20":
+                review_recipient_class(self.db, event["event_id"], "named_buyer", reason="named mailbox, verified")
         full_cycle = self.run_verdict(rules=counted)
         self.assertEqual((full_cycle["demand_verdict"], full_cycle["clean_deliveries_to_named_buyers"]), ("KILL", 20))
         self.assertIn("replies 3 < 5; pain conversations 1 < 3; proposals 0 < 2", full_cycle["demand_reasons"][0])

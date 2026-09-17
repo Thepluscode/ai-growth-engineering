@@ -274,6 +274,22 @@ BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS idempotency_conflicts_no_delete BEFORE DELETE ON idempotency_conflicts
 BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
 
+-- A person's reading of who an event reached. The event itself is never edited. Append-only.
+CREATE TABLE IF NOT EXISTS recipient_class_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id TEXT NOT NULL REFERENCES funnel_events(event_id),
+    recipient_class TEXT NOT NULL CHECK(recipient_class IN ('named_buyer', 'role_inbox', 'other')),
+    reason TEXT NOT NULL,
+    reviewed_by TEXT NOT NULL,
+    reviewed_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS recipient_class_reviews_no_update BEFORE UPDATE ON recipient_class_reviews
+BEGIN SELECT RAISE(ABORT, 'recipient_class_reviews is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS recipient_class_reviews_no_delete BEFORE DELETE ON recipient_class_reviews
+BEGIN SELECT RAISE(ABORT, 'recipient_class_reviews is append-only'); END;
+
 -- What a buyer said, related to who said it and the commercial event it arrived through. The
 -- observation itself is an ordinary `evidence` row; this table only links it. Append-only.
 CREATE TABLE IF NOT EXISTS commercial_evidence (

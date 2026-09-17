@@ -6,11 +6,12 @@ acts: a recommendation is data until a person approves it through the existing c
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date
 from typing import Any
 
 from . import registries
+from .funnel_events import OBSERVED_RECIPIENT_CLASSES, recipient_class
 from .buyer_truth import buyer_evidence, buyer_truth, problem_revenue, stalled_objections, truth_summary
 from .change_diagnosis import QUIET, change_summary, diagnosis_proposal
 from .reply_capture import pending_count
@@ -59,6 +60,12 @@ def _finding(kind: str, experiment_id: str, observation: str, evidence: dict, in
             "why_not_other_metric": why_not, "source": "deterministic_rules"}
 
 
+def _recipient_classes(events: list[dict]) -> dict[str, int]:
+    """Who the events reached, observed classes only; guesses are counted as what they are."""
+    recorded = [e for e in events if {"recipient_class", "recipient_class_review"} & set(e["metadata"] or {})]
+    return dict(Counter(recipient_class(e["metadata"]) for e in recorded))
+
+
 def _constraint_findings(events: list[dict], experiment_id: str, path: str, min_sample: int,
                          as_of: str) -> list[dict]:
     diag = diagnose_funnel(events, path, as_of=as_of, min_sample=min_sample)
@@ -68,9 +75,10 @@ def _constraint_findings(events: list[dict], experiment_id: str, path: str, min_
         tr = next(s["transition"] for s in diag["stages"] if s["stage"] == constraint["to"])
         variable, metric = STEP_LEVERS[(tr["from"], tr["to"])]
         n, k = tr["denominator"], tr["numerator"]
-        classes = {c: len(v) for c, v in group_by(
-            [e for e in events if e["event_type"] == tr["from"]], "metadata.recipient_class").items() if c}
-        if tr["from"] == "message_sent" and classes and classes.get("named_buyer", 0) * 2 < n:
+        classes = _recipient_classes([e for e in events if e["event_type"] == tr["from"]])
+        unobserved = sum(v for c, v in classes.items() if c not in OBSERVED_RECIPIENT_CLASSES)
+        # Only an observed route can redirect the next test; an unreviewed guess cannot.
+        if tr["from"] == "message_sent" and classes and not unobserved and classes.get("named_buyer", 0) * 2 < n:
             # Most sends never reached a named buyer, so the message was not what was tested.
             variable = "recipient_route"
         evidence: dict[str, Any] = {tr["from"]: n, tr["to"]: k, "rate": tr["rate"], "ci95": tr["ci95"],
