@@ -122,6 +122,13 @@ qualification, teardown research, manual outreach, discovery, proposals, and evi
 its market gate passes. This does not redefine the Digital Marketing Project as an outbound or
 cybersecurity project.
 
+## Remediation — independent audit, 2026-09-17
+
+| Phase | Status | Evidence / Notes |
+|---|---|---|
+| 0 · Public data containment | TESTED | Forward redaction of 46 individuals from HEAD (`e0df2cd`, `f2c8e5a`); identities in git-ignored `private/`; `scripts/pii_guard.py` in `make gate`, 3 mutations KILLED. History not rewritten — founder decision pending |
+| 1 · Trust contract | TESTED | No policy is PENDING, never PASS; NOT_APPLICABLE needs a recorded reason; the contract freezes at first treatment (first non-bounced exposure, or a recorded result); `age trust show/declare/not-applicable/observe`. The procedure evaluator's KEEP now passes the same gate. 6 mutations KILLED. Existing experiments migrate to UNDECLARED: EXP-ACQ-0001 and EXP-ACQ-0003 are already in treatment and can never KEEP under this contract; EXP-ACQ-0002 and EXP-ACQ-0007 can still declare before exposure |
+
 ## Engineering backlog — recorded, not fixed
 
 | Defect | Status | Evidence / Notes |

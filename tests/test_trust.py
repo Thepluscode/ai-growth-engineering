@@ -4,16 +4,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from ai_growth_engineering.funnel_events import record_event
 from ai_growth_engineering.models import ExperimentSpec
 from ai_growth_engineering.registry import (
     add_experiment,
+    declare_trust_not_applicable,
     preregister_trust_guardrails,
     record_experiment_result,
     record_trust_observation,
+    trust_policy,
     trust_verdict,
 )
 from ai_growth_engineering.storage import init_db
-from ai_growth_engineering.trust import TrustGuardrailSpec, TrustObservation, evaluate_guardrail
+from ai_growth_engineering.trust import (
+    TrustGuardrailSpec, TrustObservation, evaluate_all, evaluate_guardrail,
+)
 
 
 def unsub(**kw) -> TrustGuardrailSpec:
@@ -227,6 +232,185 @@ class FrozenContractTests(unittest.TestCase):
         v = trust_verdict(self.db, "EXP-CREATIVE-0002")
         self.assertFalse(v.passed)
         self.assertTrue(v.pending)
+
+
+NA_REASON = "one-to-one cold outreach: no subscription, billing or ad-placement relationship exists"
+
+
+class EmptyTrustPolicyFailsClosed(unittest.TestCase):
+    """Declaring nothing is not the same as having no trust risk.
+
+    An experiment that never declared a policy used to pass the trust gate on the strength
+    of having nothing to check. Silence is now PENDING; only a resolved policy — required
+    guardrails, or NOT_APPLICABLE with a recorded reason — can contribute to KEEP.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        init_db(self.db)
+        add_experiment(self.db, ExperimentSpec("EXP-CREATIVE-0101", "h", "m", 0.10, 0.05, 100))
+
+    def test_an_undeclared_policy_is_pending_not_passed(self):
+        verdict = trust_verdict(self.db, "EXP-CREATIVE-0101")
+        self.assertFalse(verdict.passed)
+        self.assertTrue(verdict.pending)
+        self.assertIn("no_trust_policy_declared", verdict.reasons)
+
+    def test_a_primary_win_with_no_declared_policy_does_not_keep(self):
+        self.assertEqual(record_experiment_result(self.db, "EXP-CREATIVE-0101", 100, 0.14), "preregistered")
+
+    def test_evaluate_all_with_no_specs_is_pending(self):
+        verdict = evaluate_all([], {})
+        self.assertFalse(verdict.passed)
+        self.assertTrue(verdict.pending)
+
+    def test_not_applicable_with_a_recorded_reason_resolves_the_policy(self):
+        declare_trust_not_applicable(self.db, "EXP-CREATIVE-0101", NA_REASON)
+        verdict = trust_verdict(self.db, "EXP-CREATIVE-0101")
+        self.assertTrue(verdict.passed)
+        self.assertEqual(record_experiment_result(self.db, "EXP-CREATIVE-0101", 100, 0.14), "keep")
+
+    def test_not_applicable_without_a_reason_is_refused(self):
+        with self.assertRaises(ValueError):
+            declare_trust_not_applicable(self.db, "EXP-CREATIVE-0101", "   ")
+
+    def test_a_policy_cannot_be_both_declared_and_not_applicable(self):
+        preregister_trust_guardrails(self.db, "EXP-CREATIVE-0101", [unsub()])
+        with self.assertRaises(ValueError):
+            declare_trust_not_applicable(self.db, "EXP-CREATIVE-0101", NA_REASON)
+
+
+class TrustContractFreezesBeforeTreatment(unittest.TestCase):
+    """The contract freezes at first treatment, not at first trust observation.
+
+    Declaring a guardrail after exposure has begun is choosing the gate with the outcome in
+    view. The old freeze fired only once trust observations existed, which left the whole
+    exposure window open for adding or loosening guardrails.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        init_db(self.db)
+        add_experiment(self.db, ExperimentSpec("EXP-CREATIVE-0102", "h", "m", 0.10, 0.05, 100))
+
+    def _expose(self, event_type="message_sent"):
+        record_event(self.db, {
+            "event_type": event_type, "occurred_at": "2026-09-01", "company": "Acme",
+            "person_id": "P-01", "channel": "email", "experiment_id": "EXP-CREATIVE-0102",
+            "source": "test", "source_record_id": f"EXP-CREATIVE-0102|{event_type}",
+            "provenance": "operator_recorded"})
+
+    def test_guardrails_may_be_declared_before_exposure(self):
+        self.assertEqual(preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()]), 1)
+
+    def test_declaring_a_guardrail_after_exposure_is_refused(self):
+        self._expose()
+        with self.assertRaises(ValueError) as ctx:
+            preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+        self.assertIn("frozen", str(ctx.exception))
+
+    def test_adding_a_second_guardrail_after_exposure_is_refused(self):
+        preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+        self._expose()
+        with self.assertRaises(ValueError):
+            preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [
+                TrustGuardrailSpec(metric="spam_complaint_rate", baseline=0.001,
+                                   max_absolute=0.003, source="mailbox provider report")])
+
+    def test_loosening_a_guardrail_after_exposure_is_refused(self):
+        preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub(max_absolute=0.002)])
+        self._expose()
+        with self.assertRaises(ValueError):
+            preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub(max_absolute=0.050)])
+
+    def test_resubmitting_the_identical_contract_after_exposure_is_refused(self):
+        """No writes at all after treatment — even a no-op re-declaration."""
+        preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+        self._expose()
+        with self.assertRaises(ValueError):
+            preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+
+    def test_declaring_not_applicable_after_exposure_is_refused(self):
+        self._expose()
+        with self.assertRaises(ValueError):
+            declare_trust_not_applicable(self.db, "EXP-CREATIVE-0102", NA_REASON)
+
+    def test_a_recorded_result_also_freezes_the_contract(self):
+        record_experiment_result(self.db, "EXP-CREATIVE-0102", 100, 0.14)
+        with self.assertRaises(ValueError):
+            preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+
+    def test_an_undelivered_attempt_is_not_treatment(self):
+        """A bounce reached nobody; the contract may still be declared."""
+        self._expose("message_bounced")
+        self.assertEqual(preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()]), 1)
+
+    def test_the_policy_state_and_freeze_point_are_recorded(self):
+        self.assertEqual(trust_policy(self.db, "EXP-CREATIVE-0102")["state"], "UNDECLARED")
+        preregister_trust_guardrails(self.db, "EXP-CREATIVE-0102", [unsub()])
+        self.assertEqual(trust_policy(self.db, "EXP-CREATIVE-0102")["state"], "DECLARED")
+        self.assertFalse(trust_policy(self.db, "EXP-CREATIVE-0102")["treatment_started_at"])
+        self._expose()
+        self.assertEqual(trust_policy(self.db, "EXP-CREATIVE-0102")["treatment_started_at"], "2026-09-01")
+
+
+class TrustCommandLine(unittest.TestCase):
+    """The writers are reachable from a shipped command, and refusals surface as REFUSED."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        init_db(self.db)
+        add_experiment(self.db, ExperimentSpec("EXP-CREATIVE-0103", "h", "m", 0.10, 0.05, 100))
+
+    def run_cli(self, *argv):
+        import contextlib
+        import io
+        import json
+
+        from ai_growth_engineering.cli import build_parser
+
+        args = build_parser().parse_args(["trust", *argv, "--db", self.db,
+                                          "--experiment-id", "EXP-CREATIVE-0103"])
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            args.func(args)
+        return json.loads(out.getvalue())
+
+    def test_show_reports_an_undeclared_policy_as_pending(self):
+        result = self.run_cli("show")
+        self.assertEqual(result["policy"]["state"], "UNDECLARED")
+        self.assertTrue(result["verdict"]["pending"])
+
+    def test_declare_then_observe_resolves_through_the_command(self):
+        self.run_cli("declare", "--metric", "unsubscribe_rate", "--baseline", "0.012",
+                     "--max-absolute", "0.02", "--minimum-sample", "100", "--source", "email baseline")
+        result = self.run_cli("observe", "--metric", "unsubscribe_rate", "--numerator", "1",
+                              "--denominator", "200", "--observed-at", "2026-09-01")
+        self.assertEqual(result["policy"]["state"], "DECLARED")
+        self.assertTrue(result["verdict"]["passed"])
+
+    def test_not_applicable_is_recorded_with_its_reason(self):
+        result = self.run_cli("not-applicable", "--reason", NA_REASON)
+        self.assertEqual(result["policy"]["state"], "NOT_APPLICABLE")
+        self.assertEqual(result["policy"]["reason"], NA_REASON)
+
+    def test_an_observation_without_its_own_date_is_refused(self):
+        self.run_cli("declare", "--metric", "unsubscribe_rate", "--baseline", "0.012",
+                     "--max-absolute", "0.02", "--source", "email baseline")
+        with self.assertRaises(SystemExit) as ctx:
+            self.run_cli("observe", "--metric", "unsubscribe_rate", "--numerator", "1", "--denominator", "200")
+        self.assertIn("REFUSED", str(ctx.exception))
+
+    def test_a_refusal_is_printed_not_swallowed(self):
+        with self.assertRaises(SystemExit) as ctx:
+            self.run_cli("not-applicable", "--reason", "")
+        self.assertIn("REFUSED", str(ctx.exception))
 
 
 if __name__ == "__main__":

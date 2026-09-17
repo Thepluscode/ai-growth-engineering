@@ -440,6 +440,12 @@ EXPERIMENT_CONTRACT_COLUMNS = (
     # Where `variable` came from. A retrospective value makes an already-declared design explicit.
     ("variable_metadata_source", "TEXT NOT NULL DEFAULT ''"),
     ("variable_metadata_note", "TEXT NOT NULL DEFAULT ''"),
+    # The trust policy. UNDECLARED can never contribute to KEEP; DECLARED means guardrails
+    # exist; NOT_APPLICABLE needs a reason. Existing experiments migrate to UNDECLARED
+    # rather than to a guess — a policy nobody wrote down is not a policy.
+    ("trust_policy_state", "TEXT NOT NULL DEFAULT 'UNDECLARED'"),
+    ("trust_policy_reason", "TEXT NOT NULL DEFAULT ''"),
+    ("trust_policy_declared_at", "TEXT NOT NULL DEFAULT ''"),
 )
 
 EVIDENCE_CONTRACT_COLUMNS = (

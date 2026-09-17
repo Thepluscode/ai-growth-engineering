@@ -25,7 +25,10 @@ from ai_growth_engineering.cli import main
 from ai_growth_engineering.funnel_events import effective_events, record_event
 from ai_growth_engineering.marketing_engineer import render_status, status_report
 from ai_growth_engineering.models import ExperimentSpec
-from ai_growth_engineering.registry import add_experiment, seed_registries
+from ai_growth_engineering.registry import (
+    add_experiment, declare_trust_not_applicable, preregister_trust_guardrails, record_trust_observation, seed_registries,
+)
+from ai_growth_engineering.trust import TrustGuardrailSpec, TrustObservation
 from ai_growth_engineering.revenue_loop import compute_metrics
 from ai_growth_engineering.storage import connect, init_db
 
@@ -272,6 +275,7 @@ class LineageTests(ProcedureCase):
 class EvaluationTests(ProcedureCase):
     def test_a_controlled_matured_powered_experiment_earns_a_controlled_effect(self):
         self.declare_controlled()
+        declare_trust_not_applicable(self.db, "EXP-ACQ-0010", "fixture: trust not under test here")
         self.cohort("c", 60, qualified=30, arm="candidate", payments=1)
         self.cohort("b", 60, qualified=12, arm="baseline")
         r = self.evaluate()
@@ -288,6 +292,28 @@ class EvaluationTests(ProcedureCase):
         self.assertEqual(pr.validate_result(doc), [])
         self.assertEqual((doc["skill_id"], doc["content_hash"], doc["decision"]), ("vendor_outbound_writer", CANDIDATE_HASH, "KEEP"))
         self.assertIn("RECOMMENDATION_ONLY", pr.render_report(r))
+
+    def test_a_controlled_win_without_a_trust_policy_is_withheld_not_kept(self):
+        """Evidence class stands; the decision waits for a resolved trust policy."""
+        self.declare_controlled()
+        self.cohort("c", 60, qualified=30, arm="candidate")
+        self.cohort("b", 60, qualified=12, arm="baseline")
+        r = self.evaluate()
+        self.assertEqual((r["result_class"], r["decision"]), ("CONTROLLED_EFFECT", "NEED_MORE_DATA"))
+        self.assertIn("no_trust_policy_declared", r["reason"])
+        self.assertEqual(pr.validate_result(pr.result_document(r, generated_at="2026-09-30T00:00:00+00:00")), [])
+
+    def test_a_controlled_win_that_breaches_trust_is_iterate_not_keep(self):
+        self.declare_controlled()
+        preregister_trust_guardrails(self.db, "EXP-ACQ-0010", [TrustGuardrailSpec(
+            metric="complaint_rate", baseline=0.001, max_absolute=0.01, minimum_sample=10, source="fixture")])
+        self.cohort("c", 60, qualified=30, arm="candidate")
+        self.cohort("b", 60, qualified=12, arm="baseline")
+        record_trust_observation(self.db, "EXP-ACQ-0010",
+                                 TrustObservation("complaint_rate", 5, 60, observed_at="2026-08-20"))
+        r = self.evaluate()
+        self.assertEqual((r["result_class"], r["decision"]), ("CONTROLLED_EFFECT", "ITERATE"))
+        self.assertIn("breach_absolute", r["reason"])
 
     def test_a_controlled_loss_is_a_regression(self):
         self.declare_controlled()

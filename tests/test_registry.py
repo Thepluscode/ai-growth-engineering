@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ai_growth_engineering.models import ExperimentSpec
 from ai_growth_engineering.registry import (
-    add_experiment, record_experiment_result, record_sourcing_run, scoreboard,
+    add_experiment, declare_trust_not_applicable, record_experiment_result, record_sourcing_run, scoreboard,
     seed_prospects, sourcing_funnel,
 )
 from ai_growth_engineering.storage import connect, init_db
@@ -21,6 +21,8 @@ class RegistryTests(unittest.TestCase):
 
     def test_experiment_decisions(self):
         add_experiment(self.db, ExperimentSpec("EXP-ACQ-0001", "test", "reply", 0.10, 0.05, 50))
+        # KEEP needs a resolved trust policy, declared before the first result freezes it.
+        declare_trust_not_applicable(self.db, "EXP-ACQ-0001", "fixture: trust not under test here")
         self.assertEqual(record_experiment_result(self.db, "EXP-ACQ-0001", 49, 0.20), "preregistered")
         self.assertEqual(record_experiment_result(self.db, "EXP-ACQ-0001", 50, 0.12), "keep")
 

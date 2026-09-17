@@ -11,6 +11,7 @@ from ai_growth_engineering.models import Evidence, EvidenceKind, ExperimentSpec
 from ai_growth_engineering.registry import (
     add_evidence,
     add_experiment,
+    declare_trust_not_applicable,
     import_outreach,
     record_experiment_result,
 )
@@ -227,6 +228,8 @@ class ExperimentContractTests(unittest.TestCase):
             ]
         self.assertEqual(evidence_ids, ["E-001"])
 
+        # KEEP needs a resolved trust policy, declared before the first result freezes it.
+        declare_trust_not_applicable(self.db, "EXP-PAID-0001", "fixture: trust not under test here")
         decision = record_experiment_result(
             self.db,
             "EXP-PAID-0001",

@@ -614,6 +614,38 @@ def cmd_procedures(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, default=str))
 
 
+def cmd_trust(args: argparse.Namespace) -> None:
+    """Governed access to the existing trust writers. Every refusal is a printed REFUSED."""
+    import json
+    from dataclasses import asdict
+
+    from . import registry as rg
+    from .trust import TrustGuardrailSpec, TrustObservation
+
+    try:
+        if args.action == "declare":
+            spec = TrustGuardrailSpec(
+                metric=args.metric, direction=args.direction, baseline=args.baseline,
+                max_absolute=args.max_absolute, max_adverse_delta=args.max_adverse_delta,
+                max_relative_increase=args.max_relative_increase, minimum_sample=args.minimum_sample,
+                required=not args.not_applicable_reason, source=args.source,
+                not_applicable_reason=args.not_applicable_reason)
+            rg.preregister_trust_guardrails(args.db, args.experiment_id, [spec])
+        elif args.action == "not-applicable":
+            rg.declare_trust_not_applicable(args.db, args.experiment_id, args.reason)
+        elif args.action == "observe":
+            if not args.observed_at:
+                raise ValueError("--observed-at is required: an observation without its own date is not evidence")
+            rg.record_trust_observation(args.db, args.experiment_id, TrustObservation(
+                args.metric, args.numerator, args.denominator,
+                observed_at=args.observed_at, evidence_id=args.evidence_id))
+        policy = rg.trust_policy(args.db, args.experiment_id)
+        verdict = rg.trust_verdict(args.db, args.experiment_id)
+    except ValueError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(json.dumps({"policy": policy, "verdict": asdict(verdict)}, indent=2))
+
+
 def cmd_experiment_backfill_variable(args: argparse.Namespace) -> None:
     from .registry import backfill_variable
 
@@ -903,6 +935,27 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="founder")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_procedures)
+
+    p = sub.add_parser("trust", help="declare, exempt, observe or show an experiment's trust policy")
+    dbarg(p)
+    p.add_argument("action", choices=["show", "declare", "not-applicable", "observe"])
+    p.add_argument("--experiment-id", required=True)
+    p.add_argument("--metric", default="")
+    p.add_argument("--direction", default="lower_is_better", choices=["lower_is_better", "higher_is_better"])
+    p.add_argument("--baseline", type=float, default=None)
+    p.add_argument("--max-absolute", type=float, default=None)
+    p.add_argument("--max-adverse-delta", type=float, default=None)
+    p.add_argument("--max-relative-increase", type=float, default=None)
+    p.add_argument("--minimum-sample", type=int, default=0)
+    p.add_argument("--source", default="", help="declare: where the baseline came from")
+    p.add_argument("--not-applicable-reason", default="",
+                   help="declare: makes this one metric not required, with the reason")
+    p.add_argument("--reason", default="", help="not-applicable: why the whole experiment carries no trust risk")
+    p.add_argument("--numerator", type=int, default=0)
+    p.add_argument("--denominator", type=int, default=0)
+    p.add_argument("--observed-at", default="")
+    p.add_argument("--evidence-id", default="")
+    p.set_defaults(func=cmd_trust)
 
     p = sub.add_parser("adapter-specs")
     p.add_argument("--platform", default="")

@@ -477,7 +477,18 @@ def evaluate(db_path: str, *, experiment_id: str, candidate_arm: str, baseline_a
          "money_graph": {}, "authority": "RECOMMENDATION_ONLY", "market_validation": False}
 
     def done(label: str, reason: str = "") -> dict:
-        r.update(result_class=label, reason=reason, decision=DECISIONS[label],
+        decision = DECISIONS[label]
+        if decision == "KEEP":
+            # The same non-compensatory gate as every other experiment: a controlled win earns
+            # KEEP only under a resolved trust policy. The evidence class is unchanged; only the
+            # decision is withheld — pending trust means wait, a breach means a person looks.
+            from .registry import trust_verdict
+
+            trust = trust_verdict(db_path, experiment_id)
+            if not trust.passed:
+                decision = "NEED_MORE_DATA" if trust.pending else "ITERATE"
+                reason = "; ".join(filter(None, [reason, "trust gate not satisfied: " + ", ".join(trust.reasons)]))
+        r.update(result_class=label, reason=reason, decision=decision,
                  market_validation=label == "CONTROLLED_EFFECT")
         r["next_step"] = NEXT_STEP[r["decision"]]
         r["unsupported_claims"] = _unsupported(r)

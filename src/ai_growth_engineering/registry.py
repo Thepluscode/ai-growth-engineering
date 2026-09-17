@@ -574,10 +574,10 @@ def preregister_trust_guardrails(
     from .trust import TrustGuardrailSpec
 
     with connect(db_path) as con:
-        if con.execute(
-            "SELECT 1 FROM experiments WHERE experiment_id = ?", (experiment_id,)
-        ).fetchone() is None:
-            raise ValueError(f"experiment {experiment_id} is not preregistered")
+        policy = _trust_policy(con, experiment_id)
+        _refuse_if_treated(policy)
+        if policy["state"] == "NOT_APPLICABLE":
+            raise ValueError(f"{experiment_id} declared trust NOT_APPLICABLE; a policy is one or the other")
 
         has_observations = con.execute(
             "SELECT COUNT(*) FROM experiment_trust_results WHERE experiment_id = ?",
@@ -616,7 +616,76 @@ def preregister_trust_guardrails(
                  spec.not_applicable_reason),
             )
             written += 1
+        if written:
+            con.execute(
+                "UPDATE experiments SET trust_policy_state='DECLARED', trust_policy_declared_at=? "
+                "WHERE experiment_id=?", (_now(), experiment_id))
         return written
+
+
+# Attempts that reached nobody. Everything else attributed to the experiment is treatment.
+_NOT_TREATMENT = ("correction", "message_bounced", "invitation_undeliverable")
+
+
+def _now() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _trust_policy(con, experiment_id: str) -> dict:
+    row = con.execute(
+        """SELECT trust_policy_state, trust_policy_reason, trust_policy_declared_at,
+                  sample_size, observed_value FROM experiments WHERE experiment_id = ?""",
+        (experiment_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"experiment {experiment_id} is not preregistered")
+    placeholders = ",".join("?" * len(_NOT_TREATMENT))
+    first_exposure = con.execute(
+        f"""SELECT MIN(occurred_at) FROM funnel_events e
+            WHERE e.experiment_id = ? AND e.event_type NOT IN ({placeholders})
+              AND e.provenance != 'synthetic_fixture'
+              AND NOT EXISTS (SELECT 1 FROM funnel_events c WHERE c.corrects_event_id = e.event_id)""",
+        (experiment_id, *_NOT_TREATMENT)).fetchone()[0]
+    has_result = bool(row["sample_size"]) or row["observed_value"] is not None
+    guardrails = con.execute(
+        "SELECT COUNT(*) FROM experiment_trust_guardrails WHERE experiment_id = ?",
+        (experiment_id,)).fetchone()[0]
+    return {
+        "experiment_id": experiment_id,
+        "state": row["trust_policy_state"],
+        "reason": row["trust_policy_reason"],
+        "declared_at": row["trust_policy_declared_at"],
+        "guardrails": guardrails,
+        # Whichever came first: an exposure has a date; a result only proves it happened.
+        "treatment_started_at": first_exposure or ("result_recorded" if has_result else ""),
+    }
+
+
+def _refuse_if_treated(policy: dict) -> None:
+    if policy["treatment_started_at"]:
+        raise ValueError(
+            f"trust contract is frozen: {policy['experiment_id']} entered treatment "
+            f"({policy['treatment_started_at']}). Declaring or changing a guardrail now is choosing "
+            "the gate with the outcome in view; register a new experiment version instead.")
+
+
+def trust_policy(db_path: str, experiment_id: str) -> dict:
+    with connect(db_path) as con:
+        return _trust_policy(con, experiment_id)
+
+
+def declare_trust_not_applicable(db_path: str, experiment_id: str, reason: str) -> None:
+    """Resolve the trust policy as NOT_APPLICABLE. The reason is the policy; silence is not."""
+    if not reason.strip():
+        raise ValueError("NOT_APPLICABLE needs a recorded reason; an unexplained exemption is a missing gate")
+    with connect(db_path) as con:
+        policy = _trust_policy(con, experiment_id)
+        _refuse_if_treated(policy)
+        if policy["guardrails"]:
+            raise ValueError(f"{experiment_id} already declares guardrails; a policy is one or the other")
+        con.execute(
+            "UPDATE experiments SET trust_policy_state='NOT_APPLICABLE', trust_policy_reason=?, "
+            "trust_policy_declared_at=? WHERE experiment_id=?", (reason.strip(), _now(), experiment_id))
 
 
 def record_trust_observation(db_path: str, experiment_id: str, obs) -> None:
@@ -644,9 +713,12 @@ def record_trust_observation(db_path: str, experiment_id: str, obs) -> None:
 
 def trust_verdict(db_path: str, experiment_id: str):
     """Evaluate every declared guardrail against its latest observation."""
-    from .trust import TrustGuardrailSpec, TrustObservation, evaluate_all
+    from .trust import TrustGuardrailSpec, TrustObservation, TrustVerdict, evaluate_all
 
     with connect(db_path) as con:
+        policy = _trust_policy(con, experiment_id)
+        if policy["state"] == "NOT_APPLICABLE":
+            return TrustVerdict(True, False, (f"trust_not_applicable:{policy['reason']}",))
         specs = [
             TrustGuardrailSpec(
                 metric=r["metric"], direction=r["direction"], baseline=r["baseline"],

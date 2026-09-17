@@ -39,6 +39,8 @@ CHANNEL_GUARDRAILS: dict[str, tuple[str, ...]] = {
 # calibration — none of which exist yet.
 DIAGNOSTIC_ONLY_METRICS = ("sentiment", "sentiment_score", "reply_sentiment")
 
+NO_POLICY = "no_trust_policy_declared"
+
 
 @dataclass(frozen=True)
 class TrustGuardrailSpec:
@@ -194,8 +196,11 @@ def evaluate_all(
         else:
             breaches.append(decision.reasons[0])
 
+    if not specs:
+        # Silence is not a policy. A gate satisfied by having nothing to check is not a gate.
+        return TrustVerdict(False, True, (NO_POLICY,))
     if breaches:
         return TrustVerdict(False, False, tuple(breaches))
     if pending:
         return TrustVerdict(False, True, tuple(pending))
-    return TrustVerdict(True, False, tuple(passes) or ("no_guardrails_declared",))
+    return TrustVerdict(True, False, tuple(passes))
