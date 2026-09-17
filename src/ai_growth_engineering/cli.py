@@ -197,14 +197,29 @@ def cmd_experiment_add(args: argparse.Namespace) -> None:
 
 
 def cmd_experiment_result(args: argparse.Namespace) -> None:
-    decision = record_experiment_result(
-        args.db,
-        args.experiment_id,
-        args.sample_size,
-        args.observed_value,
-        args.learning,
-    )
+    try:
+        decision = record_experiment_result(
+            args.db,
+            args.experiment_id,
+            args.sample_size,
+            args.observed_value,
+            args.learning,
+        )
+    except ValueError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
     print(decision)
+
+
+def cmd_reconcile(args: argparse.Namespace) -> None:
+    """Stored experiment figures against the event log; --record appends each disagreement once."""
+    from .registry import reconcile_experiments, record_reconciliations
+
+    for row in reconcile_experiments(args.db):
+        computed = "—" if row["computed_value"] is None else row["computed_value"]
+        print(f"{row['experiment_id']:14} {row['metric']:15} {row['status']:18} "
+              f"stored {row['stored_value']!s:>6}  computed {computed!s:>6}")
+    if args.record:
+        print(f"recorded {record_reconciliations(args.db, recorded_by=args.by)} new reconciliation(s)")
 
 
 def cmd_outreach_record(args: argparse.Namespace) -> None:
@@ -969,6 +984,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--by", default="founder")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_procedures)
+
+    p = sub.add_parser("reconcile", help="compare stored experiment figures with the event log")
+    dbarg(p)
+    p.add_argument("--record", action="store_true", help="append each disagreement to the reconciliation ledger")
+    p.add_argument("--by", default="founder")
+    p.set_defaults(func=cmd_reconcile)
 
     p = sub.add_parser("event-classify", help="record the observed recipient class of one event")
     dbarg(p)

@@ -603,6 +603,21 @@ def render_card(card: dict) -> str:
     return "\n".join(lines)
 
 
+def learned_line(db_path: str, h: dict) -> str:
+    """One concluded experiment: its sample from the event log, its typed value labelled as typed."""
+    from .registry import canonical_sample
+
+    computed = canonical_sample(db_path, h["experiment_id"])
+    if computed is None:
+        n = f"n={h['sample_size']} [MANUAL_ANNOTATION]"
+    else:
+        n = f"n={computed} [COMPUTED]"
+        if computed != h["sample_size"]:
+            n += f", recorded n={h['sample_size']} disagrees"
+    return (f"   {h['experiment_id']}: {h['decision'].upper()} at {n}, "
+            f"{h['primary_metric']}={h['observed_value']} [MANUAL_ANNOTATION]")
+
+
 def status_report(db_path: str, *, as_of: str | None = None) -> dict:
     as_of = as_of or date.today().isoformat()
     events = linked_events(db_path)
@@ -629,6 +644,7 @@ def status_report(db_path: str, *, as_of: str | None = None) -> dict:
         "campaigns": campaigns,
         "attribution_linear": attribute(events, "linear") if payments else [],
         "recommendation": recommendation,
+        "learned": [learned_line(db_path, h) for h in recommendation["preferred"]["previous_experiments"] or []],
     }
 
 
@@ -684,10 +700,8 @@ def render_status(report: dict) -> str:
     live = [e for e in rec["experiments"] if e["decision"] == "preregistered" and rec["supply"].get(e["experiment_id"])]
     lines += [f"   {e['experiment_id']}: {e.get('execution_mode') or 'preregistered'}, "
               f"{rec['supply'][e['experiment_id']]} frozen participants" for e in live] or ["   none with frozen supply"]
-    lines.append("7. What have we learned?  [OBSERVED experiment decisions]")
-    lines += [f"   {h['experiment_id']}: {h['decision'].upper()} at n={h['sample_size']}, "
-              f"{h['primary_metric']}={h['observed_value']}" for h in rec["preferred"]["previous_experiments"] or []] \
-        or ["   no experiment has concluded"]
+    lines.append("7. What have we learned?  [decisions as recorded · sample COMPUTED from events]")
+    lines += report.get("learned") or ["   no experiment has concluded"]
     truth = report.get("buyer_truth")
     if truth:
         lines.append("BUYER TRUTH  [OBSERVED statements · INTERPRETED themes]")

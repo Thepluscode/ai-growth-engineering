@@ -274,6 +274,27 @@ BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS idempotency_conflicts_no_delete BEFORE DELETE ON idempotency_conflicts
 BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
 
+-- Where a stored experiment figure disagrees with the event log. The experiment row is never
+-- rewritten to agree; the disagreement is annotated here, once. Append-only.
+CREATE TABLE IF NOT EXISTS metric_reconciliations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    experiment_id TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    status TEXT NOT NULL,
+    stored_value TEXT NOT NULL,
+    computed_value TEXT NOT NULL,
+    note TEXT NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    UNIQUE(experiment_id, metric, status, stored_value, computed_value)
+);
+
+CREATE TRIGGER IF NOT EXISTS metric_reconciliations_no_update BEFORE UPDATE ON metric_reconciliations
+BEGIN SELECT RAISE(ABORT, 'metric_reconciliations is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS metric_reconciliations_no_delete BEFORE DELETE ON metric_reconciliations
+BEGIN SELECT RAISE(ABORT, 'metric_reconciliations is append-only'); END;
+
 -- A person's reading of who an event reached. The event itself is never edited. Append-only.
 CREATE TABLE IF NOT EXISTS recipient_class_reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -490,6 +511,10 @@ EXPERIMENT_CONTRACT_COLUMNS = (
     ("trust_policy_state", "TEXT NOT NULL DEFAULT 'UNDECLARED'"),
     ("trust_policy_reason", "TEXT NOT NULL DEFAULT ''"),
     ("trust_policy_declared_at", "TEXT NOT NULL DEFAULT ''"),
+    # Where a recorded result's numbers came from: COMPUTED from the event log, or a
+    # MANUAL_ANNOTATION someone typed. Empty for results recorded before this was tracked.
+    ("sample_basis", "TEXT NOT NULL DEFAULT ''"),
+    ("observed_value_basis", "TEXT NOT NULL DEFAULT ''"),
 )
 
 EVIDENCE_CONTRACT_COLUMNS = (

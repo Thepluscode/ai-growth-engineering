@@ -77,6 +77,25 @@ def add_experiment(db_path: str, spec: ExperimentSpec) -> None:
         )
 
 
+EXPOSURE_EVENTS = ("message_sent", "invitation_sent")
+
+
+def canonical_sample(db_path: str, experiment_id: str) -> int | None:
+    """Delivered exposures in the event log, one per buyer; None when the experiment has no events.
+
+    A bounce or an undeliverable invitation reached nobody and is not in the sample.
+    """
+    from .funnel_events import effective_events
+    from .revenue_loop import entity, undelivered_units
+
+    events = [e for e in effective_events(db_path) if e["experiment_id"] == experiment_id]
+    if not events:
+        return None
+    undelivered = undelivered_units(events)
+    return len({entity(e) for e in events
+                if e["event_type"] in EXPOSURE_EVENTS and (entity(e), experiment_id) not in undelivered})
+
+
 def record_experiment_result(
     db_path: str,
     experiment_id: str,
@@ -84,6 +103,12 @@ def record_experiment_result(
     observed_value: float,
     learning: str = "",
 ) -> str:
+    computed = canonical_sample(db_path, experiment_id)
+    if computed is not None and sample_size != computed:
+        raise ValueError(
+            f"sample_size {sample_size} contradicts the event log, which holds {computed} delivered exposures "
+            f"for {experiment_id}; the event log is authoritative — record the missing events, or correct them")
+    sample_basis = "MANUAL_ANNOTATION" if computed is None else "COMPUTED"
     with connect(db_path) as con:
         row = con.execute("SELECT * FROM experiments WHERE experiment_id = ?", (experiment_id,)).fetchone()
         if row is None:
@@ -115,11 +140,65 @@ def record_experiment_result(
             decision = ExperimentDecision.ITERATE.value
         con.execute(
             """UPDATE experiments
-               SET sample_size=?, observed_value=?, decision=?, learning=?
+               SET sample_size=?, observed_value=?, decision=?, learning=?,
+                   sample_basis=?, observed_value_basis='MANUAL_ANNOTATION'
                WHERE experiment_id=?""",
-            (sample_size, observed_value, decision, learning, experiment_id),
+            (sample_size, observed_value, decision, learning, sample_basis, experiment_id),
         )
         return decision
+
+
+def reconcile_experiments(db_path: str) -> list[dict]:
+    """Every experiment's stored sample and observed value against the event log.
+
+    MATCH · DIVERGED · NOT_RECORDED (the log has exposures the row never took up) · NOT_DERIVABLE
+    (no events to compare) · NO_DATA · MANUAL_ANNOTATION (a typed value the log cannot compute).
+    """
+    init_db(db_path)
+    with connect(db_path) as con:
+        experiments = [dict(r) for r in con.execute(
+            "SELECT experiment_id, sample_size, observed_value FROM experiments ORDER BY experiment_id")]
+    rows = []
+    for e in experiments:
+        computed = canonical_sample(db_path, e["experiment_id"])
+        stored = e["sample_size"] or 0
+        has_result = bool(stored) or e["observed_value"] is not None
+        if computed is None:
+            status = "NOT_DERIVABLE" if has_result else "NO_DATA"
+        elif not has_result:
+            status = "NOT_RECORDED" if computed else "MATCH"
+        else:
+            status = "MATCH" if stored == computed else "DIVERGED"
+        rows.append({"experiment_id": e["experiment_id"], "metric": "sample_size", "status": status,
+                     "stored_value": stored, "computed_value": computed})
+        rows.append({"experiment_id": e["experiment_id"], "metric": "observed_value",
+                     "status": "NO_DATA" if e["observed_value"] is None else "MANUAL_ANNOTATION",
+                     "stored_value": e["observed_value"], "computed_value": None})
+    return rows
+
+
+RECONCILIATION_NOTES = {
+    "DIVERGED": "the stored sample disagrees with the delivered exposures in the event log; the log is authoritative "
+                "and the stored figure is kept as history",
+    "NOT_RECORDED": "the event log holds delivered exposures the experiment row never took up; report the computed "
+                    "sample, not the row",
+}
+
+
+def record_reconciliations(db_path: str, *, recorded_by: str) -> int:
+    """Append each disagreement once. The experiment rows are not touched."""
+    written = 0
+    with connect(db_path) as con:
+        for row in reconcile_experiments(db_path):
+            if row["status"] not in RECONCILIATION_NOTES:
+                continue
+            cur = con.execute(
+                """INSERT OR IGNORE INTO metric_reconciliations(experiment_id, metric, status, stored_value,
+                     computed_value, note, recorded_by, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (row["experiment_id"], row["metric"], row["status"], str(row["stored_value"]),
+                 str(row["computed_value"]), RECONCILIATION_NOTES[row["status"]], recorded_by, _now()))
+            written += cur.rowcount
+    return written
 
 
 EXECUTION_MODES = ("PREREGISTERED", "DESCRIPTIVE_FROZEN_COHORT")
