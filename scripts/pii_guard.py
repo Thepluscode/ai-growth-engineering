@@ -75,6 +75,12 @@ ROLE_WORDS = {
 }
 
 SCANNED_SUFFIXES = {".py", ".md", ".json", ".csv", ".yml", ".yaml", ".txt", ".html"}
+
+# The guard and its tests must contain realistic refusal examples — a positive control
+# built from example.com would prove nothing, because the guard allows example.com by
+# design. Exactly these two files are exempt, and a test freezes that list: an exemption
+# that can grow is a hole. Every string inside them is invented.
+SELF_EXEMPT = frozenset({"scripts/pii_guard.py", "tests/test_pii_guard.py"})
 # A scan of fewer files than this has not run properly — an empty result must never pass.
 MIN_FILES_SCANNED = 50
 
@@ -132,6 +138,8 @@ def scan(root: Path) -> tuple[list[str], int]:
     seen = 0
     for path in tracked_files(root):
         if path.suffix not in SCANNED_SUFFIXES or not path.exists():
+            continue
+        if str(path.relative_to(root)) in SELF_EXEMPT:
             continue
         seen += 1
         hits.extend(scan_text(path, str(path.relative_to(root))))

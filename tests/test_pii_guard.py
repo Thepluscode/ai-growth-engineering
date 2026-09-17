@@ -122,6 +122,27 @@ class TheAllowlistIsNotABypass(GuardFixture):
             self.assertTrue(reason.strip(), f"{address} is allowlisted without a reason")
 
 
+class TheSelfExemptionIsFrozen(unittest.TestCase):
+    """The guard's own files are exempt so they can hold realistic refusal examples.
+
+    That exemption is the one blind spot in the control, so it is pinned here: if a
+    future change adds a third file, this test fails and the addition has to be argued.
+    """
+
+    def test_exactly_two_files_are_exempt(self):
+        self.assertEqual(
+            set(pii_guard.SELF_EXEMPT),
+            {"scripts/pii_guard.py", "tests/test_pii_guard.py"},
+        )
+
+    def test_no_other_tracked_file_relies_on_the_exemption(self):
+        """Every file outside the exemption is actually scanned."""
+        _, seen = pii_guard.scan(ROOT)
+        tracked = [p for p in pii_guard.tracked_files(ROOT)
+                   if p.suffix in pii_guard.SCANNED_SUFFIXES and p.exists()]
+        self.assertEqual(seen, len(tracked) - len(pii_guard.SELF_EXEMPT))
+
+
 class CannotPassVacuously(GuardFixture):
     def test_a_scan_that_walked_nothing_is_a_failed_run(self):
         """An empty result set is only meaningful if the scan actually read files."""
