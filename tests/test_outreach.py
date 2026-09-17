@@ -28,6 +28,7 @@ class OutreachTests(unittest.TestCase):
             db=self.db,
             company="Acme",
             identity="person@example.com",
+            sent_at="2026-09-15",
             meaningful_reply=False,
             discovery=False,
             diagnostic_proposed=False,

@@ -141,12 +141,12 @@ def build_server(
                 draft_id = int(match.group("draft_id"))
                 action = match.group("action")
                 handlers = {
-                    "approve": approve_draft,
-                    "reject": reject_draft,
-                    "record-send": record_manual_send,
-                    "record-reply": record_meaningful_reply,
+                    "approve": lambda: approve_draft(db_path, draft_id),
+                    "reject": lambda: reject_draft(db_path, draft_id),
+                    "record-send": lambda: record_manual_send(db_path, draft_id, payload.get("sent_at")),
+                    "record-reply": lambda: record_meaningful_reply(db_path, draft_id, payload.get("replied_at")),
                 }
-                self._send_json(200, {"draft": handlers[action](db_path, draft_id)})
+                self._send_json(200, {"draft": handlers[action]()})
             except WorkbenchError as exc:
                 status = 404 if exc.code.endswith("not_found") else 409 if exc.code in {
                     "suppressed", "active_draft_exists", "approval_required",

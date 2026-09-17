@@ -258,9 +258,9 @@ class CommandCenterServerTests(unittest.TestCase):
         self.assertEqual(created["draft"]["status"], "pending_approval")
         approved = self.post(f"/api/outbound/drafts/{draft_id}/approve", {})
         self.assertEqual(approved["draft"]["status"], "approved")
-        sent = self.post(f"/api/outbound/drafts/{draft_id}/record-send", {})
+        sent = self.post(f"/api/outbound/drafts/{draft_id}/record-send", {"sent_at": "2026-09-15"})
         self.assertEqual(sent["draft"]["status"], "sent")
-        replied = self.post(f"/api/outbound/drafts/{draft_id}/record-reply", {})
+        replied = self.post(f"/api/outbound/drafts/{draft_id}/record-reply", {"replied_at": "2026-09-16"})
         self.assertEqual(replied["draft"]["status"], "replied")
         with urllib.request.urlopen(self.base + "/api/state") as response:
             state = json.load(response)

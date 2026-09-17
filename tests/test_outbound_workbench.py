@@ -59,21 +59,21 @@ class OutboundWorkbenchTests(unittest.TestCase):
     def test_approval_is_required_before_a_send_can_be_recorded(self):
         draft = create_draft(self.db, VALID)
         with self.assertRaisesRegex(WorkbenchError, "Approve the draft"):
-            record_manual_send(self.db, draft["id"])
+            record_manual_send(self.db, draft["id"], "2026-09-15")
         self.assertEqual(scoreboard(self.db)["outreach_sent"], 0)
 
     def test_approved_manual_send_and_reply_update_real_metrics(self):
         draft = create_draft(self.db, VALID)
         approved = approve_draft(self.db, draft["id"])
         self.assertEqual(approved["status"], "approved")
-        sent = record_manual_send(self.db, draft["id"])
+        sent = record_manual_send(self.db, draft["id"], "2026-09-15")
         self.assertEqual(sent["status"], "sent")
         self.assertEqual(scoreboard(self.db)["outreach_sent"], 1)
         self.assertEqual(
             reply_rate_by_route(self.db)["email/named_buyer"],
             {"sent": 1, "replies": 0},
         )
-        replied = record_meaningful_reply(self.db, draft["id"])
+        replied = record_meaningful_reply(self.db, draft["id"], "2026-09-16")
         self.assertEqual(replied["status"], "replied")
         self.assertEqual(scoreboard(self.db)["meaningful_responses"], 1)
 
@@ -86,7 +86,7 @@ class OutboundWorkbenchTests(unittest.TestCase):
                 (VALID["recipient_identity"], "opt_out"),
             )
         with self.assertRaisesRegex(WorkbenchError, "suppressed"):
-            record_manual_send(self.db, draft["id"])
+            record_manual_send(self.db, draft["id"], "2026-09-15")
         self.assertEqual(scoreboard(self.db)["outreach_sent"], 0)
 
     def test_high_friction_cta_is_rejected(self):
@@ -157,8 +157,8 @@ class OutboundWorkbenchTests(unittest.TestCase):
         draft = create_draft(self.db, {**VALID, "signal_ids": [signal["signal_id"]]})
         self.assertEqual(draft["signal_ids"], [signal["signal_id"]])
         approve_draft(self.db, draft["id"])
-        record_manual_send(self.db, draft["id"])
-        record_meaningful_reply(self.db, draft["id"])
+        record_manual_send(self.db, draft["id"], "2026-09-15")
+        record_meaningful_reply(self.db, draft["id"], "2026-09-16")
         lineage = intelligence_state(self.db)["lineage"][signal["signal_id"]][0]
         self.assertEqual(lineage["draft_status"], "replied")
         self.assertEqual(lineage["meaningful_reply"], 1)

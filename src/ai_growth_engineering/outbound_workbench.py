@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .registry import parse_recipient_class
+from .funnel_events import observed_time
 from .storage import connect, init_db
 
 
@@ -198,7 +199,19 @@ def reject_draft(db_path: str, draft_id: int) -> dict[str, Any]:
     )
 
 
-def record_manual_send(db_path: str, draft_id: int) -> dict[str, Any]:
+def _observed(value: Any, what: str) -> str:
+    try:
+        text = observed_time(value)
+    except ValueError as exc:
+        raise WorkbenchError("invalid_timestamp", f"{what} must be an ISO date or datetime") from exc
+    if not text:
+        raise WorkbenchError("observed_time_required",
+                             f"record {what}; the moment of clicking is not when it happened")
+    return text
+
+
+def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[str, Any]:
+    sent_at = _observed(sent_at, "when the message was sent")
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
@@ -214,9 +227,10 @@ def record_manual_send(db_path: str, draft_id: int) -> dict[str, Any]:
             outreach = con.execute(
                 """INSERT INTO outreach(
                      company, sent_at, notes, stage, recipient_class, channel
-                   ) VALUES (?, CURRENT_TIMESTAMP, ?, 'sent_awaiting_reply', ?, ?)""",
+                   ) VALUES (?, ?, ?, 'sent_awaiting_reply', ?, ?)""",
                 (
                     draft["company"],
+                    sent_at,
                     f"Recorded from approved outbound draft #{draft_id}",
                     draft["recipient_class"],
                     draft["channel"],
@@ -224,19 +238,22 @@ def record_manual_send(db_path: str, draft_id: int) -> dict[str, Any]:
             )
             con.execute(
                 """UPDATE outbound_drafts
-                   SET status = 'sent', outreach_id = ?, sent_at = CURRENT_TIMESTAMP
+                   SET status = 'sent', outreach_id = ?, sent_at = ?
                    WHERE id = ?""",
-                (outreach.lastrowid, draft_id),
+                (outreach.lastrowid, sent_at, draft_id),
             )
     return get_draft(db_path, draft_id)
 
 
-def record_meaningful_reply(db_path: str, draft_id: int) -> dict[str, Any]:
+def record_meaningful_reply(db_path: str, draft_id: int, replied_at: Any = "") -> dict[str, Any]:
+    replied_at = _observed(replied_at, "when the reply arrived")
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
         if draft["status"] not in {"sent", "replied"} or not draft["outreach_id"]:
             raise WorkbenchError("send_required", "A sent draft is required before recording a reply")
+        if replied_at[:10] < str(draft["sent_at"] or "")[:10]:
+            raise WorkbenchError("reply_before_send", "a reply cannot arrive before the message it answers")
         if draft["status"] == "sent":
             con.execute(
                 """UPDATE outreach
@@ -246,9 +263,9 @@ def record_meaningful_reply(db_path: str, draft_id: int) -> dict[str, Any]:
             )
             con.execute(
                 """UPDATE outbound_drafts
-                   SET status = 'replied', replied_at = CURRENT_TIMESTAMP
+                   SET status = 'replied', replied_at = ?
                    WHERE id = ?""",
-                (draft_id,),
+                (replied_at, draft_id),
             )
     return get_draft(db_path, draft_id)
 

@@ -26,6 +26,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from .funnel_events import observed_time
 from .storage import connect, init_db
 
 
@@ -139,18 +140,34 @@ def record_invitation(db_path: str, cohort_id: str, prospect_id: int, values: Ma
     if outcome != "accepted" and accepted_at:
         raise ExecutionError("acceptance_timestamp_without_acceptance",
                              "only an accepted invitation may carry an acceptance timestamp")
+    try:
+        submitted_at = observed_time(values.get("submitted_at"))
+        observed_time(accepted_at)
+    except ValueError as exc:
+        raise ExecutionError("invalid_timestamp", f"timestamps must be ISO dates or datetimes: {exc}") from exc
     with connect(db_path) as con:
         member = con.execute(
-            "SELECT 1 FROM execution_cohort WHERE cohort_id = ? AND prospect_id = ?",
+            """SELECT v.submitted_at FROM execution_cohort c
+               LEFT JOIN invitations v ON v.cohort_id = c.cohort_id AND v.prospect_id = c.prospect_id
+               WHERE c.cohort_id = ? AND c.prospect_id = ?""",
             (cohort_id, prospect_id)).fetchone()
         if member is None:
             raise ExecutionError(
                 "not_in_cohort",
                 "prospect is not in the frozen cohort; an unadmitted account cannot record access")
+        if outcome == "not_submitted":
+            submitted_at = ""
+        elif not submitted_at:
+            # A later lifecycle fact (an acceptance, a withdrawal) says nothing about when the
+            # invitation went out. Keep the date on file; refuse if there is none.
+            submitted_at = member["submitted_at"] or ""
+            if not submitted_at:
+                raise ExecutionError("submission_needs_timestamp",
+                                     "record when the invitation was submitted; the time of recording is not it")
         con.execute(
             """UPDATE invitations SET outcome = ?, submitted_at = ?, accepted_at = ?, note = ?
                WHERE cohort_id = ? AND prospect_id = ?""",
-            (outcome, str(values.get("submitted_at") or _utc_now()), accepted_at,
+            (outcome, submitted_at, accepted_at,
              str(values.get("note") or "")[:400], cohort_id, prospect_id))
     return {"cohort_id": cohort_id, "prospect_id": prospect_id, "outcome": outcome}
 

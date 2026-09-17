@@ -206,6 +206,12 @@ def cmd_experiment_result(args: argparse.Namespace) -> None:
 
 
 def cmd_outreach_record(args: argparse.Namespace) -> None:
+    from .funnel_events import observed_time
+
+    try:
+        sent_at = observed_time(args.sent_at)
+    except ValueError:
+        raise SystemExit(f"REFUSED: --sent-at must be an ISO date or datetime, got {args.sent_at!r}")
     init_db(args.db)
     with connect(args.db) as con:
         suppressed = con.execute("SELECT 1 FROM suppression WHERE identity = ?", (args.identity,)).fetchone()
@@ -215,9 +221,9 @@ def cmd_outreach_record(args: argparse.Namespace) -> None:
             """INSERT INTO outreach(
                  company, sent_at, meaningful_reply, discovery, diagnostic_proposed,
                  proposal, paid, collected_revenue_pence, notes
-               ) VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?)""",
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                args.company, int(args.meaningful_reply), int(args.discovery),
+                args.company, sent_at, int(args.meaningful_reply), int(args.discovery),
                 int(args.diagnostic_proposed), int(args.proposal), int(args.paid),
                 round(args.collected_revenue * 100), args.notes,
             ),
@@ -756,6 +762,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("outreach-record"); dbarg(p)
     p.add_argument("--company", required=True)
     p.add_argument("--identity", required=True)
+    p.add_argument("--sent-at", required=True, help="when the message was sent (ISO date or datetime)")
     p.add_argument("--meaningful-reply", action="store_true")
     p.add_argument("--discovery", action="store_true")
     p.add_argument("--diagnostic-proposed", action="store_true")

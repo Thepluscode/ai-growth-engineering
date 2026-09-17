@@ -608,11 +608,20 @@
         return;
       }
       if (action === 'reject' && !window.confirm(`Reject draft #${draft.id}? The record will be preserved.`)) return;
-      if (action === 'record-send' && !window.confirm('This does not send the message. Confirm only if you already sent it manually.')) return;
-      if (action === 'record-reply' && !window.confirm('Confirm that this recipient sent a meaningful human reply.')) return;
+      const payload = {};
+      if (action === 'record-send') {
+        const at = window.prompt('This does not send the message. When did you send it? (YYYY-MM-DD or ISO datetime)');
+        if (!at) return;
+        payload.sent_at = at.trim();
+      }
+      if (action === 'record-reply') {
+        const at = window.prompt('When did the meaningful human reply arrive? (YYYY-MM-DD or ISO datetime)');
+        if (!at) return;
+        payload.replied_at = at.trim();
+      }
       control.disabled = true;
       try {
-        const result = await mutate(`/api/outbound/drafts/${draft.id}/${action}`);
+        const result = await mutate(`/api/outbound/drafts/${draft.id}/${action}`, payload);
         const messages = { approve: 'Approved. Copy and send it manually.', reject: 'Rejected and preserved.', 'record-send': 'Manual send recorded in the commercial scoreboard.', 'record-reply': 'Meaningful reply recorded.' };
         setFeedback(`Draft #${result.draft.id}: ${messages[action]}`, 'success');
         await Promise.all([loadWorkbench(), loadState(), loadIntelligence()]);

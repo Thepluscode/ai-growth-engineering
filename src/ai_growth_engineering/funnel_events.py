@@ -71,6 +71,18 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def observed_time(value: Any) -> str:
+    """The observed time of an external fact: '' when not given, the ISO text when valid.
+
+    Malformed text raises ValueError. Callers decide what absence means — keep the value on
+    file, or refuse — but never substitute the moment of recording for it.
+    """
+    text = str(value or "").strip()
+    if text:
+        datetime.fromisoformat(text)
+    return text
+
+
 def _occurred_at(value: Any) -> str:
     text = str(value or "").strip()
     try:
