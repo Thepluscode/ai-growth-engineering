@@ -49,6 +49,10 @@ PROVENANCES = ("platform_export", "system_import", "operator_recorded", "synthet
 BLOCKED_OUTCOMES = frozenset({"undeliverable", "restricted"})
 TEXT_FIELDS = ("person_id", "company", "campaign_id", "creative_id", "audience_id", "channel",
                "experiment_id", "arm")
+# What a source record asserts. A second arrival must repeat all of it to be a replay. Metadata
+# is annotation (which file, which basis) and is deliberately not part of the fact.
+IMMUTABLE_FIELDS = ("occurred_at", "company_id", "quantity", "value_pence", "currency", "provenance",
+                    *TEXT_FIELDS)
 
 
 class EventError(ValueError):
@@ -113,9 +117,13 @@ def record_event(db_path: str, values: Mapping[str, Any]) -> dict:
     occurred_at = _occurred_at(values.get("occurred_at"))
     company_id = values.get("company_id")
     event_id = event_id_for(source, source_record_id, event_type)
+    fact = {"occurred_at": occurred_at, "company_id": None if company_id in (None, "") else int(company_id),
+            "quantity": quantity, "value_pence": value, "currency": currency, "provenance": provenance,
+            **text}
+    conflict: tuple[list[str], dict] | None = None
     with connect(db_path) as con:
         existing = con.execute(
-            """SELECT e.event_id,
+            """SELECT e.*,
                       EXISTS(SELECT 1 FROM funnel_events c WHERE c.corrects_event_id = e.event_id) AS voided
                FROM funnel_events e WHERE e.event_id = ?""", (event_id,)).fetchone()
         if existing is not None:
@@ -123,19 +131,41 @@ def record_event(db_path: str, values: Mapping[str, Any]) -> dict:
                 raise EventError("voided_event_reused",
                                  f"{event_id} was corrected away; record the new fact under a new "
                                  "source_record_id rather than reviving the voided one")
-            return {"event_id": event_id, "event_type": event_type, "inserted": False}
-        con.execute(
-            """INSERT INTO funnel_events(
-                 event_id, event_type, stage, occurred_at, person_id, company_id, company,
-                 campaign_id, creative_id, audience_id, channel, experiment_id, arm, source,
-                 source_record_id, quantity, value_pence, currency, metadata_json, provenance)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (event_id, event_type, stage, occurred_at, text["person_id"],
-             None if company_id in (None, "") else int(company_id), text["company"],
-             text["campaign_id"], text["creative_id"], text["audience_id"], text["channel"],
-             text["experiment_id"], text["arm"], source, source_record_id, quantity, value,
-             currency, json.dumps(dict(values.get("metadata") or {}), sort_keys=True), provenance))
-    return {"event_id": event_id, "event_type": event_type, "inserted": True}
+            stored = {field: existing[field] for field in IMMUTABLE_FIELDS}
+            differing = [field for field in IMMUTABLE_FIELDS if stored[field] != fact[field]]
+            if not differing:
+                return {"event_id": event_id, "event_type": event_type, "inserted": False,
+                        "status": "IDEMPOTENT_REPLAY"}
+            conflict = (differing, stored)
+        else:
+            con.execute(
+                """INSERT INTO funnel_events(
+                     event_id, event_type, stage, occurred_at, person_id, company_id, company,
+                     campaign_id, creative_id, audience_id, channel, experiment_id, arm, source,
+                     source_record_id, quantity, value_pence, currency, metadata_json, provenance)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (event_id, event_type, stage, occurred_at, text["person_id"], fact["company_id"],
+                 text["company"], text["campaign_id"], text["creative_id"], text["audience_id"],
+                 text["channel"], text["experiment_id"], text["arm"], source, source_record_id,
+                 quantity, value, currency, json.dumps(dict(values.get("metadata") or {}), sort_keys=True),
+                 provenance))
+    if conflict is not None:
+        differing, stored = conflict
+        # Audited in its own transaction, so the record survives the refusal that follows.
+        with connect(db_path) as con:
+            con.execute(
+                """INSERT INTO idempotency_conflicts(event_id, source, source_record_id, event_type,
+                     differing_fields, stored_json, attempted_json, detected_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (event_id, source, source_record_id, event_type, json.dumps(differing),
+                 json.dumps({f: stored[f] for f in differing}, sort_keys=True),
+                 json.dumps({f: fact[f] for f in differing}, sort_keys=True), _utc_now()))
+        raise EventError("idempotency_conflict",
+                         f"{source} record {source_record_id} ({event_type}) is already stored as {event_id} "
+                         f"with a different {', '.join(differing)}. The stored event is kept and the conflict "
+                         "is audited; if the source changed its account, correct the event and record the new "
+                         "fact under a new source_record_id")
+    return {"event_id": event_id, "event_type": event_type, "inserted": True, "status": "INSERTED"}
 
 
 def correct_event(db_path: str, event_id: str, reason: str, *, recorded_by: str = "operator") -> dict:

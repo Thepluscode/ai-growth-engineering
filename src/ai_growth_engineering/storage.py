@@ -254,6 +254,26 @@ BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction ins
 CREATE TRIGGER IF NOT EXISTS funnel_events_no_delete BEFORE DELETE ON funnel_events
 BEGIN SELECT RAISE(ABORT, 'funnel_events is append-only: append a correction instead'); END;
 
+-- A source identity that arrived again saying something different. The stored event is kept;
+-- the disagreement is recorded here instead of vanishing. Append-only.
+CREATE TABLE IF NOT EXISTS idempotency_conflicts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id TEXT NOT NULL REFERENCES funnel_events(event_id),
+    source TEXT NOT NULL,
+    source_record_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    differing_fields TEXT NOT NULL,
+    stored_json TEXT NOT NULL,
+    attempted_json TEXT NOT NULL,
+    detected_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS idempotency_conflicts_no_update BEFORE UPDATE ON idempotency_conflicts
+BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
+
+CREATE TRIGGER IF NOT EXISTS idempotency_conflicts_no_delete BEFORE DELETE ON idempotency_conflicts
+BEGIN SELECT RAISE(ABORT, 'idempotency_conflicts is append-only'); END;
+
 -- What a buyer said, related to who said it and the commercial event it arrived through. The
 -- observation itself is an ordinary `evidence` row; this table only links it. Append-only.
 CREATE TABLE IF NOT EXISTS commercial_evidence (
