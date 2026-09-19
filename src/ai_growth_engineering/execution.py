@@ -79,7 +79,7 @@ def freeze_execution_cohort(db_path: str, cohort_id: str, *, frozen_at: str | No
                FROM prospects p
                JOIN prospect_identities i ON i.prospect_id = p.id
                WHERE i.identity_type = 'linkedin' AND p.status LIKE 'qualified%'
-               ORDER BY p.id, i.confidence DESC, i.id"""
+               ORDER BY p.id, i.is_primary DESC, i.confidence DESC, i.id"""
         ).fetchall()
         best: dict[int, Any] = {}
         for row in rows:

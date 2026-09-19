@@ -189,6 +189,51 @@ def add_identity(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
     return dict(row)
 
 
+def set_primary_identity(db_path: str, prospect_id: int, identity_id: int) -> dict[str, Any]:
+    """Record which person at this prospect was chosen to be contacted.
+
+    Nine prospects hold more than one identity, and without a recorded choice the
+    recipient is whichever row sorts first on confidence and then insertion order —
+    a tie-break, not a decision. Demoting the previous primary in the same
+    transaction keeps the one-primary index from ever seeing two.
+    """
+    init_db(db_path)
+    with connect(db_path) as con:
+        row = con.execute(
+            "SELECT id, prospect_id, value FROM prospect_identities WHERE id = ?",
+            (identity_id,),
+        ).fetchone()
+        if row is None:
+            raise IntelligenceError("identity_not_found", "Identity does not exist")
+        if row["prospect_id"] != prospect_id:
+            raise IntelligenceError(
+                "identity_prospect_mismatch",
+                f"Identity {identity_id} belongs to prospect {row['prospect_id']}, not {prospect_id}",
+            )
+        con.execute(
+            "UPDATE prospect_identities SET is_primary = 0 WHERE prospect_id = ? AND id != ?",
+            (prospect_id, identity_id),
+        )
+        con.execute(
+            "UPDATE prospect_identities SET is_primary = 1 WHERE id = ?", (identity_id,)
+        )
+        chosen = con.execute(
+            "SELECT * FROM prospect_identities WHERE id = ?", (identity_id,)
+        ).fetchone()
+    return dict(chosen)
+
+
+def clear_primary_identity(db_path: str, prospect_id: int) -> int:
+    """Withdraw the choice. Selection falls back to the confidence tie-break."""
+    init_db(db_path)
+    with connect(db_path) as con:
+        cursor = con.execute(
+            "UPDATE prospect_identities SET is_primary = 0 WHERE prospect_id = ? AND is_primary = 1",
+            (prospect_id,),
+        )
+    return cursor.rowcount
+
+
 def get_signal(db_path: str, signal_id: str) -> dict[str, Any]:
     init_db(db_path)
     with connect(db_path) as con:
@@ -214,7 +259,8 @@ def intelligence_state(
         ).fetchall()
         identities = con.execute(
             """SELECT * FROM prospect_identities
-               ORDER BY CASE verification_status
+               ORDER BY is_primary DESC,
+                        CASE verification_status
                           WHEN 'verified' THEN 0
                           WHEN 'observed_published' THEN 1
                           WHEN 'unverified' THEN 2

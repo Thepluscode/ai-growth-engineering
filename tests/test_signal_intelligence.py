@@ -11,6 +11,8 @@ from ai_growth_engineering.signal_intelligence import (
     PublicPageEnrichmentProvider,
     add_identity,
     add_intent_signal,
+    clear_primary_identity,
+    set_primary_identity,
     extract_public_identities,
     intelligence_state,
 )
@@ -253,6 +255,153 @@ class GateResultTests(unittest.TestCase):
         self.assertEqual(gates["Signal strength >= 2/5"]["detail"], "5/5")
         self.assertEqual(gates["Signal confidence >= 0.50"]["detail"], "0.95")
         self.assertEqual(gates["Reachable identity"]["detail"], "none resolved")
+
+
+class PrimaryIdentityTests(unittest.TestCase):
+    """Nine real prospects hold more than one identity. Which person gets contacted
+    must be a recorded decision, not whichever row happens to sort first."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db = str(Path(self.tmp.name) / "g.db")
+        init_db(self.db)
+        with connect(self.db) as con:
+            for pid, company in ((1, "Acme"), (2, "Other Ltd")):
+                con.execute(
+                    """INSERT INTO prospects(id, company, website, priority, target_roles,
+                                             evidence, source_url, status)
+                       VALUES (?, ?, 'https://x.example', 'A', 'Founder',
+                               'Public B2B offer', 'https://x.example/about', 'qualified')""",
+                    (pid, company),
+                )
+        # An eligible prospect needs an observed signal, or it never reaches the queue.
+        add_intent_signal(self.db, {
+            "prospect_id": 1, "signal_type": "hiring",
+            "source_url": "https://x.example/careers",
+            "observed_fact": "A revenue operations vacancy was published.",
+            "commercial_interpretation": "May indicate investment in pipeline operations.",
+            "observed_at": "2026-08-29", "confidence": 0.9, "strength": 4,
+            "freshness_half_life_days": 21,
+        })
+        # Two people at one company, identical confidence: the tie-break is arbitrary.
+        self.first = add_identity(self.db, {
+            "prospect_id": 1, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p1/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://x.example/team", "observed_at": "2026-08-30",
+            "confidence": 0.7,
+        })
+        self.second = add_identity(self.db, {
+            "prospect_id": 1, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p2/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://x.example/team", "observed_at": "2026-08-30",
+            "confidence": 0.7,
+        })
+
+    def chosen(self):
+        state = intelligence_state(self.db, now=NOW)
+        for row in state["ranked_buyers"]:
+            if row["company"] == "Acme":
+                return row["identity"]
+        return None
+
+    def test_without_a_choice_selection_falls_to_the_arbitrary_tie_break(self):
+        """The defect this field exists to fix: equal confidence, so insertion order wins."""
+        with connect(self.db) as con:
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM prospect_identities WHERE is_primary = 1").fetchone()[0],
+                0,
+            )
+
+    def test_the_recorded_choice_outranks_higher_confidence(self):
+        """Not just a tie-break: a deliberate choice beats a better-scoring row,
+        or it is a preference rather than a decision."""
+        stronger = add_identity(self.db, {
+            "prospect_id": 1, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p3/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://x.example/team", "observed_at": "2026-08-30",
+            "confidence": 0.95,
+        })
+        self.assertEqual(self.chosen()["id"], stronger["id"])   # confidence wins by default
+        set_primary_identity(self.db, 1, self.second["id"])
+        self.assertEqual(self.chosen()["id"], self.second["id"])
+
+    def test_a_prospect_can_never_hold_two_primaries(self):
+        set_primary_identity(self.db, 1, self.first["id"])
+        set_primary_identity(self.db, 1, self.second["id"])
+        with connect(self.db) as con:
+            rows = con.execute(
+                "SELECT id FROM prospect_identities WHERE prospect_id = 1 AND is_primary = 1"
+            ).fetchall()
+        self.assertEqual([r["id"] for r in rows], [self.second["id"]])
+
+    def test_the_database_itself_refuses_a_second_primary(self):
+        """The index, not the setter. A guard only in application code is bypassed
+        by the next writer that forgets it."""
+        import sqlite3
+        set_primary_identity(self.db, 1, self.first["id"])
+        with self.assertRaises(sqlite3.IntegrityError):
+            with connect(self.db) as con:
+                con.execute(
+                    "UPDATE prospect_identities SET is_primary = 1 WHERE id = ?",
+                    (self.second["id"],),
+                )
+
+    def test_primaries_are_scoped_per_prospect(self):
+        other = add_identity(self.db, {
+            "prospect_id": 2, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p4/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://other.example/team", "observed_at": "2026-08-30",
+            "confidence": 0.7,
+        })
+        set_primary_identity(self.db, 1, self.first["id"])
+        set_primary_identity(self.db, 2, other["id"])
+        with connect(self.db) as con:
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM prospect_identities WHERE is_primary = 1").fetchone()[0],
+                2,
+            )
+
+    def test_clearing_returns_selection_to_the_tie_break(self):
+        set_primary_identity(self.db, 1, self.second["id"])
+        self.assertEqual(self.chosen()["id"], self.second["id"])
+        self.assertEqual(clear_primary_identity(self.db, 1), 1)
+        self.assertEqual(clear_primary_identity(self.db, 1), 0)   # idempotent
+        with connect(self.db) as con:
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM prospect_identities WHERE is_primary = 1").fetchone()[0],
+                0,
+            )
+
+    def test_an_identity_belonging_to_another_prospect_is_refused(self):
+        other = add_identity(self.db, {
+            "prospect_id": 2, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p4/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://other.example/team", "observed_at": "2026-08-30",
+            "confidence": 0.7,
+        })
+        with self.assertRaisesRegex(IntelligenceError, "belongs to prospect"):
+            set_primary_identity(self.db, 1, other["id"])
+        with self.assertRaisesRegex(IntelligenceError, "does not exist"):
+            set_primary_identity(self.db, 1, 99999)
+
+    def test_re_adding_the_same_identity_does_not_drop_the_choice(self):
+        """add_identity upserts. If it reset is_primary, every rescan would silently
+        withdraw a decision a person made."""
+        set_primary_identity(self.db, 1, self.second["id"])
+        add_identity(self.db, {
+            "prospect_id": 1, "identity_type": "linkedin",
+            "value": "https://www.linkedin.com/in/example-buyer-p2/",
+            "provider": "public_page", "verification_status": "observed_published",
+            "source_url": "https://x.example/team", "observed_at": "2026-09-19",
+            "confidence": 0.9,
+        })
+        self.assertEqual(self.chosen()["id"], self.second["id"])
 
 
 if __name__ == "__main__":

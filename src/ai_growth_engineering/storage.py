@@ -575,6 +575,13 @@ def _rename_kill_to_review(con: sqlite3.Connection) -> list[str]:
     return changed
 
 
+IDENTITY_COLUMNS = (
+    # Which identity a human chose for this prospect. Without it the recipient is
+    # whichever row sorts first, and an arbitrary tie-break is not a decision.
+    ("is_primary", "INTEGER NOT NULL DEFAULT 0"),
+)
+
+
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
     # Added 2026-08-27 after EXP-ACQ-0001 discovered that 48 of its 50 "qualified
@@ -591,6 +598,24 @@ OUTREACH_COLUMNS = (
 )
 
 
+def _one_primary_identity_index(con: sqlite3.Connection) -> list[str]:
+    """At most one primary identity per prospect, enforced by the database.
+
+    A partial unique index rather than a CHECK, because the invariant is across rows:
+    two people at one company is normal, two *chosen* people is a contradiction. Created
+    here rather than in SCHEMA because SCHEMA runs before the column is migrated in.
+    """
+    name = "idx_prospect_identities_one_primary"
+    if con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?", (name,)
+    ).fetchone():
+        return []
+    con.execute(
+        f"CREATE UNIQUE INDEX {name} ON prospect_identities(prospect_id) WHERE is_primary = 1"
+    )
+    return [name]
+
+
 def migrate(con: sqlite3.Connection) -> list[str]:
     """Bring an existing database up to the current schema. Returns what it added."""
     return (
@@ -598,6 +623,8 @@ def migrate(con: sqlite3.Connection) -> list[str]:
         + _add_missing_columns(con, "outreach", OUTREACH_COLUMNS)
         + _add_missing_columns(con, "experiments", EXPERIMENT_CONTRACT_COLUMNS)
         + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
+        + _add_missing_columns(con, "prospect_identities", IDENTITY_COLUMNS)
+        + _one_primary_identity_index(con)
     )
 
 
