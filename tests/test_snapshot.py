@@ -141,6 +141,16 @@ class DocsCheck(Case):
         self.assertEqual(docs_check.check_markers(markers, state), [])
         self.assertGreaterEqual(docs_check.marker_count(markers), docs_check.MIN_MARKERS)
 
+    def test_a_tracker_status_outside_the_ladder_fails(self):
+        doc = self.doc("| Capability | Status | Evidence |\n| --- | --- | --- |\n"
+                       "| A | VERIFIED LOCAL (synthetic) | tests |\n| B | TESTED | tests |\n")
+        problems = docs_check.check_tracker(doc)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("VERIFIED LOCAL", problems[0])
+
+    def test_the_repository_tracker_uses_only_the_ladder(self):
+        self.assertEqual(docs_check.check_tracker(ROOT / "FEATURE_TRACKER.md"), [])
+
     def test_the_selftest_runs_its_own_controls(self):
         self.assertEqual(docs_check.selftest(), 0)
 

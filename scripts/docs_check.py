@@ -105,6 +105,26 @@ def check_store(state: dict, db_path: str | Path) -> tuple[list[str], bool]:
             for k in keys if live.get(k) != recorded.get(k)], True
 
 
+# The four claim levels, never collapsed (implemented -> tested -> production-observed ->
+# customer-validated), plus the states either side of them. One label per row.
+STATUSES = ("PLANNED", "IN_PROGRESS", "BLOCKED", "IMPLEMENTED", "TESTED", "PRODUCTION_OBSERVED",
+            "CUSTOMER_VALIDATED", "RECORDED", "WITHDRAWN", "SUPERSEDED")
+TRACKER = ROOT / "FEATURE_TRACKER.md"
+
+
+def check_tracker(path: Path) -> list[str]:
+    problems = []
+    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.startswith("|") or set(line.strip()) <= set("|-: "):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 3 or cells[1] in ("Status", "State"):
+            continue
+        if cells[1] not in STATUSES:
+            problems.append(f"{path.name}:{lineno}: status {cells[1][:40]!r} is not one of {', '.join(STATUSES)}")
+    return problems
+
+
 def check_historical(root: Path) -> list[str]:
     problems = []
     for name in HISTORICAL:
@@ -154,7 +174,8 @@ def main(argv: list[str]) -> int:
         print(f"docs_check: rewrote markers in {sync_markers(docs, state)} file(s)")
         return 0
     count = marker_count(docs)
-    problems = check_capabilities(state) + check_markers(docs, state) + check_historical(ROOT)
+    problems = (check_capabilities(state) + check_markers(docs, state) + check_historical(ROOT)
+                + check_tracker(TRACKER))
     store_problems, store_checked = check_store(state, STORE)
     problems += store_problems
     if count < MIN_MARKERS:
