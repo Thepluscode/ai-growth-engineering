@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -72,11 +74,41 @@ def store_state(db_path: str) -> dict:
 
 
 def snapshot(db_path: str) -> dict:
+    """Deterministic. Regenerating an unchanged store gives an identical result, which is
+    what lets docs_check compare the file to the store and call the difference drift."""
     return {"schema": SCHEMA, "capabilities": capability_state(), "store": store_state(db_path)}
 
 
-def write(db_path: str, path: str | Path) -> dict:
-    state = snapshot(db_path)
+def _git(root: str | Path, *args: str) -> str:
+    try:
+        out = subprocess.run(["git", "-C", str(root), *args],
+                             capture_output=True, text=True, timeout=15)
+        return out.stdout.strip() if out.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def runtime_state(root: str | Path) -> dict:
+    """The volatile half: when this was generated and against which commit.
+
+    Kept out of `snapshot` on purpose. Those values change on every run, and folding them
+    into the deterministic part would make every regeneration look like drift. A reader
+    needs both — one to compare, one to know whether the comparison is current.
+
+    UNKNOWN where git cannot answer, never a guess: a state file that cannot say which
+    commit it describes is unknown, not current.
+    """
+    head = _git(root, "rev-parse", "HEAD")
+    status = _git(root, "status", "--porcelain")
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "git_head": head or "UNKNOWN",
+        "git_dirty": len([x for x in status.splitlines() if x.strip()]) if head else "UNKNOWN",
+    }
+
+
+def write(db_path: str, path: str | Path, *, root: str | Path | None = None) -> dict:
+    state = {**snapshot(db_path), "runtime": runtime_state(root or Path(path).resolve().parent.parent)}
     Path(path).write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return state
 

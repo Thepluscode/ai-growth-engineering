@@ -1,0 +1,93 @@
+# The authoritative current task. This file decides what gets worked on.
+#
+# No counts, SHAs or experiment figures live here — they change, and a stale number in an
+# authority file is worse than no number. They are generated into docs/STATE.json by
+# `make snapshot` and read from there.
+#
+# Changing `active` requires one of the conditions in `task_switch_requires` below, and
+# the switch is recorded in `history`. Discovery is not authorisation.
+
+schema: age-active-work.v1
+project: ai-growth-engineering
+canonical_path: ~/projects/ai/ai-growth-engineering
+
+active:
+  task: continuity_reference_implementation
+  priority: P3
+  status: ACTIVE
+  approved_by: founder
+  started_at: 2026-09-20
+  definition: >
+    Make this repository the reference implementation of the ThePlus continuity contract:
+    thin CLAUDE.md, stable AGENT_CONTEXT.md, this file, generated docs/STATE.json, a
+    bounded PARKING_LOT.md, and a preflight that can prove all of them.
+  done_when:
+    - a fresh session entering the canonical repo recovers mission, task and gates
+      without reading any prior conversation
+    - preflight exits 0 on a healthy canonical checkout
+    - preflight exits non-zero on the deviated path, on missing ACTIVE_WORK, and on
+      stale or unprovable generated state
+
+completed:
+  - task: age_canonical_integrity_hardening
+    closed_at: 2026-09-20
+    result: >
+      All ten independently confirmed integrity findings verified by mutation against a
+      green baseline. Zero OPEN. The tenth gap — staged-verdict cross-experiment
+      isolation — was test coverage, not a production defect.
+  - task: theplus_continuity_bootstrap
+    closed_at: 2026-09-20
+    result: >
+      Global source-of-truth precedence, four continuity invariants, P0-P6 priority model
+      and a fail-closed preflight. Committed and pushed in theplus-tech-knowledge.
+
+parked:
+  - task: market_hypothesis_layer
+    status: DESIGN_READY
+    reason: >
+      Design accepted. Markets become first-class with per-layer evidence
+      (RESEARCH/ACCESS/DEMAND/COMMERCIAL/PAID) and no pooling of non-comparable
+      experiments. Held behind the continuity reference implementation.
+    see: PARKING_LOT.md
+  - task: sessionstart_enforcement_hook
+    status: PARKED_UNTIL_REFERENCE_IMPLEMENTATION
+    reason: >
+      No repository has ACTIVE_WORK.yaml yet and most generated state cannot prove its
+      age. Fail-closing session start today would block legitimate work across the
+      portfolio. Needs enforcement mode for migrated repos and advisory for the rest.
+  - task: portfolio_continuity_rollout
+    status: NOT_ACTIVE
+    reason: AGE proves the pattern first.
+
+dated_gates:
+  - id: EXP-ACQ-0006
+    action: mature_verdict
+    not_before: 2026-09-22
+    note: judge-not-before is enforced in code; a negative verdict waits, a PASS does not
+  - id: EXP-ACQ-0003-ACORA
+    action: maturity_review
+    not_before: 2026-09-23
+  - id: EXP-ACQ-0003
+    action: main_cohort_maturity
+    not_before: 2026-09-29
+
+next_after_active:
+  - sessionstart_hook_design      # design only; installation is a separate decision
+  - market_hypothesis_layer
+
+task_switch_requires:
+  - FOUNDER_OVERRIDE
+  - CURRENT_TASK_COMPLETED
+  - RELEASE_CONDITION_MET
+  - VERIFIED_P0_P1_INTERRUPT
+
+history:
+  - at: 2026-09-20
+    from: age_canonical_integrity_hardening
+    to: continuity_reference_implementation
+    condition: CURRENT_TASK_COMPLETED
+    reason: >
+      Ten of ten integrity findings independently verified by mutation; the P1 queue is
+      closed.
+    evidence: "make test 652 OK; ten mutation kills; AGE f7bcfeb"
+    approved_by: founder

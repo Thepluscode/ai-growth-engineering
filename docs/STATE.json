@@ -6,6 +6,11 @@
     "domains": 8,
     "total": 215
   },
+  "runtime": {
+    "generated_at": "2026-09-20T11:43:24+00:00",
+    "git_dirty": 1,
+    "git_head": "f7bcfeb4f62977becc90b8a7b269c577464cdf10"
+  },
   "schema": "age-state.v1",
   "store": {
     "events": {
