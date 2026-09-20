@@ -172,5 +172,84 @@ class GateTests(VerdictCase):
         self.assertEqual(self.run_verdict(), first)
 
 
+
+OTHER = "EXP-ACQ-0010"
+OTHER_RULES = {**copy.deepcopy(RULES), "experiment_id": OTHER}
+
+
+class CrossExperimentIsolationTests(VerdictCase):
+    """A verdict must read only its own experiment's records.
+
+    Found by mutation: removing either `experiment_id` filter in
+    `staged_verdict._responses` killed nothing, because every fixture here used a
+    single experiment. A verdict silently computed over a neighbour's exposures and
+    buyer evidence is wrong in exactly the way the cross-experiment leakage finding
+    described — and nothing would have said so.
+    """
+
+    FIELDS = ("status", "delivered_exposures", "matured_exposures", "immature_exposures",
+              "attempted_exposures", "human_replies", "route_confirmed", "failure_point",
+              "commercial_interpretation", "next_decision", "uncertainty", "final_maturity_date")
+
+    def seed_other(self):
+        """Experiment B: louder than A on every axis the verdict reads.
+
+        Replies land on companies A never contacted, so a leak cannot be mistaken for
+        A's own data, and the demand categories are ones A has none of.
+        """
+        link_outbound(self.db, [
+            {"message_id": f"o{i}", "thread_id": f"ot{i}", "recipient": f"first.last@o{i}.test",
+             "company": f"Other Co {i:02d}", "experiment_id": OTHER, "sent_at": "2026-09-01T09:00:00Z"}
+            for i in range(40)])
+        import_outbound_sends(self.db, OTHER)
+        for i in range(12):
+            event = record_event(self.db, {
+                "event_type": "reply_received", "company": f"Other Co {i:02d}", "experiment_id": OTHER,
+                "source": "gmail", "source_record_id": f"other-reply-{i}",
+                "occurred_at": "2026-09-03T10:00:00Z", "provenance": "platform_export"})["event_id"]
+            record_commercial_evidence(
+                self.db, statement=f"We have a real problem with this today, case {i}.",
+                categories=("PROBLEM_STATED", "PAIN_CONFIRMED", "PROPOSAL_REQUESTED"),
+                source="gmail", source_record_id=f"other-reply-{i}", occurred_at="2026-09-03T10:00:00Z",
+                provenance="platform_export", company=f"Other Co {i:02d}", source_event_id=event,
+                experiment_id=OTHER)
+
+    def slice_of(self, v):
+        return {k: v[k] for k in self.FIELDS if k in v}
+
+    def test_experiment_bs_exposures_and_evidence_never_reach_as_verdict(self):
+        self.checked()
+        before = self.slice_of(self.run_verdict())
+        self.assertEqual(before["delivered_exposures"], 20)   # floor: the fixture really ran
+
+        self.seed_other()
+        after = self.slice_of(self.run_verdict())
+
+        self.assertEqual(after, before)
+        # named explicitly, so a future field addition cannot quietly drop the count check
+        self.assertEqual(after["delivered_exposures"], 20)
+        self.assertEqual(after["human_replies"], before["human_replies"])
+
+    def test_bs_data_is_visible_when_b_itself_is_judged(self):
+        """Isolation, not an inert fixture: B must be loud when B is the subject."""
+        self.seed_other()
+        check(self.db, OTHER, {"threads": []}, mailbox=MAILBOX)
+        b = self.run_verdict(rules=OTHER_RULES)
+        self.assertEqual(b["delivered_exposures"], 40)
+        self.assertEqual(b["human_replies"], 12)
+        a = self.run_verdict()
+        self.assertNotEqual(a["delivered_exposures"], b["delivered_exposures"])
+        self.assertNotEqual(a["human_replies"], b["human_replies"])
+
+    def test_bs_buyer_evidence_does_not_enter_as_interpretation(self):
+        self.checked()
+        before = self.run_verdict()
+        self.seed_other()
+        after = self.run_verdict()
+        self.assertEqual(after["commercial_interpretation"], before["commercial_interpretation"])
+        self.assertEqual(after["failure_point"], before["failure_point"])
+        self.assertNotIn("demand evidence", after["commercial_interpretation"])
+
+
 if __name__ == "__main__":
     unittest.main()
