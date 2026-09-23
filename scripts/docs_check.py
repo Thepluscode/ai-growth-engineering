@@ -206,7 +206,7 @@ def main(argv: list[str]) -> int:
     skipped = unchecked_store_markers(docs, state)
     if skipped:
         store_note += f"; {skipped} store marker(s) NOT CHECKED (state generated with local_only_operational=UNAVAILABLE)"
-    print(f"docs_check: {count} markers in {len(docs)} files match docs/STATE.json; capability inventory matches "
+    print(f"docs_check: {count - skipped} markers in {len(docs)} files match docs/STATE.json; capability inventory matches "
           f"capability_map.json; {len(HISTORICAL)} historical files bannered; {store_note}")
     return 0
 
