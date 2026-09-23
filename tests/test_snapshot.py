@@ -74,6 +74,22 @@ class Snapshot(Case):
                                "provenance": "operator_recorded"})
         self.assertNotEqual(store_state(self.db)["events"]["log_sha256"], before)
 
+    def test_an_absent_private_store_is_unavailable_not_empty(self):
+        # A fresh clone has no .age/growth.db. Repository state must still generate; the store
+        # half must say UNAVAILABLE rather than zeros, and reading it must not create one.
+        absent = self.root / "private" / "growth.db"
+        state = snapshot(str(absent))
+        self.assertEqual(state["local_only_operational"], "UNAVAILABLE")
+        self.assertNotIn("store", state)
+        self.assertEqual(state["capabilities"], capability_state())
+        self.assertFalse(absent.exists())
+        self.assertFalse(absent.parent.exists())
+
+    def test_a_present_store_is_available(self):
+        state = snapshot(self.db)
+        self.assertEqual(state["local_only_operational"], "AVAILABLE")
+        self.assertEqual(state["store"], store_state(self.db))
+
     def test_flatten_gives_dotted_keys(self):
         flat = flatten({"a": {"b": 1, "c": {"d": "x"}}})
         self.assertEqual(flat, {"a.b": 1, "a.c.d": "x"})
@@ -133,6 +149,19 @@ class DocsCheck(Case):
     def test_no_store_is_reported_as_not_checked_never_as_a_pass(self):
         problems, checked = docs_check.check_store(snapshot(self.db), str(self.root / "absent.db"))
         self.assertEqual((problems, checked), ([], False))
+
+    def test_store_markers_are_not_checked_when_the_store_is_unavailable(self):
+        state = snapshot(str(self.root / "absent.db"))
+        doc = self.doc("<!-- state:store.events.effective -->7<!-- /state -->\n")
+        self.assertEqual(docs_check.check_markers([doc], state), [])
+        self.assertEqual(docs_check.unchecked_store_markers([doc], state), 1)
+        # Only the store half is exempt; a wrong repository figure still fails.
+        doc = self.doc("<!-- state:capabilities.total -->1<!-- /state -->\n")
+        self.assertTrue(docs_check.check_markers([doc], state))
+
+    def test_store_markers_are_checked_when_the_store_is_available(self):
+        doc = self.doc("<!-- state:store.events.effective -->7<!-- /state -->\n")
+        self.assertTrue(docs_check.check_markers([doc], snapshot(self.db)))
 
     def test_the_repository_itself_is_consistent(self):
         state = json.loads((ROOT / "docs" / "STATE.json").read_text(encoding="utf-8"))

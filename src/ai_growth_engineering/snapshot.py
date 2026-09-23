@@ -75,8 +75,17 @@ def store_state(db_path: str) -> dict:
 
 def snapshot(db_path: str) -> dict:
     """Deterministic. Regenerating an unchanged store gives an identical result, which is
-    what lets docs_check compare the file to the store and call the difference drift."""
-    return {"schema": SCHEMA, "capabilities": capability_state(), "store": store_state(db_path)}
+    what lets docs_check compare the file to the store and call the difference drift.
+
+    The store is private and gitignored, so a fresh clone has none. Repository state still
+    generates; the store half is declared UNAVAILABLE and omitted — never zeros, never the
+    last committed figures carried forward — and the path is not touched, because
+    `connect` would create an empty store that then reads as a real one.
+    """
+    state = {"schema": SCHEMA, "capabilities": capability_state()}
+    if not Path(db_path).is_file():
+        return {**state, "local_only_operational": "UNAVAILABLE"}
+    return {**state, "local_only_operational": "AVAILABLE", "store": store_state(db_path)}
 
 
 def _git(root: str | Path, *args: str) -> str:

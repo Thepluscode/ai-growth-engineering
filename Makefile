@@ -62,7 +62,7 @@ clean:
 # The store is private; the snapshot is the PII-free summary docs cite. Generated from a copy so
 # producing it never migrates the store.
 snapshot:
-	cp $(DB) .age/snapshot-source.db && PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli snapshot --db .age/snapshot-source.db --write docs/STATE.json; rc=$$?; rm -f .age/snapshot-source.db; exit $$rc
+	rm -f .age/snapshot-source.db; if [ -f $(DB) ]; then cp $(DB) .age/snapshot-source.db; fi; PYTHONPATH=$(PYTHONPATH) $(PY) -m ai_growth_engineering.cli snapshot --db .age/snapshot-source.db --write docs/STATE.json; rc=$$?; rm -f .age/snapshot-source.db; exit $$rc
 
 docs-sync:
 	$(PY) scripts/docs_check.py --sync

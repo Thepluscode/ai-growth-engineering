@@ -60,11 +60,25 @@ def _value(value) -> str:
     return json.dumps(value) if isinstance(value, (bool, type(None))) else str(value)
 
 
+def _store_unavailable(state: dict) -> bool:
+    return state.get("local_only_operational") == "UNAVAILABLE"
+
+
+def unchecked_store_markers(paths: list[Path], state: dict) -> int:
+    """Store markers skipped because the state was generated without the private store."""
+    if not _store_unavailable(state):
+        return 0
+    return sum(key.startswith("store.") for p in paths
+               for key, _ in MARKER.findall(p.read_text(encoding="utf-8")))
+
+
 def check_markers(paths: list[Path], state: dict) -> list[str]:
     flat = flatten(state)
     problems = []
     for path in paths:
         for key, shown in MARKER.findall(path.read_text(encoding="utf-8")):
+            if key.startswith("store.") and _store_unavailable(state):
+                continue  # reported as NOT CHECKED by main(), never as a pass
             if key not in flat:
                 problems.append(f"{path.name}: marker {key!r} names nothing in the state file")
             elif shown.strip() != _value(flat[key]):
@@ -189,6 +203,9 @@ def main(argv: list[str]) -> int:
         return 1
     store_note = "store section matches the local store" if store_checked else \
         "store section NOT CHECKED (no local store at .age/growth.db)"
+    skipped = unchecked_store_markers(docs, state)
+    if skipped:
+        store_note += f"; {skipped} store marker(s) NOT CHECKED (state generated with local_only_operational=UNAVAILABLE)"
     print(f"docs_check: {count} markers in {len(docs)} files match docs/STATE.json; capability inventory matches "
           f"capability_map.json; {len(HISTORICAL)} historical files bannered; {store_note}")
     return 0
