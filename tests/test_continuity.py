@@ -30,10 +30,35 @@ class PreflightContract(unittest.TestCase):
 
     @unittest.skipUnless(PREFLIGHT.exists(), "global preflight not installed")
     def test_a_healthy_canonical_checkout_succeeds(self):
-        code, text = preflight(ROOT)
+        # Built here, not read from this checkout: whether the live STATE.json is fresh
+        # is a fact about the day the suite runs, and asserting it made this test a
+        # monitor that went red whenever nobody had run `make snapshot` for 24 hours.
+        from datetime import datetime, timezone
+        env = {"PATH": "/usr/bin:/bin", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            (repo / "docs").mkdir(parents=True)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            (repo / "AGENT_CONTEXT.md").write_text("# charter\n")
+            (repo / "ACTIVE_WORK.yaml").write_text("active:\n  task: healthy_task\n")
+            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "x", "--no-gpg-sign"],
+                           check=True, env={**env, "HOME": tmp})
+            head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+            (repo / "docs" / "STATE.json").write_text(json.dumps({"runtime": {
+                "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "git_head": head}}))
+            code, text = preflight(repo)
         self.assertEqual(code, 0, text)
         self.assertIn("canonical  yes", text)
-        self.assertIn("continuity_reference_implementation", text)
+        self.assertIn("STATE_OK", text)
+        self.assertIn("healthy_task", text)
+
+    def test_this_checkout_names_its_active_task(self):
+        # The stable half of the old live assertion: the authority file itself.
+        self.assertIn("task: continuity_reference_implementation", ACTIVE.read_text())
 
     @unittest.skipUnless(PREFLIGHT.exists(), "global preflight not installed")
     def test_the_deviated_age_path_fails_closed(self):
@@ -77,7 +102,8 @@ class PreflightContract(unittest.TestCase):
                 "generated_at": "2099-01-01T00:00:00+00:00", "git_head": "0" * 40}}))
             code, text = preflight(repo)
             self.assertNotEqual(code, 0, text)
-            self.assertIn("STALE", text)
+            # preflight names this case precisely since it split HEAD mismatch from age.
+            self.assertIn("STATE_HEAD_MISMATCH", text)
 
     @unittest.skipUnless(PREFLIGHT.exists(), "global preflight not installed")
     def test_state_that_cannot_prove_its_age_is_not_called_fresh(self):
