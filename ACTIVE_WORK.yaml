@@ -12,23 +12,27 @@ project: ai-growth-engineering
 canonical_path: ~/projects/ai/ai-growth-engineering
 
 active:
-  task: continuity_reference_implementation
+  task: sessionstart_hook_design
   priority: P3
   status: ACTIVE
   approved_by: founder
-  started_at: 2026-09-20
+  started_at: 2026-09-26
   definition: >
-    Make this repository the reference implementation of the ThePlus continuity contract:
-    thin CLAUDE.md, stable AGENT_CONTEXT.md, this file, generated docs/STATE.json, a
-    bounded PARKING_LOT.md, and a preflight that can prove all of them.
+    Design only. Specify how preflight runs at session start: enforcement in migrated
+    repositories, advisory in the rest, and how a repository proves it is migrated.
+    Installation is a separate founder decision and is not part of this task.
   done_when:
-    - a fresh session entering the canonical repo recovers mission, task and gates
-      without reading any prior conversation
-    - preflight exits 0 on a healthy canonical checkout
-    - preflight exits non-zero on the deviated path, on missing ACTIVE_WORK, and on
-      stale or unprovable generated state
-
+    - a written design names the trigger, the migrated/unmigrated test, the exit-code
+      contract, the bypass, and what a failed check shows the session
+    - the design states how advisory mode is retired when migration completes
+    - nothing is installed into any settings file or hook directory
 completed:
+  - task: continuity_reference_implementation
+    closed_at: 2026-09-26
+    result: >
+      A fresh session recovered mission, task and gates from the repository alone;
+      preflight exits 0 on the healthy canonical checkout and fails closed on the
+      deviated path, missing ACTIVE_WORK and stale or unprovable state, each under test.
   - task: age_canonical_integrity_hardening
     closed_at: 2026-09-20
     result: >
@@ -49,12 +53,6 @@ parked:
       (RESEARCH/ACCESS/DEMAND/COMMERCIAL/PAID) and no pooling of non-comparable
       experiments. Held behind the continuity reference implementation.
     see: PARKING_LOT.md
-  - task: sessionstart_enforcement_hook
-    status: PARKED_UNTIL_REFERENCE_IMPLEMENTATION
-    reason: >
-      No repository has ACTIVE_WORK.yaml yet and most generated state cannot prove its
-      age. Fail-closing session start today would block legitimate work across the
-      portfolio. Needs enforcement mode for migrated repos and advisory for the rest.
   - task: portfolio_continuity_rollout
     status: NOT_ACTIVE
     reason: AGE proves the pattern first.
@@ -72,7 +70,6 @@ dated_gates:
     not_before: 2026-09-29
 
 next_after_active:
-  - sessionstart_hook_design      # design only; installation is a separate decision
   - market_hypothesis_layer
 
 task_switch_requires:
@@ -90,4 +87,13 @@ history:
       Ten of ten integrity findings independently verified by mutation; the P1 queue is
       closed.
     evidence: "make test 652 OK; ten mutation kills; AGE f7bcfeb"
+    approved_by: founder
+  - at: 2026-09-26
+    from: continuity_reference_implementation
+    to: sessionstart_hook_design
+    condition: CURRENT_TASK_COMPLETED
+    reason: >
+      All three done_when criteria met; the sessionstart hook's release condition (a
+      reference implementation exists) is therefore also met.
+    evidence: "make test OK; tests/test_continuity.py covers each preflight failure mode"
     approved_by: founder

@@ -8,9 +8,9 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-09-23T10:23:08+00:00",
-    "git_dirty": 5,
-    "git_head": "84e6953137ca66ba50fb02aac619b5e983bb6df6"
+    "generated_at": "2026-09-26T17:23:29+00:00",
+    "git_dirty": 0,
+    "git_head": "c953aff1a1c3212a2a925f4dbc4498869f8743bf"
   },
   "schema": "age-state.v1",
   "store": {

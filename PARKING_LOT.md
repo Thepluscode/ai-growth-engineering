@@ -30,22 +30,6 @@ routing attempts are access evidence, not demand exposures, by their own preregi
 
 ---
 
-## SessionStart enforcement hook
-
-**Status:** `PARKED_UNTIL_REFERENCE_IMPLEMENTATION`
-
-Preflight is manual. Wiring it to session start would make the continuity contract
-structural rather than prose.
-
-**Why it waits:** no repository has `ACTIVE_WORK.yaml` yet, and most generated state
-cannot prove its age. Fail-closing today would block legitimate work across every
-unmigrated repository — a safeguard turned into a denial of service.
-
-**Shape when it lands:** migrated repository → enforcement; unmigrated → advisory.
-Advisory mode disappears when migration completes.
-
----
-
 ## Portfolio continuity rollout
 
 **Status:** `NOT_ACTIVE`
