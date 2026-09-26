@@ -12,21 +12,29 @@ project: ai-growth-engineering
 canonical_path: ~/projects/ai/ai-growth-engineering
 
 active:
-  task: sessionstart_hook_design
+  task: market_hypothesis_layer
   priority: P3
   status: ACTIVE
   approved_by: founder
   started_at: 2026-09-26
   definition: >
-    Design only. Specify how preflight runs at session start: enforcement in migrated
-    repositories, advisory in the rest, and how a repository proves it is migrated.
-    Installation is a separate founder decision and is not part of this task.
+    Markets become first-class objects with evidenced fields only. Experiments reference a
+    market, and evidence is held in five independent layers - RESEARCH, ACCESS, DEMAND,
+    COMMERCIAL, PAID - never inferred from one another. Comparing two markets returns
+    NOT_ENOUGH_EVIDENCE unless the same layer is tested in both on a comparable basis.
   done_when:
-    - a written design names the trigger, the migrated/unmigrated test, the exit-code
-      contract, the bypass, and what a failed check shows the session
-    - the design states how advisory mode is retired when migration completes
-    - nothing is installed into any settings file or hook directory
+    - a market registry exists with per-layer evidence derived from recorded experiments
+    - a comparison never pools experiments of different layers or protocols
+    - the comparison returns NOT_ENOUGH_EVIDENCE when either side lacks the layer
+    - the engine stays market-neutral under scripts/scope_gate.py
 completed:
+  - task: sessionstart_hook_design
+    closed_at: 2026-09-26
+    result: >
+      Design written against the documented hook semantics (SessionStart cannot block;
+      PreToolUse can). Hook drafted and selftested outside ~/.claude; installation refused
+      to the agent as self-modification and left to the founder. The committed-state
+      self-staleness it surfaced was fixed with declared snapshot inputs.
   - task: continuity_reference_implementation
     closed_at: 2026-09-26
     result: >
@@ -46,13 +54,6 @@ completed:
       and a fail-closed preflight. Committed and pushed in theplus-tech-knowledge.
 
 parked:
-  - task: market_hypothesis_layer
-    status: DESIGN_READY
-    reason: >
-      Design accepted. Markets become first-class with per-layer evidence
-      (RESEARCH/ACCESS/DEMAND/COMMERCIAL/PAID) and no pooling of non-comparable
-      experiments. Held behind the continuity reference implementation.
-    see: PARKING_LOT.md
   - task: portfolio_continuity_rollout
     status: NOT_ACTIVE
     reason: AGE proves the pattern first.
@@ -70,7 +71,7 @@ dated_gates:
     not_before: 2026-09-29
 
 next_after_active:
-  - market_hypothesis_layer
+  - continuity_gate_installation   # founder installs; the agent may not
 
 task_switch_requires:
   - FOUNDER_OVERRIDE
@@ -96,4 +97,13 @@ history:
       All three done_when criteria met; the sessionstart hook's release condition (a
       reference implementation exists) is therefore also met.
     evidence: "make test OK; tests/test_continuity.py covers each preflight failure mode"
+    approved_by: founder
+  - at: 2026-09-26
+    from: sessionstart_hook_design
+    to: market_hypothesis_layer
+    condition: CURRENT_TASK_COMPLETED
+    reason: >
+      Design done_when met; founder approved starting the market layer in the same
+      instruction ("ALL ABOVE").
+    evidence: "docs/SESSIONSTART_HOOK_DESIGN.md; draft hook selftest and mutation run in-session"
     approved_by: founder

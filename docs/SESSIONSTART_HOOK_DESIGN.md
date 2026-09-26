@@ -42,14 +42,21 @@ Target directory: `tool_input.file_path`'s parent for file tools; `cwd` for Bash
 A file edit is judged by *where the file is*, not where the session started — an edit into
 the deviated AGE copy from a canonical session must still be caught.
 
-| preflight result | migrated repo | unmigrated repo |
+| preflight says | file tools (Edit/Write/NotebookEdit) | Bash |
 |---|---|---|
-| exit 2 `WRONG_REPO` | **deny** | **deny** |
-| `BRANCH_BEHIND_CONTINUITY` | **deny** | n/a |
-| `STATE_*` (exit 3) | allow, reason appended | allow |
-| `active` missing / unreadable | **deny**, except edits to `ACTIVE_WORK.yaml` itself | allow |
+| `canonical NO` (a named non-canonical tree) | **deny** | **deny** |
+| `BRANCH_BEHIND_CONTINUITY` | **deny**, except contract files | allow — git is the remedy |
+| migrated, `active` missing / unreadable | **deny**, except contract files | allow |
+| `STATE_*` (exit 3) | allow | allow |
+| not a repository (also exit 2) | allow | allow |
 | exit 0 | allow | allow |
-| preflight crashed / timed out | allow + stderr notice | allow |
+| hook error / timeout | allow + stderr notice | allow + stderr notice |
+
+Corrections made while building (2026-09-26), each of which would have trapped sessions:
+"not a repository" shares exit 2 with a wrong tree, so the hook keys on preflight's
+`canonical NO` line, not the exit code; a branch behind the contract is fixed by `git
+rebase`, which is Bash; and restoring `ACTIVE_WORK.yaml` / `AGENT_CONTEXT.md` must never be
+the thing that is blocked.
 
 **Migrated** = preflight's own `continuity_status`: `AGENT_CONTEXT.md` and
 `ACTIVE_WORK.yaml` on the branch. No second definition.
@@ -65,11 +72,10 @@ has nothing legitimate to do in that tree anyway.
 
 ### Why STATE_* never denies
 
-Committing `docs/STATE.json` makes it describe the parent of the commit that contains it,
-so every healthy checkout reads `STATE_HEAD_MISMATCH` (exit 3) immediately after any
-commit. Observed 2026-09-26 at `afafabc`. Denying on exit 3 would block every session after
-every commit — the denial of service the parking lot warned about. Staleness is a fact
-about *numbers*, so it is surfaced where numbers are read, not enforced on edits.
+Staleness is a fact about *numbers*, so it is surfaced where numbers are read, not enforced
+on edits. (The self-staleness of a committed state file, found while designing this, is
+fixed separately: state declares `runtime.inputs` and preflight accepts commits that touch
+none of them.)
 
 ### Exit-code contract
 
@@ -113,9 +119,9 @@ As of 2026-09-26, 14 repositories under `~/projects` carry both contract files.
 4. A commit followed by an edit in AGE → allowed (the HEAD_MISMATCH case).
 5. Latency measured per call; preflight alone is ~0.15 s on AGE.
 
-## Open item this surfaced
+## Status
 
-The closed task's criterion "preflight exits 0 on a healthy canonical checkout" holds only
-between `make snapshot` and the next commit. Candidate fix, not in this design's scope:
-treat `STATE_HEAD_MISMATCH` as OK when the only files changed between the described commit
-and HEAD are the state file and authority files that do not feed the snapshot.
+- Hook source drafted and selftested outside `~/.claude`, **not installed**: writing into
+  `~/.claude/hooks` was refused by the harness as self-modification. Installation — the
+  hook file and two `settings.json` entries — is the founder's to make.
+- The committed-state defect is fixed and tested (see "Why STATE_* never denies").

@@ -187,12 +187,14 @@ class AuthorityFiles(unittest.TestCase):
         self.assertRegex(text, r"(?m)^history:")
         self.assertIn("condition:", text)
 
-    def test_the_market_layer_is_parked_not_active(self):
+    def test_the_active_task_arrived_by_a_recorded_switch(self):
+        """A task becomes active only through a history entry naming it, so promoting a
+        parked item without recording why fails here. Independent of which task it is."""
         text = ACTIVE.read_text()
-        active_block = text.split("active:", 1)[1].split("\ncompleted:", 1)[0]
-        self.assertNotIn("market_hypothesis_layer", active_block)
-        self.assertIn("market_hypothesis_layer", text.split("parked:", 1)[1])
-        self.assertIn("Market Hypothesis", (ROOT / "PARKING_LOT.md").read_text())
+        task = re.search(r"(?m)^active:\n(?:\s+.*\n)*?\s+task:\s+(\S+)", text).group(1)
+        last_to = re.findall(r"(?m)^\s+to:\s+(\S+)", text.split("\nhistory:", 1)[1])[-1]
+        self.assertEqual(task, last_to)
+        self.assertNotIn(f"- task: {task}\n", text.split("\nparked:", 1)[1].split("\n\n")[0])
 
     def test_the_recent_context_rule_is_stated_where_a_session_starts(self):
         self.assertIn("Discovery is not authorisation", BOOTSTRAP.read_text())

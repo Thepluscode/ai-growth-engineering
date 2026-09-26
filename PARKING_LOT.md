@@ -9,27 +9,6 @@ unread list is the same as no list.
 
 ---
 
-## Market Hypothesis & Cross-Market Evidence Layer
-
-**Status:** `DESIGN_READY` · parked behind the continuity reference implementation
-
-Markets become first-class objects with evidenced fields only, experiments reference a
-market, and evidence is held in five independent layers — `RESEARCH` · `ACCESS` · `DEMAND`
-· `COMMERCIAL` · `PAID` — which are never inferred from one another. A market with tested
-access and untested demand reads as exactly that.
-
-The design already recovered four market hypotheses from frozen documentation, and the
-correct first output of a comparison is `NOT_ENOUGH_EVIDENCE`.
-
-**Why it matters:** the project can rank prospects inside a market and cannot compare one
-market to another, so after a run of exposures it cannot say whether the message or the
-market is wrong.
-
-**Do not, when it starts:** pool non-comparable experiments into one denominator. Stage A
-routing attempts are access evidence, not demand exposures, by their own preregistration.
-
----
-
 ## Committed state reads as stale after every commit
 
 **Status:** `FOUND 2026-09-26` · not scheduled
