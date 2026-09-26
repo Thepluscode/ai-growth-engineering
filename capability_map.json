@@ -17,6 +17,8 @@
         "intent_icp_priority_engine": "IMPLEMENTED",
         "identity_enrichment_provider_interface": "IMPLEMENTED",
         "evidence_registry": "IMPLEMENTED",
+        "market_hypothesis_registry": "IMPLEMENTED",
+        "cross_market_evidence_comparison": "IMPLEMENTED",
         "market_research_workflow": "SPECIFIED",
         "customer_intelligence_workflow": "SPECIFIED",
         "competitive_reverse_engineering": "SPECIFIED",

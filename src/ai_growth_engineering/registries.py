@@ -49,6 +49,19 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
          "evaluation_refs", "approved_by", "approved_at", "review_after", "introduced_at",
          "retired_at", "retired_reason", "import_sha256", "imported_from"),
     ),
+    # A market is a hypothesis with evidenced fields only. Evidence about it is never typed
+    # in: an experiment is linked to it at one layer, and counts are derived from the event
+    # log on read (markets.py). One link names the protocol and which event types count.
+    "markets": (
+        "market_id",
+        ("hypothesis",),
+        ("buyer", "geography", "status", "source", "notes"),
+    ),
+    "market_experiments": (
+        "link_id",
+        ("market_id", "experiment_id", "layer", "protocol", "exposure_event", "positive_event"),
+        ("notes",),
+    ),
     "channels": (
         "channel_id",
         ("name",),
@@ -230,6 +243,7 @@ CHOICES = {
     ("campaigns", "status"): ("planned", "active", "paused", "completed"),
     ("audiences", "audience_type"): ("cold", "retargeting", "lookalike", "customer"),
     ("procedures", "admission_status"): ("APPROVED", "INTERNAL_BASELINE"),
+    ("market_experiments", "layer"): ("RESEARCH", "ACCESS", "DEMAND", "COMMERCIAL", "PAID"),
 }
 
 INT_FIELDS = {

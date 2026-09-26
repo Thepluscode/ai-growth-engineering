@@ -1,16 +1,16 @@
 {
   "capabilities": {
     "HYPOTHESIS": 87,
-    "IMPLEMENTED": 107,
+    "IMPLEMENTED": 109,
     "SPECIFIED": 21,
     "domains": 8,
-    "total": 215
+    "total": 217
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-09-26T17:41:43+00:00",
-    "git_dirty": 0,
-    "git_head": "508d097699c59f49dcdf664e89ef1ae25a3b5bda",
+    "generated_at": "2026-09-26T17:51:47+00:00",
+    "git_dirty": 5,
+    "git_head": "ae31bc1e18b054ca788a312c05f8a208b24f74c7",
     "inputs": [
       "capability_map.json",
       "src/"

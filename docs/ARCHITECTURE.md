@@ -42,10 +42,10 @@ DIGITAL MARKETING PROJECT
 
 ## The capability map is the architecture of record
 
-`capability_map.json` holds all <!-- state:capabilities.total -->215<!-- /state --> capabilities of the Digital Marketing Project across the eight
+`capability_map.json` holds all <!-- state:capabilities.total -->217<!-- /state --> capabilities of the Digital Marketing Project across the eight
 domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
 covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
-(named and understood, nothing built). Currently <!-- state:capabilities.IMPLEMENTED -->107<!-- /state --> implemented, <!-- state:capabilities.SPECIFIED -->21<!-- /state --> specified and <!-- state:capabilities.HYPOTHESIS -->87<!-- /state --> hypotheses.
+(named and understood, nothing built). Currently <!-- state:capabilities.IMPLEMENTED -->109<!-- /state --> implemented, <!-- state:capabilities.SPECIFIED -->21<!-- /state --> specified and <!-- state:capabilities.HYPOTHESIS -->87<!-- /state --> hypotheses.
 
 ```bash
 make capability-map     # prints IMPLEMENTED · SPECIFIED · HYPOTHESIS per domain
@@ -134,7 +134,7 @@ channel automation.
 ### Software-memory registries
 
 `registries.py` defines the repeated schemas; customer evidence and experiments retain specialised
-validation interfaces. Together they provide twenty-two registries:
+validation interfaces. The authoritative list is `REGISTRIES` in `registries.py`; the principal ones:
 
 1. Customer evidence
 2. Offers
@@ -158,6 +158,7 @@ validation interfaces. Together they provide twenty-two registries:
 20. Economics
 21. Product opportunities
 22. Product format decisions
+23. Markets, and the experiment links that give each market per-layer evidence
 
 Evidence keeps the observed statement, inference, confidence, observation date and commercial
 implication separate. Structured metadata preserves voice-of-customer context such as audience,

@@ -683,6 +683,21 @@ def cmd_experiment_gate(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2))
 
 
+def cmd_market(args: argparse.Namespace) -> None:
+    import json
+
+    from . import markets
+
+    try:
+        if args.action == "evidence":
+            result = markets.layer_evidence(args.db, args.market_id)
+        else:
+            result = markets.compare(args.db, args.market_id, args.other, args.layer, args.min)
+    except markets.MarketError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
 def cmd_snapshot(args: argparse.Namespace) -> None:
     """A PII-free state summary for documentation to cite. Printed, or written with --write."""
     import json
@@ -1029,6 +1044,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--as-of", default="", help="release: the day the dependency's verdict is judged")
     p.add_argument("--by", default="founder")
     p.set_defaults(func=cmd_experiment_gate)
+
+    p = sub.add_parser("market", help="per-layer market evidence, and comparisons that never pool protocols")
+    dbarg(p)
+    p.add_argument("action", choices=("evidence", "compare"))
+    p.add_argument("market_id")
+    p.add_argument("other", nargs="?", default="", help="compare: the second market")
+    p.add_argument("--layer", default="DEMAND", help="compare: RESEARCH|ACCESS|DEMAND|COMMERCIAL|PAID")
+    p.add_argument("--min", type=int, default=30, help="compare: minimum exposures per side (floor 1)")
+    p.set_defaults(func=cmd_market)
 
     p = sub.add_parser("snapshot", help="PII-free state summary (counts, statuses, hashes) for docs to cite")
     dbarg(p)
