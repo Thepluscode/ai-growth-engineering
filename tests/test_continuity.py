@@ -56,6 +56,48 @@ class PreflightContract(unittest.TestCase):
         self.assertIn("STATE_OK", text)
         self.assertIn("healthy_task", text)
 
+    @unittest.skipUnless(PREFLIGHT.exists(), "global preflight not installed")
+    def test_committing_the_state_file_does_not_make_it_stale(self):
+        """A committed STATE.json names the parent of the commit that holds it. Found
+        2026-09-26: every healthy checkout read HEAD_MISMATCH right after any commit."""
+        from datetime import datetime, timezone
+        env = {"PATH": "/usr/bin:/bin", "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+        with tempfile.TemporaryDirectory() as tmp:
+            env["HOME"] = tmp
+            repo = Path(tmp) / "repo"
+            (repo / "docs").mkdir(parents=True)
+
+            def git(*args):
+                subprocess.run(["git", "-C", str(repo), *args], check=True, env=env,
+                               capture_output=True)
+
+            def generate():
+                head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"],
+                                      capture_output=True, text=True, check=True).stdout.strip()
+                (repo / "docs" / "STATE.json").write_text(json.dumps({"runtime": {
+                    "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    "git_head": head, "inputs": ["capability_map.json", "src/"]}}))
+
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            (repo / "AGENT_CONTEXT.md").write_text("# charter\n")
+            (repo / "ACTIVE_WORK.yaml").write_text("active:\n  task: healthy_task\n")
+            (repo / "capability_map.json").write_text("{}\n")
+            git("add", "-A"); git("commit", "-q", "-m", "x", "--no-gpg-sign")
+            generate()
+            (repo / "ACTIVE_WORK.yaml").write_text("active:\n  task: next_task\n")
+            git("add", "-A"); git("commit", "-q", "-m", "state + authority", "--no-gpg-sign")
+            code, text = preflight(repo)
+            self.assertEqual(code, 0, text)
+            self.assertIn("STATE_OK", text)
+
+            # Positive twin: a commit that touches a declared input IS drift.
+            (repo / "capability_map.json").write_text('{"changed": true}\n')
+            git("add", "-A"); git("commit", "-q", "-m", "input changed", "--no-gpg-sign")
+            code, text = preflight(repo)
+            self.assertEqual(code, 3, text)
+            self.assertIn("STATE_HEAD_MISMATCH", text)
+
     def test_this_checkout_names_its_active_task(self):
         # The stable half of the old live assertion: the authority file itself.
         self.assertIn("task: continuity_reference_implementation", ACTIVE.read_text())
@@ -179,6 +221,7 @@ class GeneratedState(unittest.TestCase):
         self.assertIn("generated_at", runtime)
         self.assertIn("git_head", runtime)
         self.assertIn("git_dirty", runtime)
+        self.assertEqual(set(runtime.get("inputs", [])), {"capability_map.json", "src/"})
 
     def test_the_snapshot_half_stays_deterministic(self):
         """Volatile values must not leak into the part docs_check compares, or every

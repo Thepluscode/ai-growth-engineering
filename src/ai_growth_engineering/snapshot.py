@@ -20,6 +20,7 @@ from . import capabilities
 from .storage import connect
 
 SCHEMA = "age-state.v1"
+INPUTS = ("capability_map.json", "src/")
 
 
 def capability_state() -> dict:
@@ -113,6 +114,9 @@ def runtime_state(root: str | Path) -> dict:
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_head": head or "UNKNOWN",
         "git_dirty": len([x for x in status.splitlines() if x.strip()]) if head else "UNKNOWN",
+        # What the tracked half derives from. Preflight treats commits that touch none of
+        # these as leaving the state current; the store is untracked, so git cannot see it.
+        "inputs": list(INPUTS),
     }
 
 

@@ -8,9 +8,13 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-09-26T17:23:29+00:00",
-    "git_dirty": 0,
-    "git_head": "c953aff1a1c3212a2a925f4dbc4498869f8743bf"
+    "generated_at": "2026-09-26T17:41:41+00:00",
+    "git_dirty": 2,
+    "git_head": "96d6279146ef22b47b620014af444c1bfeabc0c2",
+    "inputs": [
+      "capability_map.json",
+      "src/"
+    ]
   },
   "schema": "age-state.v1",
   "store": {
