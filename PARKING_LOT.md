@@ -30,6 +30,18 @@ routing attempts are access evidence, not demand exposures, by their own preregi
 
 ---
 
+## Committed state reads as stale after every commit
+
+**Status:** `FOUND 2026-09-26` · not scheduled
+
+A committed `docs/STATE.json` describes the parent of the commit containing it, so
+preflight reports `STATE_HEAD_MISMATCH` (exit 3) on a healthy checkout right after any
+commit. The closed continuity task's "exits 0 on a healthy checkout" holds only between
+`make snapshot` and the next commit. Candidate fix and its constraint are in
+`docs/SESSIONSTART_HOOK_DESIGN.md` → "Open item".
+
+---
+
 ## Portfolio continuity rollout
 
 **Status:** `NOT_ACTIVE`
