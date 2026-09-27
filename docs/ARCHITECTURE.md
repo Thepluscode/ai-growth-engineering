@@ -42,10 +42,10 @@ DIGITAL MARKETING PROJECT
 
 ## The capability map is the architecture of record
 
-`capability_map.json` holds all <!-- state:capabilities.total -->217<!-- /state --> capabilities of the Digital Marketing Project across the eight
+`capability_map.json` holds all <!-- state:capabilities.total -->218<!-- /state --> capabilities of the Digital Marketing Project across the eight
 domains above, each with an honest build status: `IMPLEMENTED` (code exists and a deterministic test
 covers it), `SPECIFIED` (written as a skill, template or policy but not executable), `HYPOTHESIS`
-(named and understood, nothing built). Currently <!-- state:capabilities.IMPLEMENTED -->109<!-- /state --> implemented, <!-- state:capabilities.SPECIFIED -->21<!-- /state --> specified and <!-- state:capabilities.HYPOTHESIS -->87<!-- /state --> hypotheses.
+(named and understood, nothing built). Currently <!-- state:capabilities.IMPLEMENTED -->110<!-- /state --> implemented, <!-- state:capabilities.SPECIFIED -->21<!-- /state --> specified and <!-- state:capabilities.HYPOTHESIS -->87<!-- /state --> hypotheses.
 
 ```bash
 make capability-map     # prints IMPLEMENTED · SPECIFIED · HYPOTHESIS per domain

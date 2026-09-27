@@ -12,22 +12,29 @@ project: ai-growth-engineering
 canonical_path: ~/projects/ai/ai-growth-engineering
 
 active:
-  task: market_hypothesis_layer
-  priority: P3
+  task: weekly_marketing_cycle_v1
+  priority: P0
   status: ACTIVE
   approved_by: founder
-  started_at: 2026-09-26
+  started_at: 2026-09-27
+  due: 2026-10-11
   definition: >
-    Markets become first-class objects with evidenced fields only. Experiments reference a
-    market, and evidence is held in five independent layers - RESEARCH, ACCESS, DEMAND,
-    COMMERCIAL, PAID - never inferred from one another. Comparing two markets returns
-    NOT_ENOUGH_EVIDENCE unless the same layer is tested in both on a comparable basis.
+    The Marketing Engineer markets ThePlus-Tech products, not one offer. Three product
+    markets run one weekly cycle: research named buyers, draft in the workbench tagged with
+    the market's experiment, founder approves and sends by hand, record sends and replies,
+    `age week` reports each market's distance from a measurable sample and what the
+    cross-market comparison allows. Feature work outside this cycle is parked.
   done_when:
-    - a market registry exists with per-layer evidence derived from recorded experiments
-    - a comparison never pools experiments of different layers or protocols
-    - the comparison returns NOT_ENOUGH_EVIDENCE when either side lacks the layer
-    - the engine stays market-neutral under scripts/scope_gate.py
+    - each of the three markets is registered with a DEMAND experiment and tagged drafts
+      are credited to it end to end (draft, approve, send, reply, readout)
+    - `age week` runs on the real store and names this week's work per market
+    - one full weekly cycle has run on real buyers (the founder sends; the system never does)
 completed:
+  - task: market_hypothesis_layer
+    closed_at: 2026-09-27
+    result: >
+      Markets, five evidence layers and protocol-safe comparison built and mutation-tested;
+      real markets registered under weekly_marketing_cycle_v1, which uses the layer.
   - task: sessionstart_hook_design
     closed_at: 2026-09-26
     result: >
@@ -72,6 +79,7 @@ dated_gates:
 
 next_after_active:
   - continuity_gate_installation   # founder installs; the agent may not
+  # Everything else is parked until the weekly cycle has run on real buyers.
 
 task_switch_requires:
   - FOUNDER_OVERRIDE
@@ -106,4 +114,15 @@ history:
       Design done_when met; founder approved starting the market layer in the same
       instruction ("ALL ABOVE").
     evidence: "docs/SESSIONSTART_HOOK_DESIGN.md; draft hook selftest and mutation run in-session"
+    approved_by: founder
+  - at: 2026-09-27
+    from: market_hypothesis_layer
+    to: weekly_marketing_cycle_v1
+    condition: FOUNDER_OVERRIDE
+    reason: >
+      Founder: the project exists to market ThePlus-Tech products and must have a finish
+      line. Version 1 is a weekly marketing cycle across three product markets, due
+      2026-10-11: EU AI governance audit, TrustLedger payment-reliability diagnostic, and
+      the growth teardown at named buyers only.
+    evidence: "founder instruction 2026-09-27 (GO on the three-market plan)"
     approved_by: founder

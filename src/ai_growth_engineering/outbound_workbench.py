@@ -109,6 +109,18 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
     if observation.casefold() == hypothesis.casefold():
         raise WorkbenchError("fact_inference_blended", "Observation and hypothesis must differ")
     _validate_low_friction_cta(cta)
+    experiment_id = str(values.get("experiment_id") or "").strip()
+    if experiment_id:
+        from . import registries
+
+        if not any(link["experiment_id"] == experiment_id
+                   for link in registries.rows(db_path, "market_experiments")):
+            raise WorkbenchError("experiment_not_linked",
+                                 f"{experiment_id} is not linked to any market; its sends would count nowhere")
+        # EXP-ACQ-0001 sent 48 of 50 to shared inboxes and tested access, not the message.
+        if recipient_class != "named_buyer":
+            raise WorkbenchError("named_buyer_required",
+                                 "A market experiment counts named buyers only; a role inbox is not an exposure")
 
     with connect(db_path) as con:
         prospect = con.execute(
@@ -155,8 +167,8 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
         cursor = con.execute(
             """INSERT INTO outbound_drafts(
                  prospect_id, company, recipient_identity, recipient_class, channel,
-                 observation, economic_hypothesis, cta, metric, source_url, message
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 observation, economic_hypothesis, cta, metric, source_url, message, experiment_id
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 prospect_id,
                 prospect["company"],
@@ -169,6 +181,7 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
                 metric,
                 source_url,
                 message,
+                experiment_id,
             ),
         )
         draft_id = cursor.lastrowid
@@ -255,6 +268,7 @@ def _draft_event(draft) -> dict[str, Any]:
     operator when the draft was written, so it is observed."""
     return {"company": draft["company"], "company_id": draft["prospect_id"],
             "person_id": draft["recipient_identity"], "channel": draft["channel"],
+            "experiment_id": draft["experiment_id"],
             "source": "workbench", "source_record_id": f"draft-{draft['id']}",
             "provenance": "operator_recorded", "metadata": {"recipient_class": draft["recipient_class"]}}
 

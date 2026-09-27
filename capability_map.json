@@ -19,6 +19,7 @@
         "evidence_registry": "IMPLEMENTED",
         "market_hypothesis_registry": "IMPLEMENTED",
         "cross_market_evidence_comparison": "IMPLEMENTED",
+        "weekly_marketing_readout": "IMPLEMENTED",
         "market_research_workflow": "SPECIFIED",
         "customer_intelligence_workflow": "SPECIFIED",
         "competitive_reverse_engineering": "SPECIFIED",

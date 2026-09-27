@@ -582,6 +582,10 @@ IDENTITY_COLUMNS = (
 )
 
 
+# Added 2026-09-27. A draft names the experiment it serves so its send and reply are
+# credited to a product's market; without it the workbench's events belonged to nothing.
+DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"),)
+
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
     # Added 2026-08-27 after EXP-ACQ-0001 discovered that 48 of its 50 "qualified
@@ -621,6 +625,7 @@ def migrate(con: sqlite3.Connection) -> list[str]:
     return (
         _rename_kill_to_review(con)
         + _add_missing_columns(con, "outreach", OUTREACH_COLUMNS)
+        + _add_missing_columns(con, "outbound_drafts", DRAFT_COLUMNS)
         + _add_missing_columns(con, "experiments", EXPERIMENT_CONTRACT_COLUMNS)
         + _add_missing_columns(con, "evidence", EVIDENCE_CONTRACT_COLUMNS)
         + _add_missing_columns(con, "prospect_identities", IDENTITY_COLUMNS)

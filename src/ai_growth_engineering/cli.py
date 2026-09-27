@@ -698,6 +698,17 @@ def cmd_market(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def cmd_week(args: argparse.Namespace) -> None:
+    import json
+    from datetime import date
+
+    from . import weekly_cycle
+
+    as_of = date.fromisoformat(args.as_of) if args.as_of else None
+    data = weekly_cycle.readout(args.db, as_of, args.target)
+    print(json.dumps(data, indent=2) if args.json else weekly_cycle.render(data))
+
+
 def cmd_snapshot(args: argparse.Namespace) -> None:
     """A PII-free state summary for documentation to cite. Printed, or written with --write."""
     import json
@@ -1053,6 +1064,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--layer", default="DEMAND", help="compare: RESEARCH|ACCESS|DEMAND|COMMERCIAL|PAID")
     p.add_argument("--min", type=int, default=30, help="compare: minimum exposures per side (floor 1)")
     p.set_defaults(func=cmd_market)
+
+    p = sub.add_parser("week", help="weekly per-market readout: how far each product is from a measurable sample")
+    dbarg(p)
+    p.add_argument("--as-of", default="", help="YYYY-MM-DD; default today")
+    p.add_argument("--target", type=int, default=15, help="named buyers per market per week (floor 1)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_week)
 
     p = sub.add_parser("snapshot", help="PII-free state summary (counts, statuses, hashes) for docs to cite")
     dbarg(p)

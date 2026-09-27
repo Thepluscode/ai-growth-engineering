@@ -474,6 +474,15 @@
       "price_pence": 150000,
       "proof": "Security Questionnaire Rescue Sprint - the live site's only purchasable offer; PRODUCT.md marks the framing binding; 0 sends, 0 buyers",
       "cta": "mailto from theplus-tech.com and /workflow-audit"
+    },
+    {
+      "offer_id": "OFF-TL-DIAGNOSTIC",
+      "buyer": "Head of Payments / Finance Operations",
+      "problem": "money missing, delayed, duplicated or unreconcilable across payment providers",
+      "outcome": "a diagnosed payment-reliability failure taxonomy and integration plan",
+      "price_pence": 150000,
+      "proof": "TrustLedger reconciliation engine (CI-verified, not production-observed)",
+      "cta": "reply to outbound"
     }
   ],
   "product_opportunities": [
@@ -640,7 +649,9 @@
       "channel": "linkedin/named_buyer",
       "control": "email/role_inbox 0/48; email/named_buyer 0/2",
       "variant": "standard invitation, no note, message sent after acceptance",
-      "secondary_metrics": ["meaningful_reply_rate"],
+      "secondary_metrics": [
+        "meaningful_reply_rate"
+      ],
       "start_date": "2026-09-08",
       "variable": "recipient_route",
       "variable_metadata_source": "retrospective_from_preregistration",
@@ -838,6 +849,67 @@
       "company": "The HBP Group",
       "source_url": "https://thehbpgroup.co.uk/jobs",
       "label": "Verified careers page"
+    }
+  ],
+  "markets": [
+    {
+      "market_id": "MKT-EU-AI-GOVERNANCE",
+      "hypothesis": "UK/EU mid-market firms (50-2,000 staff) deploying AI in an EU AI Act Annex III category will pay for a fixed-fee AI-system audit, entered through the £750-£1,500 Diagnostic",
+      "buyer": "CTO / CISO / Head of Risk / Head of Compliance",
+      "geography": "UK/EU",
+      "status": "active",
+      "source": "theplus-tech-knowledge strategy/compliance-audit-offering.md (ICP); strategy/rate-card-2026-07-26.md Ladder 1",
+      "notes": "Do not claim Annex III obligations are enforceable now: postponed to 2 Dec 2027 (offering doc correction, 2026-08-08)."
+    },
+    {
+      "market_id": "MKT-PAYMENT-RELIABILITY",
+      "hypothesis": "Marketplaces, lenders, remittance platforms and fintechs on two or more payment providers will pay £1,500 for a Payment Reliability Diagnostic",
+      "buyer": "Head of Payments / Finance Operations",
+      "geography": "UK",
+      "status": "active",
+      "source": "theplus-tech-knowledge knowledge-base/products.md (TrustLedger ICP); strategy/rate-card-2026-07-26.md Ladder 4a",
+      "notes": "The ICP is recorded as an unmade decision (strategy/ai-control-plane-reconciled.md §9.4); this market tests it. Buyer title is the working assumption, not evidence."
+    },
+    {
+      "market_id": "MKT-GROWTH-TEARDOWN",
+      "hypothesis": "Founders/MDs of UK cyber/MSP firms will accept a free Growth Leak Teardown when it reaches them by name, as the entry to the £3,500 sprint",
+      "buyer": "Founder/MD of UK cyber/MSP",
+      "geography": "UK",
+      "status": "active",
+      "source": "seeds offers OFF-TEARDOWN / OFF-SPRINT; EXP-ACQ-0001 (48 of 50 sends reached role inboxes)",
+      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result."
+    }
+  ],
+  "market_experiments": [
+    {
+      "link_id": "LINK-EXP-ACQ-0008",
+      "market_id": "MKT-EU-AI-GOVERNANCE",
+      "experiment_id": "EXP-ACQ-0008",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-message-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Workbench drafts tagged with this experiment; named buyers only (enforced)."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0009",
+      "market_id": "MKT-PAYMENT-RELIABILITY",
+      "experiment_id": "EXP-ACQ-0009",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-message-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Workbench drafts tagged with this experiment; named buyers only (enforced)."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0010",
+      "market_id": "MKT-GROWTH-TEARDOWN",
+      "experiment_id": "EXP-ACQ-0010",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-message-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Workbench drafts tagged with this experiment; named buyers only (enforced)."
     }
   ]
 }
