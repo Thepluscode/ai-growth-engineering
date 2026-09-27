@@ -859,7 +859,9 @@
       "geography": "UK/EU",
       "status": "active",
       "source": "theplus-tech-knowledge strategy/compliance-audit-offering.md (ICP); strategy/rate-card-2026-07-26.md Ladder 1",
-      "notes": "Do not claim Annex III obligations are enforceable now: postponed to 2 Dec 2027 (offering doc correction, 2026-08-08)."
+      "notes": "Do not claim Annex III obligations are enforceable now: postponed to 2 Dec 2027 (offering doc correction, 2026-08-08).",
+      "offer_id": "OFF-AI-COMPLIANCE",
+      "forbidden_claims": "enforceable since;enforceable from 2 Aug;2 August 2026;7% of;fine of up to;Big-4"
     },
     {
       "market_id": "MKT-PAYMENT-RELIABILITY",
@@ -868,7 +870,9 @@
       "geography": "UK",
       "status": "active",
       "source": "theplus-tech-knowledge knowledge-base/products.md (TrustLedger ICP); strategy/rate-card-2026-07-26.md Ladder 4a",
-      "notes": "The ICP is recorded as an unmade decision (strategy/ai-control-plane-reconciled.md §9.4); this market tests it. Buyer title is the working assumption, not evidence."
+      "notes": "The ICP is recorded as an unmade decision (strategy/ai-control-plane-reconciled.md §9.4); this market tests it. Buyer title is the working assumption, not evidence.",
+      "offer_id": "OFF-TL-DIAGNOSTIC",
+      "forbidden_claims": "guaranteed;tamper-proof;production-proven;our customers"
     },
     {
       "market_id": "MKT-GROWTH-TEARDOWN",
@@ -877,7 +881,9 @@
       "geography": "UK",
       "status": "active",
       "source": "seeds offers OFF-TEARDOWN / OFF-SPRINT; EXP-ACQ-0001 (48 of 50 sends reached role inboxes)",
-      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result."
+      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result.",
+      "offer_id": "OFF-TEARDOWN",
+      "forbidden_claims": "guaranteed;our clients;case study"
     }
   ],
   "market_experiments": [

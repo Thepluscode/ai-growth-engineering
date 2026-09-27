@@ -55,7 +55,8 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
     "markets": (
         "market_id",
         ("hypothesis",),
-        ("buyer", "geography", "status", "source", "notes"),
+        # forbidden_claims: ';'-separated phrases no draft for this market may contain.
+        ("buyer", "geography", "status", "source", "notes", "offer_id", "forbidden_claims"),
     ),
     "market_experiments": (
         "link_id",

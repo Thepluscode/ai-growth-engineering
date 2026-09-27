@@ -709,6 +709,30 @@ def cmd_week(args: argparse.Namespace) -> None:
     print(json.dumps(data, indent=2) if args.json else weekly_cycle.render(data))
 
 
+def cmd_marketer(args: argparse.Namespace) -> None:
+    import json
+
+    from . import marketer
+
+    if args.action == "runs":
+        for row in marketer.runs(args.db):
+            print(json.dumps(row))
+        return
+    if args.action == "gmail":
+        print(json.dumps(marketer.gmail_payloads(args.db), indent=2))
+        return
+    if not args.market_id:
+        raise SystemExit("REFUSED: marketer run needs a market id (see `age week`)")
+    try:
+        result = marketer.run(args.db, args.market_id, llm=marketer.claude_llm(args.model), fetch=marketer.fetch_page,
+                              count=args.count, dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL)
+    except marketer.MarketerError as exc:
+        raise SystemExit(f"REFUSED: {exc}")
+    print(json.dumps(result, indent=2))
+    if result["error"]:
+        raise SystemExit(1)
+
+
 def cmd_snapshot(args: argparse.Namespace) -> None:
     """A PII-free state summary for documentation to cite. Printed, or written with --write."""
     import json
@@ -1071,6 +1095,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target", type=int, default=15, help="named buyers per market per week (floor 1)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_week)
+
+    p = sub.add_parser("marketer", help="research verified named buyers and write drafts for approval; never sends")
+    dbarg(p)
+    p.add_argument("action", choices=("run", "runs", "gmail"))
+    p.add_argument("market_id", nargs="?", default="")
+    p.add_argument("--count", type=int, default=15, help="prospects to research (1-25)")
+    p.add_argument("--dry-run", action="store_true", help="research and write, store nothing but the run log")
+    p.add_argument("--model", default="", help="default: $AGE_MARKETER_MODEL or claude-sonnet-5")
+    p.set_defaults(func=cmd_marketer)
 
     p = sub.add_parser("snapshot", help="PII-free state summary (counts, statuses, hashes) for docs to cite")
     dbarg(p)

@@ -109,6 +109,26 @@ CREATE TABLE IF NOT EXISTS suppression (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- One row per marketer run: what was asked, what it cost, what was kept and why the rest
+-- was not. A run that produced nothing must still say why.
+CREATE TABLE IF NOT EXISTS marketer_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    market_id TEXT NOT NULL,
+    experiment_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    requested INTEGER NOT NULL,
+    proposed INTEGER NOT NULL DEFAULT 0,
+    drafted INTEGER NOT NULL DEFAULT 0,
+    rejections_json TEXT NOT NULL DEFAULT '{}',
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    web_searches INTEGER NOT NULL DEFAULT 0,
+    dry_run INTEGER NOT NULL DEFAULT 0,
+    error TEXT NOT NULL DEFAULT '',
+    started_at TEXT NOT NULL,
+    finished_at TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS outbound_drafts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     prospect_id INTEGER NOT NULL REFERENCES prospects(id),
@@ -584,7 +604,7 @@ IDENTITY_COLUMNS = (
 
 # Added 2026-09-27. A draft names the experiment it serves so its send and reply are
 # credited to a product's market; without it the workbench's events belonged to nothing.
-DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"),)
+DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"), ("subject", "TEXT NOT NULL DEFAULT ''"))
 
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),

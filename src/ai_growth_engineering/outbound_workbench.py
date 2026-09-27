@@ -167,8 +167,8 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
         cursor = con.execute(
             """INSERT INTO outbound_drafts(
                  prospect_id, company, recipient_identity, recipient_class, channel,
-                 observation, economic_hypothesis, cta, metric, source_url, message, experiment_id
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 observation, economic_hypothesis, cta, metric, source_url, message, experiment_id, subject
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 prospect_id,
                 prospect["company"],
@@ -182,6 +182,7 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
                 source_url,
                 message,
                 experiment_id,
+                str(values.get("subject") or "").strip()[:160],
             ),
         )
         draft_id = cursor.lastrowid
