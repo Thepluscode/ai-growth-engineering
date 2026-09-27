@@ -8,9 +8,9 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-09-27T08:31:11+00:00",
-    "git_dirty": 11,
-    "git_head": "cdb0d6aa99dd73a1deff21152590a75f24b82d5c",
+    "generated_at": "2026-09-27T08:33:37+00:00",
+    "git_dirty": 0,
+    "git_head": "5f295cc537f05ad0fad205dc99dc3290e833527f",
     "inputs": [
       "capability_map.json",
       "src/"
