@@ -13,13 +13,13 @@ from ai_growth_engineering.marketer import (LLMResult, MarketerError, fetch_page
 from ai_growth_engineering.outbound_workbench import approve_draft, get_draft
 from ai_growth_engineering.storage import connect, init_db
 
-TEAM = "https://acme.example.com/team"
-NEWS = "https://acme.example.com/news"
+TEAM = "https://acme.test/team"
+NEWS = "https://acme.test/news"
 QUOTE = "We now settle payouts across three payment providers"
 
 
-def candidate(company="Acme", name="Alex Example", email="alex@acme.example.com", **over):
-    c = {"company": company, "website": "https://acme.example.com", "person_name": name, "role": "Head of Payments",
+def candidate(company="Acme", name="Alex Example", email="alex@acme.test", **over):
+    c = {"company": company, "website": "https://acme.test", "person_name": name, "role": "Head of Payments",
          "person_source_url": TEAM, "evidence_quote": QUOTE, "evidence_url": NEWS, "email": email,
          "email_source_url": TEAM, "linkedin_url": ""}
     return {**c, **over}
@@ -44,8 +44,8 @@ class FakeLLM:
         return LLMResult(json.dumps(self.draft), 300, 150, 0)
 
 
-PAGES = {TEAM: "<html><h2>Alex Example</h2><p>Head of Payments</p><a>alex@acme.example.com</a>"
-               "<a href='https://uk.linkedin.com/in/alex-example'>in</a></html>",
+PAGES = {TEAM: "<html><h2>Alex Example</h2><p>Head of Payments</p><a>alex@acme.test</a>"
+               "<a href='https://uk.linkedin.com/in/example-alex'>in</a></html>",
          NEWS: f"<p>News: {QUOTE} this year.</p>"}
 
 
@@ -118,13 +118,13 @@ class Verification(Case):
         self.assertEqual(self.reason([candidate()], {}), {"source_unreachable": 1})
 
     def test_a_guessed_email_is_dropped_and_linkedin_used_when_verified(self):
-        result, _ = self.go([candidate(email="a.example@acme.example.com",
-                                       linkedin_url="https://uk.linkedin.com/in/alex-example")], count=1)
+        result, _ = self.go([candidate(email="a.example@acme.test",
+                                       linkedin_url="https://uk.linkedin.com/in/example-alex")], count=1)
         self.assertEqual(result["rejections"], {"email_unverified_dropped": 1})
         self.assertEqual(get_draft(self.db, result["draft_ids"][0])["channel"], "linkedin")
 
     def test_no_verified_route_is_rejected(self):
-        self.assertEqual(self.reason([candidate(email="guess@acme.example.com")]),
+        self.assertEqual(self.reason([candidate(email="guess@acme.test")]),
                          {"email_unverified_dropped": 1, "no_verified_route": 1})
 
     def test_an_existing_prospect_is_not_researched_twice(self):
@@ -134,7 +134,7 @@ class Verification(Case):
 
     def test_a_suppressed_address_is_rejected(self):
         with connect(self.db) as con:
-            con.execute("INSERT INTO suppression(identity, reason) VALUES ('alex@acme.example.com', 'opted out')")
+            con.execute("INSERT INTO suppression(identity, reason) VALUES ('alex@acme.test', 'opted out')")
         self.assertEqual(self.reason([candidate()]), {"suppressed": 1})
 
     def test_a_draft_with_a_forbidden_claim_is_rejected(self):
@@ -206,7 +206,7 @@ class Adapters(Case):
         approve_draft(self.db, result["draft_ids"][1])
         payloads = gmail_payloads(self.db)
         self.assertEqual([p["draft_id"] for p in payloads], [result["draft_ids"][1]])
-        self.assertEqual(payloads[0]["to"], "alex@acme.example.com")
+        self.assertEqual(payloads[0]["to"], "alex@acme.test")
 
 
 if __name__ == "__main__":
