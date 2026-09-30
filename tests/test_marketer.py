@@ -124,9 +124,12 @@ class Verification(Case):
         self.assertEqual(result["rejections"], {"email_unverified_dropped": 1})
         self.assertEqual(get_draft(self.db, result["draft_ids"][0])["channel"], "linkedin")
 
-    def test_no_verified_route_is_rejected(self):
-        self.assertEqual(self.reason([candidate(email="guess@acme.test")]),
-                         {"email_unverified_dropped": 1, "no_verified_route": 1})
+    def test_a_verified_person_without_a_route_is_queued_for_manual_lookup_not_guessed(self):
+        result, _ = self.go([candidate(email="guess@acme.test")], count=1)
+        self.assertEqual(result["rejections"], {"email_unverified_dropped": 1, "route_manual_lookup": 1})
+        draft = get_draft(self.db, result["draft_ids"][0])
+        self.assertEqual(draft["channel"], "linkedin")
+        self.assertEqual(draft["recipient_identity"], "Alex Example at Acme (find on LinkedIn by name)")
 
     def test_an_existing_prospect_is_not_researched_twice(self):
         with connect(self.db) as con:

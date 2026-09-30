@@ -210,11 +210,14 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
         linkedin = ""
     if email and email.casefold() in suppressed:
         return None, "suppressed", notes
-    if not (email or linkedin):
-        return None, "no_verified_route", notes
-    return {**c, "email": email, "linkedin_url": linkedin,
-            "channel": "email" if email else "linkedin",
-            "recipient_identity": email or linkedin}, "", notes
+    if email or linkedin:
+        return {**c, "email": email, "linkedin_url": linkedin, "channel": "email" if email else "linkedin",
+                "recipient_identity": email or linkedin}, "", notes
+    # The person and company are verified; only the profile link is not. The operator finds
+    # them by name at send time and confirms it is the same person - never a guessed address.
+    notes.append("route_manual_lookup")
+    return {**c, "email": "", "linkedin_url": "", "channel": "linkedin",
+            "recipient_identity": f"{c['person_name']} at {c['company']} (find on LinkedIn by name)"}, "", notes
 
 
 def check_draft(text: str, forbidden: list[str]) -> dict:
