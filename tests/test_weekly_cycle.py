@@ -63,6 +63,12 @@ class Cycle(unittest.TestCase):
         self.assertEqual(row["this_week_to_do"], 14)
         self.assertIsNone(row["reply_rate"], "a rate below the minimum sample is not reported")
 
+    def test_drafts_awaiting_send_reduce_this_weeks_to_do(self):
+        self.draft(prospect_id=1, who="a")
+        approve_draft(self.db, self.draft(prospect_id=2, who="b")["id"])
+        row = readout(self.db, AS_OF)["markets"][0]
+        self.assertEqual((row["queued"], row["this_week_to_do"]), (2, 13))
+
     def test_an_untagged_draft_counts_in_no_market(self):
         self.send_and_reply(self.draft(experiment_id=""))
         self.assertEqual(layer_evidence(self.db, "MKT-A")["DEMAND"]["protocols"]

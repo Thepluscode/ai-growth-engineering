@@ -718,6 +718,19 @@ def cmd_marketer(args: argparse.Namespace) -> None:
         for row in marketer.runs(args.db):
             print(json.dumps(row))
         return
+    if args.action == "sheet":
+        import os
+        from datetime import date
+
+        if not args.market_id:
+            raise SystemExit("REFUSED: sheet needs a market id")
+        out = os.path.join(os.path.dirname(os.path.abspath(args.db)), "send-sheets",
+                           f"{date.today().isoformat()}-{args.market_id}.html")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, "w", encoding="utf-8") as handle:
+            handle.write(marketer.send_sheet(args.db, args.market_id))
+        print(out)
+        return
     if args.action == "gmail":
         print(json.dumps(marketer.gmail_payloads(args.db), indent=2))
         return
@@ -1111,7 +1124,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("marketer", help="research verified named buyers and write drafts for approval; never sends")
     dbarg(p)
-    p.add_argument("action", choices=("run", "import", "runs", "candidates", "gmail"))
+    p.add_argument("action", choices=("run", "import", "runs", "candidates", "gmail", "sheet"))
     p.add_argument("market_id", nargs="?", default="", help="market id; for `candidates`, the run id")
     p.add_argument("--file", default="", help="import: JSON array of candidates researched elsewhere")
     p.add_argument("--paid", action="store_true",

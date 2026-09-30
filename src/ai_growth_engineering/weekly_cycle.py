@@ -16,6 +16,7 @@ from itertools import combinations
 
 from . import markets, registries
 from .funnel_events import effective_events
+from .storage import connect
 
 DEFAULT_WEEKLY_TARGET = 15          # named buyers per market per week; 30 in two weeks
 
@@ -46,13 +47,19 @@ def readout(db_path: str, as_of: date | None = None, weekly_target: int = DEFAUL
             if e["experiment_id"] == l["experiment_id"] and e["event_type"] == l["exposure_event"]
             and start <= str(e["occurred_at"])[:10] <= end)
         remaining = max(0, min_exposures - sent)
+        with connect(db_path) as con:
+            # Written but not yet sent: already counts toward this week's work.
+            queued = con.execute(
+                f"""SELECT count(*) FROM outbound_drafts WHERE status IN ('pending_approval', 'approved')
+                    AND experiment_id IN ({','.join('?' for _ in mine)})""",
+                [l["experiment_id"] for l in mine]).fetchone()[0]
         rows.append({
             "market_id": market_id, "buyer": market_rows.get(market_id, {}).get("buyer", ""),
             "experiments": sorted({l["experiment_id"] for l in mine}),
-            "sent": sent, "replies": replies, "sent_this_week": this_week,
+            "sent": sent, "replies": replies, "sent_this_week": this_week, "queued": queued,
             "reply_rate": round(replies / sent, 4) if sent >= min_exposures else None,
             "status": "MEASURABLE" if remaining == 0 else f"NEEDS_{remaining}_MORE",
-            "this_week_to_do": max(0, min(weekly_target, remaining) - this_week) if remaining else 0,
+            "this_week_to_do": max(0, min(weekly_target, remaining) - this_week - queued) if remaining else 0,
         })
 
     comparisons = [markets.compare(db_path, a, b, "DEMAND", min_exposures)
@@ -75,7 +82,7 @@ def render(data: dict) -> str:
         lines.append(f"{m['market_id']}  ({', '.join(m['experiments'])})")
         lines.append(f"  buyer: {m['buyer'] or 'unspecified'}")
         lines.append(f"  sent {m['sent']} · replies {m['replies']} · reply rate {rate} · {m['status']}")
-        lines.append(f"  this week: sent {m['sent_this_week']}"
+        lines.append(f"  this week: sent {m['sent_this_week']} · queued {m['queued']}"
                      + (f" · TO DO: research and draft {m['this_week_to_do']} more named buyers"
                         if m["this_week_to_do"] else ""))
         lines.append("")

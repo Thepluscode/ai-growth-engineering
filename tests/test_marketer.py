@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, fetch_page, gmail_payloads,
-                                            import_candidates, page_text, run,
+                                            import_candidates, page_text, run, send_sheet,
                                             runs)
 from ai_growth_engineering.outbound_workbench import approve_draft, get_draft
 from ai_growth_engineering.storage import connect, init_db
@@ -213,6 +213,23 @@ class ImportAndLog(Case):
     def test_a_malformed_import_is_refused(self):
         with self.assertRaises(MarketerError):
             import_candidates(self.db, "MKT-X", {"company": "Acme"}, llm=FakeLLM([]), fetch=fetch())
+
+
+class SendSheet(Case):
+    def test_only_approved_drafts_appear_and_long_linkedin_messages_are_flagged(self):
+        long_draft = {**DRAFT, "economic_hypothesis": "Reconciling three providers by hand likely hides delayed, "
+                      "duplicated or missing payouts that nobody notices until a partner complains, and by then the "
+                      "money has often been written off or paid twice across the three providers involved."}
+        result = import_candidates(self.db, "MKT-X", [
+            {**candidate(email="", linkedin_url="https://uk.linkedin.com/in/example-alex"), "draft": long_draft},
+            {**candidate(company="Beta", email=""), "draft": DRAFT}], llm=None, fetch=fetch())
+        first, second = result["draft_ids"]
+        approve_draft(self.db, first)
+        page = send_sheet(self.db, "MKT-X")
+        self.assertIn(f"#{first} · Acme", page)
+        self.assertNotIn("Beta", page, "unapproved drafts are not on the sheet")
+        self.assertIn("too long for a connection note", page)
+        self.assertIn("https://uk.linkedin.com/in/example-alex", page)
 
 
 class Adapters(Case):

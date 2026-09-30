@@ -391,6 +391,56 @@ def gmail_payloads(db_path: str) -> list[dict]:
              "body": r["message"]} for r in rows]
 
 
+LINKEDIN_NOTE_LIMIT = 300
+
+
+def send_sheet(db_path: str, market_id: str) -> str:
+    """A local HTML page for sending approved drafts by hand: who, how to reach them, and the text
+    to paste. It names people, so it is written under the gitignored store, never committed.
+    A LinkedIn message longer than a connection note allows is flagged, not silently cut: cutting
+    once left notes pointing at sentences that were no longer there."""
+    import urllib.parse
+
+    init_db(db_path)
+    ctx = market_context(db_path, market_id)
+    with connect(db_path) as con:
+        rows = con.execute(
+            """SELECT d.id, d.company, d.channel, d.recipient_identity AS rid, d.subject, d.message,
+                      p.target_roles AS who
+               FROM outbound_drafts d JOIN prospects p ON p.id = d.prospect_id
+               WHERE d.experiment_id = ? AND d.status = 'approved' ORDER BY d.id""",
+            (ctx["experiment_id"],)).fetchall()
+    e = html.escape
+    cards = []
+    for r in rows:
+        name, _, role = str(r["who"]).partition(" (")
+        role = role.rstrip(")")
+        if r["channel"] == "email":
+            route = f"Email {e(r['rid'])} — subject: {e(r['subject'])}"
+        elif str(r["rid"]).startswith("https://"):
+            route = f'<a href="{e(r["rid"])}" target="_blank">Open LinkedIn profile</a>'
+        else:
+            query = urllib.parse.quote(f"{name} {r['company']}")
+            route = (f'<a href="https://www.linkedin.com/search/results/people/?keywords={query}" '
+                     'target="_blank">Search LinkedIn by name</a> — confirm company and role before sending')
+        size = len(r["message"])
+        warn = ("" if r["channel"] == "email" or size <= LINKEDIN_NOTE_LIMIT else
+                f"<p class='warn'>{size} characters: too long for a connection note — send as InMail or "
+                "a message after they accept</p>")
+        cards.append(f"<section><h2>#{r['id']} · {e(r['company'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
+                     f"<p>{route}</p>{warn}<label>Message ({size} characters)</label>"
+                     f"<textarea rows='8' readonly>{e(r['message'])}</textarea>"
+                     f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send</p></section>")
+    style = ("body{font:15px system-ui;max-width:760px;margin:24px auto;padding:0 16px;background:#fafafa;color:#111}"
+             "section{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin:14px 0}"
+             "textarea{width:100%;font:14px system-ui}label,.rec{font-size:13px;color:#555}.warn{color:#b45309}"
+             "@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section{background:#1b1b1b;"
+             "border-color:#333}textarea{background:#222;color:#eee}}")
+    return (f"<!doctype html><meta charset='utf-8'><title>Send sheet {e(market_id)}</title><style>{style}</style>"
+            f"<h1>{e(market_id)} — {len(rows)} approved to send</h1>"
+            "<p>Nothing here has been sent. Send by hand, then record each send.</p>" + "".join(cards))
+
+
 # --------------------------------------------------------------------------- real adapters
 
 def fetch_page(url: str) -> str:

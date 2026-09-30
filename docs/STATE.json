@@ -8,9 +8,9 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-09-30T03:34:30+00:00",
-    "git_dirty": 3,
-    "git_head": "baab149f48eba5fb6b2737607899c4925b08d442",
+    "generated_at": "2026-09-30T07:02:33+00:00",
+    "git_dirty": 5,
+    "git_head": "be0f09f7060d34de41c689dc900ab4ffc0919ca4",
     "inputs": [
       "capability_map.json",
       "src/"
@@ -33,6 +33,9 @@
         "EXP-ACQ-0006": {
           "message_bounced": 1,
           "message_sent": 21
+        },
+        "EXP-ACQ-0009": {
+          "message_sent": 13
         }
       },
       "by_type": {
@@ -40,12 +43,12 @@
         "invitation_sent": 34,
         "invitation_undeliverable": 4,
         "message_bounced": 6,
-        "message_sent": 72
+        "message_sent": 85
       },
       "corrections": 38,
-      "effective": 117,
-      "log_sha256": "d4124ff546c7b2e6baafbd87f1723baaecc2d157305168947cf00681aedf9bc1",
-      "rows": 193,
+      "effective": 130,
+      "log_sha256": "d752dad60d075c58ab3989de00574948e6db879ef458079715e1d3ab3df8e20c",
+      "rows": 206,
       "synthetic_excluded": 0
     },
     "experiments": {
@@ -113,7 +116,7 @@
       "outreach_sent": {
         "basis": "COMPUTED",
         "diverges": true,
-        "value": 71
+        "value": 84
       },
       "paying_customers": {
         "basis": "COMPUTED",
