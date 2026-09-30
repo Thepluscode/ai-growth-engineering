@@ -71,7 +71,7 @@ class Case(unittest.TestCase):
 
     def go(self, research, **kw):
         llm = kw.pop("llm", None) or FakeLLM(research, **{k: kw.pop(k) for k in ("draft", "fail") if k in kw})
-        return run(self.db, "MKT-X", llm=llm, fetch=kw.pop("fetch", fetch()), **kw), llm
+        return run(self.db, "MKT-X", llm=llm, fetch=kw.pop("fetch", fetch()), allow_paid=True, **kw), llm
 
 
 class HappyPath(Case):
@@ -175,7 +175,7 @@ class Failure(Case):
             "link_id": "L2", "market_id": "MKT-NO-OFFER", "experiment_id": "EXP-Y", "layer": "DEMAND",
             "protocol": "p", "exposure_event": "message_sent", "positive_event": "reply_meaningful"})
         with self.assertRaises(MarketerError) as ctx:
-            run(self.db, "MKT-NO-OFFER", llm=FakeLLM([]), fetch=fetch())
+            run(self.db, "MKT-NO-OFFER", llm=FakeLLM([]), fetch=fetch(), allow_paid=True)
         self.assertEqual(ctx.exception.code, "no_offer")
 
 
@@ -195,6 +195,20 @@ class ImportAndLog(Case):
                          [("Acme", "drafted"), ("Beta", "name_not_on_source")])
         self.assertEqual(log[0]["draft_id"], result["draft_ids"][0])
         self.assertEqual(log[1]["person_source_url"], TEAM)
+
+    def test_paid_research_never_starts_without_an_explicit_opt_in(self):
+        llm = FakeLLM([candidate()])
+        with self.assertRaises(MarketerError) as ctx:
+            run(self.db, "MKT-X", llm=llm, fetch=fetch(), count=1)
+        self.assertEqual((ctx.exception.code, llm.calls), ("paid_research_not_allowed", []))
+
+    def test_a_supplied_draft_costs_nothing_and_meets_the_same_checks(self):
+        result = import_candidates(self.db, "MKT-X", [{**candidate(), "draft": DRAFT},
+                                                      {**candidate(company="Beta"), "draft": {**DRAFT, "cta": "Guaranteed savings?"}},
+                                                      candidate(company="Gamma")],
+                                   llm=None, fetch=fetch())
+        self.assertEqual((result["drafted"], result["input_tokens"]), (1, 0))
+        self.assertEqual(result["rejections"], {"forbidden_claim": 1, "draft_missing": 1})
 
     def test_a_malformed_import_is_refused(self):
         with self.assertRaises(MarketerError):

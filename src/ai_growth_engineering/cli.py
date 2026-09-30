@@ -732,12 +732,13 @@ def cmd_marketer(args: argparse.Namespace) -> None:
             with open(args.file, encoding="utf-8") as handle:
                 candidates = json.load(handle)
             result = marketer.import_candidates(args.db, args.market_id, candidates,
-                                                llm=marketer.claude_llm(args.model), fetch=marketer.fetch_page,
+                                                llm=marketer.claude_llm(args.model) if args.paid else None,
+                                                fetch=marketer.fetch_page,
                                                 dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL)
         else:
             result = marketer.run(args.db, args.market_id, llm=marketer.claude_llm(args.model),
                                   fetch=marketer.fetch_page, count=args.count, dry_run=args.dry_run,
-                                  model=args.model or marketer.DEFAULT_MODEL)
+                                  model=args.model or marketer.DEFAULT_MODEL, allow_paid=args.paid)
     except marketer.MarketerError as exc:
         raise SystemExit(f"REFUSED: {exc}")
     print(json.dumps(result, indent=2))
@@ -1113,6 +1114,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("action", choices=("run", "import", "runs", "candidates", "gmail"))
     p.add_argument("market_id", nargs="?", default="", help="market id; for `candidates`, the run id")
     p.add_argument("--file", default="", help="import: JSON array of candidates researched elsewhere")
+    p.add_argument("--paid", action="store_true",
+                   help="allow Anthropic API calls (spends credit). Off by default: run refuses, import needs drafts")
     p.add_argument("--count", type=int, default=15, help="prospects to research (1-25)")
     p.add_argument("--dry-run", action="store_true", help="research and write, store nothing but the run log")
     p.add_argument("--model", default="", help="default: $AGE_MARKETER_MODEL or claude-sonnet-5")

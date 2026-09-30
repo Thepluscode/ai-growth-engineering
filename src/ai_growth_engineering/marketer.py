@@ -253,8 +253,14 @@ def _now() -> str:
 
 
 def run(db_path: str, market_id: str, *, llm: LLM, fetch: Fetch, count: int = DEFAULT_COUNT,
-        dry_run: bool = False, model: str = DEFAULT_MODEL) -> dict:
-    """Research with the model, then verify and draft. The expensive step is the research."""
+        dry_run: bool = False, model: str = DEFAULT_MODEL, allow_paid: bool = False) -> dict:
+    """Research with the model, then verify and draft. The expensive step is the research: the
+    first live run spent 33 searches and 1.43M input tokens for two unusable candidates. It
+    therefore never starts without an explicit opt-in."""
+    if not allow_paid:
+        raise MarketerError("paid_research_not_allowed",
+                            "model web research spends API credit (first run: ~1.4M tokens for 0 drafts); "
+                            "research in-session and use `import`, or pass --paid deliberately")
     count = max(1, min(MAX_COUNT, int(count)))
     searches = min(MAX_SEARCHES, count * SEARCHES_PER_PROSPECT)
 
@@ -265,10 +271,14 @@ def run(db_path: str, market_id: str, *, llm: LLM, fetch: Fetch, count: int = DE
                      dry_run=dry_run, model=model)
 
 
-def import_candidates(db_path: str, market_id: str, candidates: list[dict], *, llm: LLM, fetch: Fetch,
+def import_candidates(db_path: str, market_id: str, candidates: list[dict], *, llm: LLM | None, fetch: Fetch,
                       dry_run: bool = False, model: str = DEFAULT_MODEL) -> dict:
     """Candidates researched elsewhere (a person, an assistant, another session) go through exactly
-    the same verification and drafting as the model's own. The source never lowers the bar."""
+    the same verification and drafting as the model's own. The source never lowers the bar.
+
+    A candidate may carry its own `draft` ({subject, observation, economic_hypothesis, cta, metric});
+    it is checked exactly as a model-written one and costs nothing. Without `llm`, a candidate
+    with no draft is rejected rather than silently spending credit."""
     if not isinstance(candidates, list) or not all(isinstance(c, dict) for c in candidates):
         raise MarketerError("invalid_import", "import must be a JSON array of candidate objects")
     candidates = candidates[:MAX_COUNT]
@@ -297,7 +307,13 @@ def _pipeline(db_path, market_id, research, *, llm, fetch, requested, dry_run, m
             outcome, draft_id = reason, None
             if verified is not None:
                 try:
-                    draft = check_draft(tally.add(llm(draft_prompt(ctx, verified), 0)), ctx["forbidden"])
+                    supplied = candidate.get("draft")
+                    if isinstance(supplied, dict):
+                        draft = check_draft(json.dumps(supplied), ctx["forbidden"])
+                    elif llm is None:
+                        raise MarketerError("draft_missing", "no draft supplied and no model allowed")
+                    else:
+                        draft = check_draft(tally.add(llm(draft_prompt(ctx, verified), 0)), ctx["forbidden"])
                     exclude.add(verified["company"].casefold())
                     if dry_run:
                         previews.append({"company": verified["company"], "person": verified["person_name"],
