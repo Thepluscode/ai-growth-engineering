@@ -251,59 +251,91 @@ def _now() -> str:
 
 def run(db_path: str, market_id: str, *, llm: LLM, fetch: Fetch, count: int = DEFAULT_COUNT,
         dry_run: bool = False, model: str = DEFAULT_MODEL) -> dict:
-    init_db(db_path)
-    ctx = market_context(db_path, market_id)
+    """Research with the model, then verify and draft. The expensive step is the research."""
     count = max(1, min(MAX_COUNT, int(count)))
     searches = min(MAX_SEARCHES, count * SEARCHES_PER_PROSPECT)
+
+    def research(ctx, exclude, tally):
+        return parse_candidates(tally.add(llm(research_prompt(ctx, count, sorted(exclude)[:200]), searches)))[:count]
+
+    return _pipeline(db_path, market_id, research, llm=llm, fetch=fetch, requested=count,
+                     dry_run=dry_run, model=model)
+
+
+def import_candidates(db_path: str, market_id: str, candidates: list[dict], *, llm: LLM, fetch: Fetch,
+                      dry_run: bool = False, model: str = DEFAULT_MODEL) -> dict:
+    """Candidates researched elsewhere (a person, an assistant, another session) go through exactly
+    the same verification and drafting as the model's own. The source never lowers the bar."""
+    if not isinstance(candidates, list) or not all(isinstance(c, dict) for c in candidates):
+        raise MarketerError("invalid_import", "import must be a JSON array of candidate objects")
+    candidates = candidates[:MAX_COUNT]
+    return _pipeline(db_path, market_id, lambda ctx, exclude, tally: candidates, llm=llm, fetch=fetch,
+                     requested=len(candidates), dry_run=dry_run, model=f"import+{model}")
+
+
+def _pipeline(db_path, market_id, research, *, llm, fetch, requested, dry_run, model) -> dict:
+    init_db(db_path)
+    ctx = market_context(db_path, market_id)
     with connect(db_path) as con:
         exclude = {r["company"].casefold() for r in con.execute("SELECT company FROM prospects")}
         suppressed = {r["identity"].casefold() for r in con.execute("SELECT identity FROM suppression")}
         run_id = con.execute(
             """INSERT INTO marketer_runs(market_id, experiment_id, model, requested, dry_run, started_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (market_id, ctx["experiment_id"], model, count, int(dry_run), _now())).lastrowid
+            (market_id, ctx["experiment_id"], model, requested, int(dry_run), _now())).lastrowid
 
-    tally, drafts, previews, proposed, error = _Tally(), [], [], 0, ""
+    tally, drafts, previews, proposed, error, seen = _Tally(), [], [], 0, "", []
     try:
-        text = tally.add(llm(research_prompt(ctx, count, sorted(exclude)[:200]), searches))
-        candidates = parse_candidates(text)[:count]
+        candidates = research(ctx, exclude, tally)
         proposed = len(candidates)
         for candidate in candidates:
             verified, reason, notes = verify(candidate, fetch, exclude, suppressed)
             tally.rejections.update(notes)
-            if verified is None:
-                tally.rejections[reason] += 1
-                continue
-            try:
-                draft = check_draft(tally.add(llm(draft_prompt(ctx, verified), 0)), ctx["forbidden"])
-            except MarketerError as exc:
-                tally.rejections[exc.code] += 1
-                continue
-            exclude.add(verified["company"].casefold())
-            if dry_run:
-                previews.append({"company": verified["company"], "person": verified["person_name"],
-                                 "channel": verified["channel"], **draft})
-                continue
-            try:
-                drafts.append(_store(db_path, ctx, verified, draft))
-            except WorkbenchError as exc:
-                tally.rejections[exc.code] += 1
+            outcome, draft_id = reason, None
+            if verified is not None:
+                try:
+                    draft = check_draft(tally.add(llm(draft_prompt(ctx, verified), 0)), ctx["forbidden"])
+                    exclude.add(verified["company"].casefold())
+                    if dry_run:
+                        previews.append({"company": verified["company"], "person": verified["person_name"],
+                                         "channel": verified["channel"], **draft})
+                        outcome = "previewed"
+                    else:
+                        draft_id = _store(db_path, ctx, verified, draft)
+                        drafts.append(draft_id)
+                        outcome = "drafted"
+                except (MarketerError, WorkbenchError) as exc:
+                    outcome = exc.code
+            if outcome not in ("drafted", "previewed"):
+                tally.rejections[outcome] += 1
+            seen.append((run_id, str(candidate.get("company") or ""), str(candidate.get("person_name") or ""),
+                         outcome, str(candidate.get("person_source_url") or ""),
+                         str(candidate.get("evidence_url") or ""), draft_id))
     except MarketerError as exc:
         error = f"{exc.code}: {exc}"
     except Exception as exc:                        # recorded, then surfaced by the caller
         error = f"{type(exc).__name__}: {exc}"
     finally:
         with connect(db_path) as con:
+            con.executemany(
+                """INSERT INTO marketer_candidates(run_id, company, person_name, outcome, person_source_url,
+                     evidence_url, draft_id) VALUES (?, ?, ?, ?, ?, ?, ?)""", seen)
             con.execute(
                 """UPDATE marketer_runs SET proposed=?, drafted=?, rejections_json=?, input_tokens=?,
                      output_tokens=?, web_searches=?, error=?, finished_at=? WHERE id=?""",
                 (proposed, len(drafts), json.dumps(dict(tally.rejections), sort_keys=True), tally.input_tokens,
                  tally.output_tokens, tally.web_searches, error, _now(), run_id))
-    return {"run_id": run_id, "market_id": market_id, "experiment_id": ctx["experiment_id"], "requested": count,
+    return {"run_id": run_id, "market_id": market_id, "experiment_id": ctx["experiment_id"], "requested": requested,
             "proposed": proposed, "drafted": len(drafts), "draft_ids": drafts, "previews": previews,
             "rejections": dict(tally.rejections), "input_tokens": tally.input_tokens,
             "output_tokens": tally.output_tokens, "web_searches": tally.web_searches,
             "dry_run": dry_run, "error": error}
+
+
+def candidates_of(db_path: str, run_id: int) -> list[dict]:
+    init_db(db_path)
+    with connect(db_path) as con:
+        return [dict(r) for r in con.execute("SELECT * FROM marketer_candidates WHERE run_id = ? ORDER BY id", (run_id,))]
 
 
 def _store(db_path: str, ctx: dict, c: dict, draft: dict) -> int:

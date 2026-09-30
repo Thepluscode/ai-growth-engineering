@@ -721,11 +721,23 @@ def cmd_marketer(args: argparse.Namespace) -> None:
     if args.action == "gmail":
         print(json.dumps(marketer.gmail_payloads(args.db), indent=2))
         return
+    if args.action == "candidates":
+        for row in marketer.candidates_of(args.db, int(args.market_id or 0)):
+            print(json.dumps(row))
+        return
     if not args.market_id:
-        raise SystemExit("REFUSED: marketer run needs a market id (see `age week`)")
+        raise SystemExit("REFUSED: marketer run/import needs a market id (see `age week`)")
     try:
-        result = marketer.run(args.db, args.market_id, llm=marketer.claude_llm(args.model), fetch=marketer.fetch_page,
-                              count=args.count, dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL)
+        if args.action == "import":
+            with open(args.file, encoding="utf-8") as handle:
+                candidates = json.load(handle)
+            result = marketer.import_candidates(args.db, args.market_id, candidates,
+                                                llm=marketer.claude_llm(args.model), fetch=marketer.fetch_page,
+                                                dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL)
+        else:
+            result = marketer.run(args.db, args.market_id, llm=marketer.claude_llm(args.model),
+                                  fetch=marketer.fetch_page, count=args.count, dry_run=args.dry_run,
+                                  model=args.model or marketer.DEFAULT_MODEL)
     except marketer.MarketerError as exc:
         raise SystemExit(f"REFUSED: {exc}")
     print(json.dumps(result, indent=2))
@@ -1098,8 +1110,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("marketer", help="research verified named buyers and write drafts for approval; never sends")
     dbarg(p)
-    p.add_argument("action", choices=("run", "runs", "gmail"))
-    p.add_argument("market_id", nargs="?", default="")
+    p.add_argument("action", choices=("run", "import", "runs", "candidates", "gmail"))
+    p.add_argument("market_id", nargs="?", default="", help="market id; for `candidates`, the run id")
+    p.add_argument("--file", default="", help="import: JSON array of candidates researched elsewhere")
     p.add_argument("--count", type=int, default=15, help="prospects to research (1-25)")
     p.add_argument("--dry-run", action="store_true", help="research and write, store nothing but the run log")
     p.add_argument("--model", default="", help="default: $AGE_MARKETER_MODEL or claude-sonnet-5")

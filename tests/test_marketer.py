@@ -8,7 +8,8 @@ import unittest
 from pathlib import Path
 
 from ai_growth_engineering import registries
-from ai_growth_engineering.marketer import (LLMResult, MarketerError, fetch_page, gmail_payloads, page_text, run,
+from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, fetch_page, gmail_payloads,
+                                            import_candidates, page_text, run,
                                             runs)
 from ai_growth_engineering.outbound_workbench import approve_draft, get_draft
 from ai_growth_engineering.storage import connect, init_db
@@ -173,6 +174,28 @@ class Failure(Case):
         with self.assertRaises(MarketerError) as ctx:
             run(self.db, "MKT-NO-OFFER", llm=FakeLLM([]), fetch=fetch())
         self.assertEqual(ctx.exception.code, "no_offer")
+
+
+class ImportAndLog(Case):
+    def test_imported_candidates_meet_the_same_bar_and_spend_no_searches(self):
+        llm = FakeLLM([])
+        result = import_candidates(self.db, "MKT-X", [candidate(), candidate(company="Beta", name="Invented Person")],
+                                   llm=llm, fetch=fetch())
+        self.assertEqual((result["drafted"], result["rejections"], result["web_searches"]),
+                         (1, {"name_not_on_source": 1}, 0))
+        self.assertEqual(llm.calls, [0], "import makes one draft call and no research call")
+
+    def test_every_candidate_is_logged_with_its_outcome(self):
+        result, _ = self.go([candidate(), candidate(company="Beta", name="Invented Person")], count=2)
+        log = candidates_of(self.db, result["run_id"])
+        self.assertEqual([(r["company"], r["outcome"]) for r in log],
+                         [("Acme", "drafted"), ("Beta", "name_not_on_source")])
+        self.assertEqual(log[0]["draft_id"], result["draft_ids"][0])
+        self.assertEqual(log[1]["person_source_url"], TEAM)
+
+    def test_a_malformed_import_is_refused(self):
+        with self.assertRaises(MarketerError):
+            import_candidates(self.db, "MKT-X", {"company": "Acme"}, llm=FakeLLM([]), fetch=fetch())
 
 
 class Adapters(Case):

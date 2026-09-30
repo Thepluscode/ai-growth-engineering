@@ -129,6 +129,19 @@ CREATE TABLE IF NOT EXISTS marketer_runs (
     finished_at TEXT NOT NULL DEFAULT ''
 );
 
+-- Every candidate a run considered, kept or not, with the pages it was checked against.
+-- Local store only (gitignored): it names people.
+CREATE TABLE IF NOT EXISTS marketer_candidates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES marketer_runs(id),
+    company TEXT NOT NULL DEFAULT '',
+    person_name TEXT NOT NULL DEFAULT '',
+    outcome TEXT NOT NULL,
+    person_source_url TEXT NOT NULL DEFAULT '',
+    evidence_url TEXT NOT NULL DEFAULT '',
+    draft_id INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS outbound_drafts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     prospect_id INTEGER NOT NULL REFERENCES prospects(id),
