@@ -16,9 +16,10 @@ report keeps every stage apart:
 Invariants:
 - Stages 1-4 come from the evidence set (a private research file that names people, so it is
   never committed). Without it they are None - unknown, never zero.
-- Delivered means evidence of delivery: a message_delivered event carrying its evidence, or a
+- Delivered means evidence of delivery: a message_delivered event (recorded apart from the send) carrying its evidence, or a
   reply (which cannot happen without delivery). "We sent it manually" is an attempt with
-  delivery unverified, and stays out of every denominator.
+  delivery unverified, and stays out of every denominator - including a send to an accepted
+  connection.
 - Stages 5-15 come from the effective event log and buyer-truth categories of the market's
   linked DEMAND experiments only. A role inbox is never a named buyer.
 - The primary rate is meaningful replies / delivered to named buyers, and only at or above the
@@ -94,8 +95,11 @@ def _stages(events: list[dict], truth: dict[str, set[str]], experiments: set[str
     delivered = (sent & evidenced) - bounced
     named = {entity(e) for e in mine if e["event_type"] == "message_sent"
              and _recipient_class(e) == "named_buyer"} & delivered
-    return {"connection_requests_sent": len(who("invitation_sent")),
-            "connections_accepted": len(who("invitation_accepted")),
+    requested, accepted = who("invitation_sent"), who("invitation_accepted")
+    return {"connection_requests_sent": len(requested),
+            "connections_accepted": len(accepted),
+            # LinkedIn does not report a decline, so a request is pending until accepted.
+            "connections_pending": len(requested - accepted),
             "messages_attempted": len(sent | bounced), "messages_delivered": len(delivered),
             "attempted_delivery_unverified": len(sent - bounced - evidenced),
             "delivered_to_named_buyers": len(named),
@@ -178,7 +182,8 @@ STAGE_LABELS = (
     ("named_buyers", "3 named buyers identified"), ("verified_routes", "4 verified routes (email or profile)"),
     ("route_searched", "  route searched"), ("route_found", "  route found"),
     ("route_verified", "  route verified"), ("route_unavailable", "  route unavailable"),
-    ("connection_requests_sent", "  connection requests sent"), ("connections_accepted", "  accepted = direct message route"),
+    ("connection_requests_sent", "  connection requests sent"), ("connections_accepted", "  accepted = direct route created"),
+    ("connections_pending", "  pending (declines are not observable)"),
     ("messages_attempted", "5 messages attempted"),
     ("attempted_delivery_unverified", "  attempted, delivery unverified"),
     ("messages_delivered", "6 messages delivered"),

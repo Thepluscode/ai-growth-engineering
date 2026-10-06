@@ -467,7 +467,7 @@ def send_sheet(db_path: str, market_id: str) -> str:
             message_cards.append(
                 f"<section>{head}<p>{route}</p><label>Message ({len(r['message'])} characters)</label>"
                 f"<textarea rows='10' readonly>{e(r['message'])}</textarea>"
-                f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send</p></section>")
+                f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send. Delivery stays unverified until LinkedIn shows Seen (`age draft delivered {r['id']} --evidence linkedin_seen_indicator`) or they reply.</p></section>")
         else:
             blocked.append(f"#{r['id']}")
     style = ("body{font:15px system-ui;max-width:760px;margin:24px auto;padding:0 16px;background:#fafafa;color:#111}"

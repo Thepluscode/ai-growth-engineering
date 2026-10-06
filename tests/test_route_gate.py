@@ -71,12 +71,17 @@ class RouteGate(unittest.TestCase):
         self.assertEqual((m["connection_requests_sent"], m["messages_attempted"], m["delivered_to_named_buyers"]),
                          (1, 0, 0), "a connection request is access, never a send")
 
+        self.assertEqual(report(self.db)["markets"][0]["connections_pending"], 1)
         record_connection_accepted(self.db, d["id"], T2)
         self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
         record_manual_send(self.db, d["id"], T3)
         m = report(self.db)["markets"][0]
-        self.assertEqual((m["connections_accepted"], m["messages_attempted"], m["delivered_to_named_buyers"],
-                          m["attempted_delivery_unverified"]), (1, 1, 1, 0))
+        self.assertEqual((m["connections_accepted"], m["connections_pending"], m["messages_attempted"],
+                          m["delivered_to_named_buyers"], m["attempted_delivery_unverified"]), (1, 0, 1, 0, 1),
+                         "a send, even to an accepted connection, never manufactures its own delivery")
+        record_delivery(self.db, d["id"], "2026-10-09T09:00:00+00:00", "linkedin_seen_indicator")
+        m = report(self.db)["markets"][0]
+        self.assertEqual((m["delivered_to_named_buyers"], m["attempted_delivery_unverified"]), (1, 0))
 
     def test_a_published_email_is_direct_but_delivery_still_needs_evidence(self):
         d = self.draft("buyer@example.com", channel="email")

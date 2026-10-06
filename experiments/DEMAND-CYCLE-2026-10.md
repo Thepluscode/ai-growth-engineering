@@ -85,17 +85,43 @@ verified direct route. The workbench derives each draft's route state; nobody ty
 The funnel is staged so you can see where a failure happens:
 
 ```
-qualified buyer → connection request sent → accepted (1st-degree, Message available)
-  → discovery/offer message sent → delivered → reply → discovery → pain → spend → paid
+QUALIFIED → PROFILE_VERIFIED → CONNECTION_REQUEST_SENT → CONNECTION_ACCEPTED → DIRECT_VERIFIED
+  → DISCOVERY/OFFER_MESSAGE_SENT (delivery unverified) → DELIVERY_VERIFIED → MEANINGFUL_REPLY
+  → discovery → pain → spend → paid
 ```
+
+`PROFILE_VERIFIED` hasn't passed the route gate. It means a legitimate connection request can be
+attempted. Only `DIRECT_VERIFIED` enters the message send path. Connection acquisition (requests
+sent, accepted, pending, direct routes created) is reported apart from demand. LinkedIn doesn't
+report declines, so a request stays pending until it's accepted.
 
 - A connection request (`age draft connect`) is access only. It's never a send or a delivery, and it isn't the experiment's message.
 - The experiment's message is never shortened to fit a 300-character note. **The demand experiment starts when the real message goes out through a verified direct route.**
-- **Delivered needs evidence.** That means a `message_delivered` event carrying an evidence kind (today only `linkedin_first_degree_message`, recorded automatically when the message is sent to an accepted connection), or a reply. "We sent it manually" counts as `attempted, delivery unverified` and stays out of every denominator.
+- **Delivered needs evidence that's separate from the send.** That means a `message_delivered` event recorded with `age draft delivered <id> --evidence linkedin_seen_indicator` once LinkedIn shows the message as Seen, or a reply, which proves delivery after the fact. A send never creates its own delivery, even to an accepted connection; a regression test enforces this. Until then the message counts as `attempted, delivery unverified` and stays out of every denominator.
 - The 13 EXP-ACQ-0009 sends of 2026-09-30 are kept as attempts and now read as unverified.
 - Shared inboxes (`info@`, `support@`, contact forms) are refused for market experiments (`named_buyer_required`).
 
 Route acquisition is tracked per qualified prospect in the private evidence set, with these fields: `route_searched`, `route_found`, `route_type`, `route_verified`, `route_unavailable_reason`. No email is ever guessed, and the named-buyer standard isn't lowered to gain volume. While route coverage is poor, **improve routes on the qualified set before researching more companies.**
+
+### Distribution constraint (evidence, 2026-10-06)
+
+Dedicated route searches covered 22 qualified buyers. Only 5 have a published public profile
+link, and **none has a published direct route**. For the other 17 there's nothing usable: no
+profile link, and no personal email published verbatim. Their pages link to company LinkedIn
+pages only, and the NCSC listings obfuscate their emails. This is a **distribution and access
+constraint**. It isn't evidence of no pain, no demand, or a failed thesis, and it isn't solved
+by guessing contact details or loosening the route definition.
+
+Legitimate next access mechanisms:
+
+- connection requests to verified profiles (running);
+- warm introductions;
+- relevant industry events;
+- professional communities;
+- associations or directories where contact details are intentionally published;
+- people the founder knows who can introduce.
+
+Searching harder on public pages is unlikely to raise coverage much.
 
 ### Queue decisions (2026-10-06)
 

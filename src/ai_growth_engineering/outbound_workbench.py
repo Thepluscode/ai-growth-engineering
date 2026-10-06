@@ -16,9 +16,11 @@ ACTIVE_DRAFT_STATUSES = ("pending_approval", "approved")
 ROUTE_UNVERIFIED = "ROUTE_UNVERIFIED"      # a name only
 PROFILE_VERIFIED = "PROFILE_VERIFIED"      # verified profile link: a connection request is possible
 DIRECT_VERIFIED = "DIRECT_VERIFIED"        # published email, or an accepted 1st-degree connection
-# What counts as evidence that a message reached the named buyer. "We sent it" is not on the list.
+# What counts as evidence that a message reached the named buyer, recorded separately from the
+# send by `record_delivery`. "We sent it" - even to an accepted connection - is not on the list:
+# a send never manufactures its own delivery. A reply also proves delivery (see demand_funnel).
 DELIVERY_EVIDENCE = frozenset({
-    "linkedin_first_degree_message",       # sent in a direct thread to an accepted 1st-degree connection
+    "linkedin_seen_indicator",             # LinkedIn showed the message as Seen by the recipient
 })
 HIGH_FRICTION_CTA_PHRASES = (
     "book a call",
@@ -342,8 +344,6 @@ def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[s
             first_send = False
     if first_send:
         record_event(db_path, {**_draft_event(draft), "event_type": "message_sent", "occurred_at": sent_at})
-        if draft["channel"] == "linkedin" and "invitation_accepted" in _draft_events(db_path, draft_id):
-            record_delivery(db_path, draft_id, sent_at, "linkedin_first_degree_message")
     return get_draft(db_path, draft_id)
 
 
