@@ -38,6 +38,38 @@ variants and none is chosen, the import is refused.
 >
 > We run a fixed-scope {diagnostic}. Would a one-page outline of what it covers be useful?
 
+### Payment market copy (founder direction, 2026-10-06)
+
+Positioning: *TrustLedger helps payment teams explain and resolve the transactions their
+systems can't agree on.* The central reframe is that payment exceptions are an evidence
+problem, not a matching problem: **the expensive part of reconciliation isn't matching
+payments, it's investigating the ones that refuse to match.** The software is how the work gets
+done. The buyer is paying for avoided loss, recovered analyst time and certainty.
+
+- **A (EXP-ACQ-0011):** after the evidence sentence: "When a payment or settlement record doesn't reconcile cleanly, how does your team work out what actually happened? … the ugly cases (duplicates, unknown states, fee mismatches, missing provider events) … I'm researching the workflow rather than pitching software." CTA: "Would you mind telling me about the last one that was genuinely painful?"
+- **B (EXP-ACQ-0009):** after the evidence sentence: the reframe, the workflow that sits behind it, then "a narrow, fixed-price service that takes one recurring exception type and maps where it originates, how much analyst time it consumes, what evidence is missing, and which part can safely be eliminated or automated. I'm not assuming you have this problem." CTA: "Would you be open to telling me how your team handled the last payment exception that took longer than it should have?"
+
+Both arms ask about the last real exception. **The only variable is whether the bounded offer
+is described.** Not allowed in the copy: invented scarcity, social proof, "leading platform",
+"AI-powered". Until a customer exists, proof means technical proof of work only, labelled as
+such.
+
+**Diagnostic scope (the £1,500 offer), once a buyer engages.** One workflow, one exception
+class, fixed price, fixed deliverable, no platform migration. Deliverables:
+
+- current workflow map;
+- exception taxonomy;
+- root cause;
+- measured analyst effort;
+- evidence and control gaps;
+- automation opportunities, and what stays human-controlled;
+- a prioritised plan;
+- an ROI estimate.
+
+**Follow-up after a pain reply.** Don't pitch yet. Ask how often it happens, how long a normal
+one takes, and who gets pulled into the hard ones. Then do the arithmetic with the buyer's own
+numbers (exceptions × minutes × loaded hourly cost) before offering to map one exception class.
+
 ## Routing gate: what counts as a demand-test attempt
 
 A prospect counts toward the named-buyer demand denominator only when **all** of these hold:
