@@ -22,7 +22,7 @@ STAGES: dict[str, tuple[str, ...]] = {
     "attention": ("impression", "video_start", "hook_view", "engagement"),
     "traffic": ("click", "landing_page_view"),
     "outreach": ("message_sent", "message_bounced", "invitation_sent", "invitation_undeliverable",
-                 "invitation_accepted", "reply_received", "reply_meaningful"),
+                 "invitation_accepted", "reply_received", "reply_meaningful", "message_delivered"),
     "lead": ("lead_created", "lead_qualified", "lead_disqualified"),
     "sales": ("meeting_booked", "meeting_held", "proposal_sent", "proposal_accepted",
               "proposal_rejected"),

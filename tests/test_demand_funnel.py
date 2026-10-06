@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.buyer_truth import record_commercial_evidence
-from ai_growth_engineering.demand_funnel import classify, render, report
+from ai_growth_engineering.demand_funnel import classify, gate, render, report
 from ai_growth_engineering.funnel_events import record_event
 from ai_growth_engineering.marketer import MarketerError, market_context
 from ai_growth_engineering.storage import init_db
@@ -49,13 +49,17 @@ class Funnel(unittest.TestCase):
         for co in ("a", "b", "c"):
             self.event("message_sent", co, "EXP-D")
         self.event("message_bounced", "c", "EXP-D")              # attempted, never delivered
-        self.event("reply_meaningful", "a", "EXP-D")
-        self.event("message_sent", "d", "EXP-O")
+        self.event("reply_meaningful", "a", "EXP-D")              # a reply proves delivery
+        self.event("message_delivered", "b", "EXP-D")
+        for co in ("d", "f"):
+            self.event("message_sent", co, "EXP-O")
+        self.event("message_delivered", "d", "EXP-O")
         self.event("message_sent", "e", "EXP-O", recipient_class="role_inbox")
+        self.event("message_delivered", "e", "EXP-O", recipient_class="role_inbox")
         self.event("message_sent", "x", "EXP-OLD")              # parked market: not this cycle
         m = self.market(report(self.db))
-        self.assertEqual((m["messages_attempted"], m["messages_delivered"], m["delivered_to_named_buyers"],
-                          m["meaningful_replies"]), (5, 4, 3, 1))
+        self.assertEqual((m["messages_attempted"], m["messages_delivered"], m["attempted_delivery_unverified"],
+                          m["delivered_to_named_buyers"], m["meaningful_replies"]), (6, 4, 1, 3, 1))
         variants = {v["protocol"]: v for v in m["variants"]}
         self.assertEqual((variants["discovery-v1"]["delivered_to_named_buyers"],
                           variants["discovery-v1"]["meaningful_replies"]), (2, 1))
@@ -65,6 +69,19 @@ class Funnel(unittest.TestCase):
         self.assertEqual(report(self.db, min_delivered=2)["markets"][0]["variants"][0]["primary_rate"], 0.5)
         self.assertEqual([x["market_id"] for x in report(self.db)["markets"]], ["MKT-PAY"])
         self.assertEqual([x["market_id"] for x in readout(self.db)["markets"]], ["MKT-PAY"])
+
+    def test_a_send_without_delivery_evidence_is_never_a_delivery(self):
+        for co in ("a", "b"):
+            self.event("message_sent", co, "EXP-O")
+        m = self.market(report(self.db))
+        self.assertEqual((m["messages_attempted"], m["attempted_delivery_unverified"],
+                          m["delivered_to_named_buyers"]), (2, 2, 0))
+
+    def test_evidence_gates(self):
+        self.assertEqual([gate(n) for n in (0, 4, 5, 9, 10, 15, 29, 30)],
+                         ["BELOW_FIRST_GATE", "BELOW_FIRST_GATE", "ROUTE_MECHANICS_REVIEW", "ROUTE_MECHANICS_REVIEW",
+                          "CATASTROPHIC_MISMATCH_CHECK", "DIRECTIONAL_ENGAGEMENT_AND_PAIN",
+                          "DIRECTIONAL_ENGAGEMENT_AND_PAIN", "COMPARISON_ALLOWED"])
 
     def test_replies_alone_never_raise_the_thesis_above_access_inconclusive(self):
         for co in ("a", "b"):
@@ -102,13 +119,14 @@ class Funnel(unittest.TestCase):
         self.assertIn("UNKNOWN", render(report(self.db)))
         full = {"market_id": "MKT-PAY", "company": "A", "person_name": "P", "role": "Head of Payments Ops",
                 "evidence_trigger": "job ad", "evidence_quote": "q" * 25, "evidence_url": "https://a.example",
-                "route_confidence": "medium"}
-        rows = [full, {**full, "company": "B", "route_confidence": "low"},
+                "route_confidence": "medium", "route_searched": True, "route_found": True, "route_verified": True}
+        rows = [full, {**full, "company": "B", "route_confidence": "low", "route_found": False, "route_verified": False},
                 {**full, "company": "C", "person_name": ""},
                 {**full, "company": "D", "evidence_trigger": ""}]
         m = self.market(report(self.db, rows))
         self.assertEqual((m["companies_researched"], m["qualified_companies"], m["named_buyers"],
-                          m["valid_direct_routes"]), (4, 3, 2, 1))
+                          m["verified_routes"], m["route_searched"], m["route_verified"],
+                          m["route_unavailable"]), (4, 3, 2, 1, 2, 1, 1))
 
     def test_marketer_needs_a_variant_choice_and_refuses_a_parked_market(self):
         with self.assertRaises(MarketerError) as ctx:

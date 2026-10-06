@@ -216,20 +216,25 @@ class ImportAndLog(Case):
 
 
 class SendSheet(Case):
-    def test_only_approved_drafts_appear_and_long_linkedin_messages_are_flagged(self):
+    def test_only_approved_routed_drafts_appear_and_a_profile_gets_a_connection_request_first(self):
         long_draft = {**DRAFT, "economic_hypothesis": "Reconciling three providers by hand likely hides delayed, "
                       "duplicated or missing payouts that nobody notices until a partner complains, and by then the "
                       "money has often been written off or paid twice across the three providers involved."}
         result = import_candidates(self.db, "MKT-X", [
             {**candidate(email="", linkedin_url="https://uk.linkedin.com/in/example-alex"), "draft": long_draft},
-            {**candidate(company="Beta", email=""), "draft": DRAFT}], llm=None, fetch=fetch())
-        first, second = result["draft_ids"]
+            {**candidate(company="Beta", email=""), "draft": DRAFT},
+            {**candidate(company="Gamma", email="", linkedin_url=""), "draft": DRAFT}], llm=None, fetch=fetch())
+        first, second, third = result["draft_ids"]
         approve_draft(self.db, first)
+        approve_draft(self.db, third)
         page = send_sheet(self.db, "MKT-X")
         self.assertIn(f"#{first} · Acme", page)
         self.assertNotIn("Beta", page, "unapproved drafts are not on the sheet")
-        self.assertIn("too long for a connection note", page)
+        self.assertIn("Stage A — connection requests (1)", page)
         self.assertIn("https://uk.linkedin.com/in/example-alex", page)
+        self.assertNotIn("paid twice", page, "the experiment message is not sent until the route is direct")
+        self.assertIn(f"Blocked, no verified route (approved but not sendable): #{third}", page)
+        self.assertNotIn("Gamma", page)
 
 
 class Adapters(Case):

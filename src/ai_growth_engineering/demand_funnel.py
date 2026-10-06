@@ -4,8 +4,11 @@ The weekly readout counts sends and replies. That cannot say whether a zero is a
 or an access failure, because it never separated *reaching a buyer* from *asking them*. This
 report keeps every stage apart:
 
-    research   1 companies researched  2 qualified  3 named buyers  4 valid direct routes
-    access     5 attempted  6 delivered  7 delivered to named buyers
+    research   1 companies researched  2 qualified  3 named buyers  4 verified routes (email or profile link)
+               (route searched / found / verified / unavailable alongside)
+    access     connection requests sent, accepted (access only - never a send or a delivery)
+               5 attempted  6 delivered  7 delivered to named buyers
+               (attempted with delivery unverified alongside)
     response   8 meaningful replies  9 qualified replies  10 discovery conversations
     truth      11 pain confirmed  12 existing spend  13 solution requested
     money      14 paid commitments  15 revenue
@@ -13,6 +16,9 @@ report keeps every stage apart:
 Invariants:
 - Stages 1-4 come from the evidence set (a private research file that names people, so it is
   never committed). Without it they are None - unknown, never zero.
+- Delivered means evidence of delivery: a message_delivered event carrying its evidence, or a
+  reply (which cannot happen without delivery). "We sent it manually" is an attempt with
+  delivery unverified, and stays out of every denominator.
 - Stages 5-15 come from the effective event log and buyer-truth categories of the market's
   linked DEMAND experiments only. A role inbox is never a named buyer.
 - The primary rate is meaningful replies / delivered to named buyers, and only at or above the
@@ -34,6 +40,9 @@ from .storage import connect, init_db
 STATES = ("ACCESS_INCONCLUSIVE", "PAIN_NOT_CONFIRMED", "PAIN_CONFIRMED", "SPEND_CONFIRMED",
           "PAID_TEST_REQUESTED", "PAID_COMMITMENT", "STOP_THESIS")
 DEFAULT_MIN_CONVERSATIONS = 5       # discovery conversations before "no pain" means anything
+# Diagnostic gates on verified named-buyer deliveries per arm. Only the last allows a comparison.
+GATES = ((30, "COMPARISON_ALLOWED"), (15, "DIRECTIONAL_ENGAGEMENT_AND_PAIN"),
+         (10, "CATASTROPHIC_MISMATCH_CHECK"), (5, "ROUTE_MECHANICS_REVIEW"), (0, "BELOW_FIRST_GATE"))
 ROUTED = ("high", "medium")         # a verified email or a verified profile link; a name alone is not
 # Stage -> buyer-truth category. Existing spend has no category of its own: BUDGET_SIGNAL is the
 # nearest one, and the mapping is stated here so the report never implies more than it holds.
@@ -41,16 +50,32 @@ TRUTH = {"pain_confirmations": "PAIN_CONFIRMED", "spend_confirmations": "BUDGET_
          "solution_requests": "PROPOSAL_REQUESTED"}
 
 
+def gate(delivered_named: int) -> str:
+    return next(label for floor, label in GATES if delivered_named >= floor)
+
+
+RESEARCH_KEYS = ("companies_researched", "qualified_companies", "named_buyers", "verified_routes",
+                 "route_searched", "route_found", "route_verified", "route_unavailable")
+
+
+def _truthy(value) -> bool:
+    return value is True or str(value).strip().lower() in ("true", "yes", "1")
+
+
 def _research(rows: list[dict] | None) -> dict:
     if rows is None:
-        return {k: None for k in ("companies_researched", "qualified_companies", "named_buyers",
-                                  "valid_direct_routes")}
+        return {k: None for k in RESEARCH_KEYS}
     qualified = [r for r in rows if all(str(r.get(k) or "").strip() for k in
                                         ("evidence_trigger", "evidence_quote", "evidence_url", "role"))]
     named = [r for r in qualified if str(r.get("person_name") or "").strip()]
     return {"companies_researched": len({str(r.get("company", "")).casefold() for r in rows}),
             "qualified_companies": len(qualified), "named_buyers": len(named),
-            "valid_direct_routes": sum(str(r.get("route_confidence", "")).lower() in ROUTED for r in named)}
+            "verified_routes": sum(str(r.get("route_confidence", "")).lower() in ROUTED for r in named),
+            "route_searched": sum(_truthy(r.get("route_searched")) for r in named),
+            "route_found": sum(_truthy(r.get("route_found")) for r in named),
+            "route_verified": sum(_truthy(r.get("route_verified")) for r in named),
+            "route_unavailable": sum(_truthy(r.get("route_searched")) and not _truthy(r.get("route_found"))
+                                     for r in named)}
 
 
 def _recipient_class(event: dict) -> str:
@@ -65,10 +90,14 @@ def _stages(events: list[dict], truth: dict[str, set[str]], experiments: set[str
         return {entity(e) for e in mine if e["event_type"] in types}
 
     sent, bounced = who("message_sent"), who("message_bounced")
-    delivered = sent - bounced
+    evidenced = who("message_delivered", "reply_received", "reply_meaningful")
+    delivered = (sent & evidenced) - bounced
     named = {entity(e) for e in mine if e["event_type"] == "message_sent"
-             and _recipient_class(e) == "named_buyer"} - bounced
-    return {"messages_attempted": len(sent | bounced), "messages_delivered": len(delivered),
+             and _recipient_class(e) == "named_buyer"} & delivered
+    return {"connection_requests_sent": len(who("invitation_sent")),
+            "connections_accepted": len(who("invitation_accepted")),
+            "messages_attempted": len(sent | bounced), "messages_delivered": len(delivered),
+            "attempted_delivery_unverified": len(sent - bounced - evidenced),
             "delivered_to_named_buyers": len(named),
             "meaningful_replies": len(who("reply_meaningful")),
             "qualified_replies": len(who("lead_qualified")),
@@ -135,7 +164,7 @@ def report(db_path: str, evidence_set: list[dict] | None = None,
             v = _stages(events, _truth(db_path, exps), exps)
             n = v["delivered_to_named_buyers"]
             variants.append({"protocol": protocol, "experiments": sorted(exps), **v,
-                             "primary_rate": round(v["meaningful_replies"] / n, 4) if n >= min_delivered else None})
+                             "evidence_gate": gate(n), "primary_rate": round(v["meaningful_replies"] / n, 4) if n >= min_delivered else None})
         out.append({"market_id": market_id, "status": status or "active",
                     **_research(None if by_market is None else by_market.get(market_id, [])),
                     **stages, "variants": variants,
@@ -146,8 +175,13 @@ def report(db_path: str, evidence_set: list[dict] | None = None,
 
 STAGE_LABELS = (
     ("companies_researched", "1 companies researched"), ("qualified_companies", "2 qualified companies"),
-    ("named_buyers", "3 named buyers identified"), ("valid_direct_routes", "4 valid direct routes"),
-    ("messages_attempted", "5 messages attempted"), ("messages_delivered", "6 messages delivered"),
+    ("named_buyers", "3 named buyers identified"), ("verified_routes", "4 verified routes (email or profile)"),
+    ("route_searched", "  route searched"), ("route_found", "  route found"),
+    ("route_verified", "  route verified"), ("route_unavailable", "  route unavailable"),
+    ("connection_requests_sent", "  connection requests sent"), ("connections_accepted", "  accepted = direct message route"),
+    ("messages_attempted", "5 messages attempted"),
+    ("attempted_delivery_unverified", "  attempted, delivery unverified"),
+    ("messages_delivered", "6 messages delivered"),
     ("delivered_to_named_buyers", "7 delivered to named buyers"), ("meaningful_replies", "8 meaningful replies"),
     ("qualified_replies", "9 qualified replies"), ("discovery_conversations", "10 discovery conversations"),
     ("pain_confirmations", "11 pain confirmations"), ("spend_confirmations", "12 existing-spend confirmations"),
@@ -168,7 +202,7 @@ def render(data: dict) -> str:
             lines.append(f"  {label:<34} {'UNKNOWN' if value is None else value}")
         for v in m["variants"]:
             rate = f"{v['primary_rate']:.1%}" if v["primary_rate"] is not None else "not yet measurable"
-            lines.append(f"  variant {v['protocol']} ({', '.join(v['experiments'])}): delivered-named "
+            lines.append(f"  variant {v['protocol']} ({', '.join(v['experiments'])}) [{v['evidence_gate']}]: delivered-named "
                          f"{v['delivered_to_named_buyers']} · meaningful {v['meaningful_replies']} · "
                          f"conversations {v['discovery_conversations']} · rate {rate}")
         lines.append("")

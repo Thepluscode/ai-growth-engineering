@@ -412,55 +412,75 @@ def gmail_payloads(db_path: str) -> list[dict]:
 
 
 LINKEDIN_NOTE_LIMIT = 300
+# Stage A: a short note whose only job is legitimate access to the named buyer. It is never the
+# experiment's message, and the experiment's message is never cut down to fit here.
+CONNECTION_NOTES = {
+    "MKT-PAYMENT-RELIABILITY": "Hi {first} - I'm researching how payment teams handle the exceptions that don't "
+                               "reconcile cleanly. Your work at {company} looked relevant. I'd be interested in connecting.",
+    "MKT-EU-AI-GOVERNANCE": "Hi {first} - I'm researching how teams show which actions their AI agents were "
+                            "authorised to take, and who approved them. Your work at {company} looked relevant. "
+                            "I'd be interested in connecting.",
+    "MKT-SECURITY-INVESTIGATION": "Hi {first} - I'm researching how security teams reconstruct incidents across "
+                                  "several tools and write them up for clients. Your work at {company} looked "
+                                  "relevant. I'd be interested in connecting.",
+}
 
 
 def send_sheet(db_path: str, market_id: str) -> str:
-    """A local HTML page for sending approved drafts by hand: who, how to reach them, and the text
-    to paste. It names people, so it is written under the gitignored store, never committed.
-    A LinkedIn message longer than a connection note allows is flagged, not silently cut: cutting
-    once left notes pointing at sentences that were no longer there."""
-    import urllib.parse
+    """A local HTML page for contacting approved buyers by hand. It names people, so it is written
+    under the gitignored store, never committed.
+
+    Only a verified route reaches the sheet. A profile link gets a connection request (access, not
+    the experiment); the experiment's message appears only once the route is direct - a published
+    email, or an accepted 1st-degree connection. A name to find later is listed as blocked, by
+    draft number only, so it cannot be sent by accident."""
+    from .outbound_workbench import DIRECT_VERIFIED, PROFILE_VERIFIED, route_status
 
     init_db(db_path)
     experiments = [l["experiment_id"] for l in _demand_links(db_path, market_id)]
     if not experiments:
         raise MarketerError("no_demand_experiment", f"{market_id} has no DEMAND experiment")
     with connect(db_path) as con:
-        rows = con.execute(
-            f"""SELECT d.id, d.company, d.channel, d.recipient_identity AS rid, d.subject, d.message,
-                      d.experiment_id, p.target_roles AS who
+        rows = [dict(r) for r in con.execute(
+            f"""SELECT d.*, d.recipient_identity AS rid, p.target_roles AS who
                FROM outbound_drafts d JOIN prospects p ON p.id = d.prospect_id
                WHERE d.experiment_id IN ({','.join('?' for _ in experiments)}) AND d.status = 'approved'
-               ORDER BY d.id""", experiments).fetchall()
+               ORDER BY d.id""", experiments)]
     e = html.escape
-    cards = []
+    connect_cards, message_cards, blocked = [], [], []
     for r in rows:
         name, _, role = str(r["who"]).partition(" (")
         role = role.rstrip(")")
-        if r["channel"] == "email":
-            route = f"Email {e(r['rid'])} — subject: {e(r['subject'])}"
-        elif str(r["rid"]).startswith("https://"):
-            route = f'<a href="{e(r["rid"])}" target="_blank">Open LinkedIn profile</a>'
+        head = f"<h2>#{r['id']} · {e(r['company'])} · {e(r['experiment_id'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
+        status = route_status(db_path, r)
+        if status == PROFILE_VERIFIED:
+            note = CONNECTION_NOTES.get(market_id, "").format(first=name.split()[0] if name else "", company=r["company"])
+            warn = "" if note and len(note) <= LINKEDIN_NOTE_LIMIT else "<p class='warn'>no connection note fits this market</p>"
+            connect_cards.append(
+                f"<section>{head}<p><a href=\"{e(r['rid'])}\" target=\"_blank\">Open LinkedIn profile</a> — "
+                f"Connect with a note. No InMail.</p>{warn}<label>Connection note ({len(note)} characters)</label>"
+                f"<textarea rows='4' readonly>{e(note)}</textarea><p class='rec'>After sending: "
+                f"`age draft connect {r['id']}`; once they accept and Message is available: `age draft accepted {r['id']}`</p></section>")
+        elif status == DIRECT_VERIFIED:
+            route = (f"Email {e(r['rid'])} — subject: {e(r['subject'])}" if r["channel"] == "email" else
+                     f'<a href="{e(r["rid"])}" target="_blank">Open LinkedIn</a> — 1st-degree: use Message, not InMail')
+            message_cards.append(
+                f"<section>{head}<p>{route}</p><label>Message ({len(r['message'])} characters)</label>"
+                f"<textarea rows='10' readonly>{e(r['message'])}</textarea>"
+                f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send</p></section>")
         else:
-            query = urllib.parse.quote(f"{name} {r['company']}")
-            route = (f'<a href="https://www.linkedin.com/search/results/people/?keywords={query}" '
-                     'target="_blank">Search LinkedIn by name</a> — confirm company and role before sending')
-        size = len(r["message"])
-        warn = ("" if r["channel"] == "email" or size <= LINKEDIN_NOTE_LIMIT else
-                f"<p class='warn'>{size} characters: too long for a connection note — send as InMail or "
-                "a message after they accept</p>")
-        cards.append(f"<section><h2>#{r['id']} · {e(r['company'])} · {e(r['experiment_id'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
-                     f"<p>{route}</p>{warn}<label>Message ({size} characters)</label>"
-                     f"<textarea rows='8' readonly>{e(r['message'])}</textarea>"
-                     f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send</p></section>")
+            blocked.append(f"#{r['id']}")
     style = ("body{font:15px system-ui;max-width:760px;margin:24px auto;padding:0 16px;background:#fafafa;color:#111}"
              "section{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 16px;margin:14px 0}"
              "textarea{width:100%;font:14px system-ui}label,.rec{font-size:13px;color:#555}.warn{color:#b45309}"
              "@media(prefers-color-scheme:dark){body{background:#111;color:#eee}section{background:#1b1b1b;"
              "border-color:#333}textarea{background:#222;color:#eee}}")
     return (f"<!doctype html><meta charset='utf-8'><title>Send sheet {e(market_id)}</title><style>{style}</style>"
-            f"<h1>{e(market_id)} — {len(rows)} approved to send</h1>"
-            "<p>Nothing here has been sent. Send by hand, then record each send.</p>" + "".join(cards))
+            f"<h1>{e(market_id)}</h1><p>Nothing here has been sent. Send by hand, then record each step.</p>"
+            f"<h2>Stage A — connection requests ({len(connect_cards)})</h2>" + "".join(connect_cards)
+            + f"<h2>Stage B — messages through a verified direct route ({len(message_cards)})</h2>" + "".join(message_cards)
+            + (f"<p class='warn'>Blocked, no verified route (approved but not sendable): {', '.join(blocked)}</p>"
+               if blocked else ""))
 
 
 # --------------------------------------------------------------------------- real adapters

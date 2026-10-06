@@ -617,7 +617,9 @@ IDENTITY_COLUMNS = (
 
 # Added 2026-09-27. A draft names the experiment it serves so its send and reply are
 # credited to a product's market; without it the workbench's events belonged to nothing.
-DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"), ("subject", "TEXT NOT NULL DEFAULT ''"))
+DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"), ("subject", "TEXT NOT NULL DEFAULT ''"),
+                 # Added 2026-10-06: why a draft left the active queue (held or rejected), kept with it.
+                 ("status_reason", "TEXT NOT NULL DEFAULT ''"), ("held_at", "TEXT"))
 
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),

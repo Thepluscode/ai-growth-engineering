@@ -4,12 +4,22 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .registry import parse_recipient_class
-from .funnel_events import observed_time, record_event
+from .funnel_events import effective_events, observed_time, record_event
 from .storage import connect, init_db
 
 
 ALLOWED_CHANNELS = frozenset({"email", "linkedin", "contact_form"})
 ACTIVE_DRAFT_STATUSES = ("pending_approval", "approved")
+
+# Route states, derived from the draft and its recorded events - never typed in.
+# Qualified is not send-ready: a name to look up later is not a route.
+ROUTE_UNVERIFIED = "ROUTE_UNVERIFIED"      # a name only
+PROFILE_VERIFIED = "PROFILE_VERIFIED"      # verified profile link: a connection request is possible
+DIRECT_VERIFIED = "DIRECT_VERIFIED"        # published email, or an accepted 1st-degree connection
+# What counts as evidence that a message reached the named buyer. "We sent it" is not on the list.
+DELIVERY_EVIDENCE = frozenset({
+    "linkedin_first_degree_message",       # sent in a direct thread to an accepted 1st-degree connection
+})
 HIGH_FRICTION_CTA_PHRASES = (
     "book a call",
     "book time",
@@ -203,14 +213,78 @@ def approve_draft(db_path: str, draft_id: int) -> dict[str, Any]:
     )
 
 
-def reject_draft(db_path: str, draft_id: int) -> dict[str, Any]:
+def reject_draft(db_path: str, draft_id: int, reason: str = "") -> dict[str, Any]:
     return _transition(
         db_path,
         draft_id,
         from_status="pending_approval",
         to_status="rejected",
         timestamp_column="rejected_at",
+        reason=reason,
     )
+
+
+def hold_draft(db_path: str, draft_id: int, reason: str) -> dict[str, Any]:
+    """Out of the active queue and impossible to approve or send, but kept: a held draft is a
+    historical artefact until it is re-qualified under the current rules."""
+    if len(reason.strip()) < 5:
+        raise WorkbenchError("reason_required", "say why the draft is held")
+    return _transition(db_path, draft_id, from_status="pending_approval", to_status="held",
+                       timestamp_column="held_at", reason=reason)
+
+
+def _draft_events(db_path: str, draft_id: int) -> set[str]:
+    return {e["event_type"] for e in effective_events(db_path)
+            if e["source"] == "workbench" and e["source_record_id"] == f"draft-{draft_id}"}
+
+
+def route_status(db_path: str, draft: Mapping[str, Any]) -> str:
+    identity = str(draft["recipient_identity"])
+    if draft["channel"] == "email" and "@" in identity and " " not in identity:
+        return DIRECT_VERIFIED
+    if not identity.startswith("https://"):
+        return ROUTE_UNVERIFIED
+    if "invitation_accepted" in _draft_events(db_path, int(draft["id"])):
+        return DIRECT_VERIFIED
+    return PROFILE_VERIFIED
+
+
+def record_connection_request(db_path: str, draft_id: int, sent_at: Any = "") -> dict[str, Any]:
+    """A short connection note to obtain access. It is not the experiment's message and never
+    counts as a send or a delivery."""
+    sent_at = _observed(sent_at, "when the connection request was sent")
+    draft = get_draft(db_path, draft_id)
+    if draft["status"] != "approved":
+        raise WorkbenchError("approval_required", "Approve the draft before contacting the buyer")
+    if draft["channel"] != "linkedin" or route_status(db_path, draft) != PROFILE_VERIFIED:
+        raise WorkbenchError("route_not_connectable",
+                             "a connection request needs a verified profile link and no accepted connection yet")
+    record_event(db_path, {**_draft_event(draft), "event_type": "invitation_sent", "occurred_at": sent_at})
+    return draft
+
+
+def record_connection_accepted(db_path: str, draft_id: int, accepted_at: Any = "") -> dict[str, Any]:
+    """Only once they are 1st-degree with the Message action available."""
+    accepted_at = _observed(accepted_at, "when the connection was accepted")
+    draft = get_draft(db_path, draft_id)
+    if "invitation_sent" not in _draft_events(db_path, draft_id):
+        raise WorkbenchError("request_required", "record the connection request first")
+    record_event(db_path, {**_draft_event(draft), "event_type": "invitation_accepted", "occurred_at": accepted_at})
+    return draft
+
+
+def record_delivery(db_path: str, draft_id: int, delivered_at: Any, evidence: str) -> dict[str, Any]:
+    delivered_at = _observed(delivered_at, "when delivery was observed")
+    if evidence not in DELIVERY_EVIDENCE:
+        raise WorkbenchError("delivery_evidence_required",
+                             f"delivery needs evidence, one of {', '.join(sorted(DELIVERY_EVIDENCE))}")
+    draft = get_draft(db_path, draft_id)
+    if draft["status"] not in {"sent", "replied"}:
+        raise WorkbenchError("send_required", "A sent draft is required before recording delivery")
+    event = _draft_event(draft)
+    record_event(db_path, {**event, "event_type": "message_delivered", "occurred_at": delivered_at,
+                           "metadata": {**event["metadata"], "delivery_evidence": evidence}})
+    return draft
 
 
 def _observed(value: Any, what: str) -> str:
@@ -227,6 +301,13 @@ def _observed(value: Any, what: str) -> str:
 def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[str, Any]:
     sent_at = _observed(sent_at, "when the message was sent")
     init_db(db_path)
+    with connect(db_path) as con:
+        draft = _draft_row(con, draft_id)
+    if draft["status"] == "approved" and draft["experiment_id"] and route_status(db_path, draft) != DIRECT_VERIFIED:
+        # A market experiment measures demand among buyers who were actually reachable.
+        raise WorkbenchError("route_unverified",
+                             "no verified direct route: a published email, or an accepted 1st-degree "
+                             "LinkedIn connection with the Message action available")
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
         if draft["status"] not in {"approved", "sent"}:
@@ -261,6 +342,8 @@ def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[s
             first_send = False
     if first_send:
         record_event(db_path, {**_draft_event(draft), "event_type": "message_sent", "occurred_at": sent_at})
+        if draft["channel"] == "linkedin" and "invitation_accepted" in _draft_events(db_path, draft_id):
+            record_delivery(db_path, draft_id, sent_at, "linkedin_first_degree_message")
     return get_draft(db_path, draft_id)
 
 
@@ -323,6 +406,7 @@ def _transition(
     from_status: str,
     to_status: str,
     timestamp_column: str,
+    reason: str = "",
 ) -> dict[str, Any]:
     init_db(db_path)
     with connect(db_path) as con:
@@ -334,8 +418,9 @@ def _transition(
             )
         if draft["status"] == from_status:
             con.execute(
-                f"UPDATE outbound_drafts SET status = ?, {timestamp_column} = CURRENT_TIMESTAMP WHERE id = ?",
-                (to_status, draft_id),
+                f"""UPDATE outbound_drafts SET status = ?, {timestamp_column} = CURRENT_TIMESTAMP,
+                       status_reason = ? WHERE id = ?""",
+                (to_status, reason.strip(), draft_id),
             )
     return get_draft(db_path, draft_id)
 

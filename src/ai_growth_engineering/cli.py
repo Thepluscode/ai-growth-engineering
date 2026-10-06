@@ -709,6 +709,26 @@ def cmd_week(args: argparse.Namespace) -> None:
     print(json.dumps(data, indent=2) if args.json else weekly_cycle.render(data))
 
 
+def cmd_draft(args: argparse.Namespace) -> None:
+    import json
+
+    from . import outbound_workbench as wb
+
+    actions = {
+        "connect": lambda: wb.record_connection_request(args.db, args.draft_id, args.at),
+        "accepted": lambda: wb.record_connection_accepted(args.db, args.draft_id, args.at),
+        "delivered": lambda: wb.record_delivery(args.db, args.draft_id, args.at, args.evidence),
+        "hold": lambda: wb.hold_draft(args.db, args.draft_id, args.reason),
+        "reject": lambda: wb.reject_draft(args.db, args.draft_id, args.reason),
+        "route": lambda: {"id": args.draft_id, "route": wb.route_status(args.db, wb.get_draft(args.db, args.draft_id))},
+    }
+    try:
+        result = actions[args.action]()
+    except wb.WorkbenchError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(json.dumps({k: result[k] for k in ("id", "status", "status_reason", "route") if k in result}))
+
+
 def cmd_funnel(args: argparse.Namespace) -> None:
     import json
 
@@ -1138,6 +1158,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target", type=int, default=15, help="named buyers per market per week (floor 1)")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_week)
+
+    p = sub.add_parser("draft", help="record access steps (connect, accepted), delivery evidence, or hold/reject with a reason")
+    dbarg(p)
+    p.add_argument("action", choices=("connect", "accepted", "delivered", "hold", "reject", "route"))
+    p.add_argument("draft_id", type=int)
+    p.add_argument("--at", default="", help="when it happened (ISO date/time); required for connect/accepted/delivered")
+    p.add_argument("--evidence", default="", help="delivered: the delivery evidence kind")
+    p.add_argument("--reason", default="", help="hold/reject: why it left the queue")
+    p.set_defaults(func=cmd_draft)
 
     p = sub.add_parser("funnel", help="fifteen-stage demand funnel per market and message variant, with thesis state")
     dbarg(p)

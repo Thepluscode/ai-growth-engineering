@@ -70,19 +70,81 @@ class, fixed price, fixed deliverable, no platform migration. Deliverables:
 one takes, and who gets pulled into the hard ones. Then do the arithmetic with the buyer's own
 numbers (exceptions × minutes × loaded hourly cost) before offering to map one exception class.
 
-## Routing gate: what counts as a demand-test attempt
+## Routing gate: qualified isn't send-ready (amended 2026-10-06)
 
-A prospect counts toward the named-buyer demand denominator only when **all** of these hold:
+**Qualified** means the company fits, a named buyer exists and there's an evidence trigger
+(name and quote verified on fetched pages by `marketer.verify`). **Send-ready** also needs a
+verified direct route. The workbench derives each draft's route state; nobody types it in:
 
-1. a named buyer is identified and the name appears on a fetched public page (enforced by `marketer.verify`);
-2. their role is relevant to the hypothesised pain (the `ownership_reason` in the evidence set);
-3. there's a concrete evidence trigger, quoted verbatim from a fetched page (enforced);
-4. there's a plausible direct route: a verified email (`high`), a verified profile link (`medium`), or a name-only LinkedIn lookup (`low`, counted as researched but not as a valid direct route);
-5. the delivery can be recorded (workbench send, then a bounce if one arrives).
+| Route state | Meaning | What's allowed |
+|---|---|---|
+| `ROUTE_UNVERIFIED` | a name to find on LinkedIn later | nothing. Shown as blocked on the send sheet; a send is refused |
+| `PROFILE_VERIFIED` | a profile link published on a fetched page | Stage A only: a connection request with a short note. No InMail |
+| `DIRECT_VERIFIED` | a published personal email, or an accepted 1st-degree connection with Message available | Stage B: the experiment message |
 
-`info@`, `support@`, contact forms and role inboxes are refused for market experiments by the
-workbench (`named_buyer_required`). They can be tracked under an unlinked draft, but they never
-enter the denominator.
+The funnel is staged so you can see where a failure happens:
+
+```
+qualified buyer → connection request sent → accepted (1st-degree, Message available)
+  → discovery/offer message sent → delivered → reply → discovery → pain → spend → paid
+```
+
+- A connection request (`age draft connect`) is access only. It's never a send or a delivery, and it isn't the experiment's message.
+- The experiment's message is never shortened to fit a 300-character note. **The demand experiment starts when the real message goes out through a verified direct route.**
+- **Delivered needs evidence.** That means a `message_delivered` event carrying an evidence kind (today only `linkedin_first_degree_message`, recorded automatically when the message is sent to an accepted connection), or a reply. "We sent it manually" counts as `attempted, delivery unverified` and stays out of every denominator.
+- The 13 EXP-ACQ-0009 sends of 2026-09-30 are kept as attempts and now read as unverified.
+- Shared inboxes (`info@`, `support@`, contact forms) are refused for market experiments (`named_buyer_required`).
+
+Route acquisition is tracked per qualified prospect in the private evidence set, with these fields: `route_searched`, `route_found`, `route_type`, `route_verified`, `route_unavailable_reason`. No email is ever guessed, and the named-buyer standard isn't lowered to gain volume. While route coverage is poor, **improve routes on the qualified set before researching more companies.**
+
+### Queue decisions (2026-10-06)
+
+| Drafts | Decision | Reason |
+|---|---|---|
+| 12 EXP-ACQ-0009 offer drafts from 2026-09-30 | rejected and kept | `SUPERSEDED_COPY_AND_MISSING_EVIDENCE_TRIGGER` |
+| 15 EXP-ACQ-0008 offer drafts from 2026-09-30 | held and kept | they predate the evidence-trigger rule. They come back only with a named buyer, evidence trigger, valid route, current market, explicit variant and current thesis |
+| 15 EXP-ACQ-0010 drafts | held and kept | `MARKET_PARKED` |
+
+Held drafts can't be approved or sent.
+
+## Progressive evidence gates (verified named-buyer deliveries per arm)
+
+| Deliveries | Gate | What may be concluded |
+|---|---|---|
+| 5 | `ROUTE_MECHANICS_REVIEW` | is the message reaching the intended buyer? |
+| 10 | `CATASTROPHIC_MISMATCH_CHECK` | is there a gross message/ICP mismatch? Never a winner |
+| 15–20 | `DIRECTIONAL_ENGAGEMENT_AND_PAIN` | direction of engagement and pain evidence |
+| 30+ comparable per arm | `COMPARISON_ALLOWED` | formal discovery-versus-offer reply-rate comparison |
+
+Below 30 the evidence is qualitative. With five payment prospects split across five unrelated
+companies, the company's characteristics would dominate any difference between arms. Don't push
+mechanically on to 30 if earlier evidence shows a thesis or an acquisition mechanism is
+fundamentally invalid. Classify the reason accurately instead.
+
+## Payment sub-hypothesis: the residual exception
+
+> Existing reconciliation platforms may solve routine matching while leaving a costly residual
+> workflow in which analysts manually investigate unmatched or disputed exceptions across
+> multiple systems.
+
+Observation: all five payment prospects researched on 2026-10-06 already use AutoRek or Aurum.
+That's evidence the market is mature. **It isn't yet evidence that the residual workflow is
+painful.** TrustLedger isn't repositioned around this until buyers confirm it. When a payment
+buyer engages, ask:
+
+1. What happens to the items your reconciliation system can't automatically match?
+2. Who investigates them?
+3. How are they prioritised?
+4. How many stay unresolved on a normal day or week?
+5. How long does a difficult exception take?
+6. Which other systems does the analyst have to check?
+7. Can the recurring causes be identified?
+8. How is the resolution documented?
+9. Could another analyst later reconstruct why the decision was made?
+10. What proportion could safely be automated?
+11. What stops your current reconciliation platform from solving that part?
+
+Question 11 decides whether there's a wedge, or whether incumbent configuration already covers it.
 
 ## Discovery questions (once a buyer engages)
 
@@ -131,7 +193,7 @@ not yet sufficient evidence that demand is absent.**
 - **Weak or shared routing.** EXP-ACQ-0001 sent 50 messages, of which 48 went to role inboxes (`info@`, `contact@`) and 2 reached a named buyer (`experiments/EXP-ACQ-0001/VERDICT.md`).
 - **Failures before reaching a buyer.** EXP-ACQ-0006's Stage A failed its access and routing gates, and demand was never asked. EXP-ACQ-0003 had 4 of its 34 LinkedIn invitations undeliverable and 1 accepted.
 - **The underlying pain was never tested.** Every prior message pitched an offer. None asked a buyer about a recent instance of the workflow, so no message could have produced a pain confirmation.
-- **The only clean named-buyer sample is small.** EXP-ACQ-0009 sent 13 messages by hand on LinkedIn (2026-09-30), against a minimum of 30. P(0 replies | n=13, true rate 10%) ≈ 25%. It also isn't recorded whether these were connection notes awaiting acceptance or messages, so their delivery is operator-asserted.
+- **The only clean named-buyer sample is small.** EXP-ACQ-0009 sent 13 messages by hand on LinkedIn (2026-09-30), against a minimum of 30. P(0 replies | n=13, true rate 10%) ≈ 25%. It isn't recorded whether these were connection notes awaiting acceptance or messages. Since 2026-10-06 they read as `attempted, delivery unverified` and sit outside every denominator.
 
 ## Doctrine interpretation for this cycle
 
