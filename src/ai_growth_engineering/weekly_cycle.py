@@ -34,7 +34,9 @@ def readout(db_path: str, as_of: date | None = None, weekly_target: int = DEFAUL
     events = effective_events(db_path)
     links = [l for l in registries.rows(db_path, "market_experiments") if l["layer"] == "DEMAND"]
     market_rows = {m["market_id"]: m for m in registries.rows(db_path, "markets")}
-    active = sorted({l["market_id"] for l in links})
+    # A parked market keeps its history but is not this week's work.
+    active = sorted({l["market_id"] for l in links
+                     if market_rows.get(l["market_id"], {}).get("status", "") in ("", "active")})
 
     rows = []
     for market_id in active:
@@ -58,6 +60,10 @@ def readout(db_path: str, as_of: date | None = None, weekly_target: int = DEFAUL
             "experiments": sorted({l["experiment_id"] for l in mine}),
             "sent": sent, "replies": replies, "sent_this_week": this_week, "queued": queued,
             "reply_rate": round(replies / sent, 4) if sent >= min_exposures else None,
+            # One row per message variant (protocol). Variants are reported, never pooled into a verdict.
+            "variants": [{"protocol": protocol, "experiments": p["experiments"],
+                          "sent": p["exposures"], "replies": p["positives"]}
+                         for protocol, p in sorted(demand.items())],
             "status": "MEASURABLE" if remaining == 0 else f"NEEDS_{remaining}_MORE",
             "this_week_to_do": max(0, min(weekly_target, remaining) - this_week - queued) if remaining else 0,
         })
@@ -82,6 +88,10 @@ def render(data: dict) -> str:
         lines.append(f"{m['market_id']}  ({', '.join(m['experiments'])})")
         lines.append(f"  buyer: {m['buyer'] or 'unspecified'}")
         lines.append(f"  sent {m['sent']} · replies {m['replies']} · reply rate {rate} · {m['status']}")
+        if len(m.get("variants", [])) > 1:
+            for v in m["variants"]:
+                lines.append(f"    variant {v['protocol']} ({', '.join(v['experiments'])}): "
+                             f"sent {v['sent']} · replies {v['replies']}")
         lines.append(f"  this week: sent {m['sent_this_week']} · queued {m['queued']}"
                      + (f" · TO DO: research and draft {m['this_week_to_do']} more named buyers"
                         if m["this_week_to_do"] else ""))

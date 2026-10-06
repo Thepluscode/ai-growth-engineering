@@ -29,6 +29,20 @@ active:
       are credited to it end to end (draft, approve, send, reply, readout)
     - `age week` runs on the real store and names this week's work per market
     - one full weekly cycle has run on real buyers (the founder sends; the system never does)
+  amendments:
+    - at: 2026-10-06
+      approved_by: founder
+      kind: SCOPE_AMENDMENT          # not a task switch; the active task is unchanged
+      summary: >
+        Make the cycle measure demand, not just sends. Markets A (payment reliability) and
+        B (EU AI governance) kept with their history; MKT-GROWTH-TEARDOWN parked (does not
+        test CyberGuardPlus); MKT-SECURITY-INVESTIGATION added (discovery only - the
+        product is not pitched until pain is confirmed). Two first-touch variants per
+        market as separate protocols (discovery vs offer), never pooled. Fifteen-stage
+        demand funnel (`age funnel`) with the primary denominator "delivered to named
+        buyers" and seven thesis states. 10/10/10 evidence set with prospect-level
+        evidence triggers. No speculative product code.
+      protocol: experiments/DEMAND-CYCLE-2026-10.md
 completed:
   - task: market_hypothesis_layer
     closed_at: 2026-09-27

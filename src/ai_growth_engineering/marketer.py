@@ -60,19 +60,38 @@ class MarketerError(ValueError):
 
 # --------------------------------------------------------------------------- context
 
-def market_context(db_path: str, market_id: str) -> dict:
+def _demand_links(db_path: str, market_id: str) -> list[dict]:
+    return [l for l in registries.rows(db_path, "market_experiments")
+            if l["market_id"] == market_id and l["layer"] == "DEMAND"]
+
+
+def market_context(db_path: str, market_id: str, experiment_id: str = "") -> dict:
+    """A market with two DEMAND experiments is running two message variants; which one a draft is
+    credited to is the operator's choice, never a default - a silent pick would pool the arms."""
     market = next((m for m in registries.rows(db_path, "markets") if m["market_id"] == market_id), None)
     if market is None:
         raise MarketerError("unknown_market", f"unknown market {market_id!r}")
-    link = next((l for l in registries.rows(db_path, "market_experiments")
-                 if l["market_id"] == market_id and l["layer"] == "DEMAND"), None)
-    if link is None:
+    if market.get("status", "") not in ("", "active"):
+        raise MarketerError("market_not_active", f"{market_id} is {market.get('status')!r}; nothing is credited to it")
+    links = _demand_links(db_path, market_id)
+    if not links:
         raise MarketerError("no_demand_experiment", f"{market_id} has no DEMAND experiment to credit drafts to")
+    if experiment_id:
+        link = next((l for l in links if l["experiment_id"] == experiment_id), None)
+        if link is None:
+            raise MarketerError("experiment_not_in_market", f"{experiment_id} is not a DEMAND experiment of {market_id}")
+    elif len(links) == 1:
+        link = links[0]
+    else:
+        choices = ", ".join(l["experiment_id"] + "=" + l["protocol"] for l in links)
+        raise MarketerError("variant_required",
+                            f"{market_id} runs {len(links)} variants; choose one with --experiment-id ({choices})")
     offer = next((o for o in registries.rows(db_path, "offers") if o["offer_id"] == market.get("offer_id")), None)
     if offer is None:
         raise MarketerError("no_offer", f"{market_id} names no registered offer (offer_id)")
     forbidden = [p.strip() for p in str(market.get("forbidden_claims") or "").split(";") if p.strip()]
-    return {"market": market, "experiment_id": link["experiment_id"], "offer": offer, "forbidden": forbidden}
+    return {"market": market, "experiment_id": link["experiment_id"], "protocol": link["protocol"],
+            "offer": offer, "forbidden": forbidden}
 
 
 # --------------------------------------------------------------------------- prompts
@@ -253,7 +272,7 @@ def _now() -> str:
 
 
 def run(db_path: str, market_id: str, *, llm: LLM, fetch: Fetch, count: int = DEFAULT_COUNT,
-        dry_run: bool = False, model: str = DEFAULT_MODEL, allow_paid: bool = False) -> dict:
+        dry_run: bool = False, model: str = DEFAULT_MODEL, allow_paid: bool = False, experiment_id: str = "") -> dict:
     """Research with the model, then verify and draft. The expensive step is the research: the
     first live run spent 33 searches and 1.43M input tokens for two unusable candidates. It
     therefore never starts without an explicit opt-in."""
@@ -268,11 +287,11 @@ def run(db_path: str, market_id: str, *, llm: LLM, fetch: Fetch, count: int = DE
         return parse_candidates(tally.add(llm(research_prompt(ctx, count, sorted(exclude)[:200]), searches)))[:count]
 
     return _pipeline(db_path, market_id, research, llm=llm, fetch=fetch, requested=count,
-                     dry_run=dry_run, model=model)
+                     dry_run=dry_run, model=model, experiment_id=experiment_id)
 
 
 def import_candidates(db_path: str, market_id: str, candidates: list[dict], *, llm: LLM | None, fetch: Fetch,
-                      dry_run: bool = False, model: str = DEFAULT_MODEL) -> dict:
+                      dry_run: bool = False, model: str = DEFAULT_MODEL, experiment_id: str = "") -> dict:
     """Candidates researched elsewhere (a person, an assistant, another session) go through exactly
     the same verification and drafting as the model's own. The source never lowers the bar.
 
@@ -283,12 +302,13 @@ def import_candidates(db_path: str, market_id: str, candidates: list[dict], *, l
         raise MarketerError("invalid_import", "import must be a JSON array of candidate objects")
     candidates = candidates[:MAX_COUNT]
     return _pipeline(db_path, market_id, lambda ctx, exclude, tally: candidates, llm=llm, fetch=fetch,
-                     requested=len(candidates), dry_run=dry_run, model=f"import+{model}")
+                     requested=len(candidates), dry_run=dry_run, model=f"import+{model}",
+                     experiment_id=experiment_id)
 
 
-def _pipeline(db_path, market_id, research, *, llm, fetch, requested, dry_run, model) -> dict:
+def _pipeline(db_path, market_id, research, *, llm, fetch, requested, dry_run, model, experiment_id="") -> dict:
     init_db(db_path)
-    ctx = market_context(db_path, market_id)
+    ctx = market_context(db_path, market_id, experiment_id)
     with connect(db_path) as con:
         exclude = {r["company"].casefold() for r in con.execute("SELECT company FROM prospects")}
         suppressed = {r["identity"].casefold() for r in con.execute("SELECT identity FROM suppression")}
@@ -402,14 +422,16 @@ def send_sheet(db_path: str, market_id: str) -> str:
     import urllib.parse
 
     init_db(db_path)
-    ctx = market_context(db_path, market_id)
+    experiments = [l["experiment_id"] for l in _demand_links(db_path, market_id)]
+    if not experiments:
+        raise MarketerError("no_demand_experiment", f"{market_id} has no DEMAND experiment")
     with connect(db_path) as con:
         rows = con.execute(
-            """SELECT d.id, d.company, d.channel, d.recipient_identity AS rid, d.subject, d.message,
-                      p.target_roles AS who
+            f"""SELECT d.id, d.company, d.channel, d.recipient_identity AS rid, d.subject, d.message,
+                      d.experiment_id, p.target_roles AS who
                FROM outbound_drafts d JOIN prospects p ON p.id = d.prospect_id
-               WHERE d.experiment_id = ? AND d.status = 'approved' ORDER BY d.id""",
-            (ctx["experiment_id"],)).fetchall()
+               WHERE d.experiment_id IN ({','.join('?' for _ in experiments)}) AND d.status = 'approved'
+               ORDER BY d.id""", experiments).fetchall()
     e = html.escape
     cards = []
     for r in rows:
@@ -427,7 +449,7 @@ def send_sheet(db_path: str, market_id: str) -> str:
         warn = ("" if r["channel"] == "email" or size <= LINKEDIN_NOTE_LIMIT else
                 f"<p class='warn'>{size} characters: too long for a connection note — send as InMail or "
                 "a message after they accept</p>")
-        cards.append(f"<section><h2>#{r['id']} · {e(r['company'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
+        cards.append(f"<section><h2>#{r['id']} · {e(r['company'])} · {e(r['experiment_id'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
                      f"<p>{route}</p>{warn}<label>Message ({size} characters)</label>"
                      f"<textarea rows='8' readonly>{e(r['message'])}</textarea>"
                      f"<p class='rec'>After sending: Command Center → draft #{r['id']} → Record send</p></section>")

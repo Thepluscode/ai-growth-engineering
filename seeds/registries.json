@@ -483,6 +483,15 @@
       "price_pence": 150000,
       "proof": "TrustLedger reconciliation engine (CI-verified, not production-observed)",
       "cta": "reply to outbound"
+    },
+    {
+      "offer_id": "OFF-SEC-DISCOVERY",
+      "buyer": "Head of SOC / Security Operations lead at a UK MSP or small security team",
+      "problem": "incidents reconstructed by hand across fragmented telemetry, then written up as customer-facing evidence",
+      "outcome": "no product offered: a discovery conversation about how the last incident was reconstructed and evidenced",
+      "price_pence": 0,
+      "proof": "none claimed; the workflow pain is the hypothesis under test (CyberGuardPlus is not pitched until pain is confirmed)",
+      "cta": "reply to outbound"
     }
   ],
   "product_opportunities": [
@@ -879,11 +888,22 @@
       "hypothesis": "Founders/MDs of UK cyber/MSP firms will accept a free Growth Leak Teardown when it reaches them by name, as the entry to the £3,500 sprint",
       "buyer": "Founder/MD of UK cyber/MSP",
       "geography": "UK",
-      "status": "active",
+      "status": "parked",
       "source": "seeds offers OFF-TEARDOWN / OFF-SPRINT; EXP-ACQ-0001 (48 of 50 sends reached role inboxes)",
-      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result.",
+      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result. PARKED 2026-10-06 by founder scope amendment: a valid separate hypothesis, but it does not test CyberGuardPlus demand; replaced in this cycle by MKT-SECURITY-INVESTIGATION.",
       "offer_id": "OFF-TEARDOWN",
       "forbidden_claims": "guaranteed;our clients;case study"
+    },
+    {
+      "market_id": "MKT-SECURITY-INVESTIGATION",
+      "hypothesis": "Security teams and MSPs may spend significant manual time reconstructing incidents across fragmented telemetry/tools and producing defensible customer-facing evidence",
+      "buyer": "Head of SOC / Security Operations / Incident Response lead at a UK MSP, MSSP or small internal security team",
+      "geography": "UK",
+      "status": "active",
+      "source": "founder scope amendment 2026-10-06 to weekly_cycle_v1; CyberGuardPlus thesis C",
+      "notes": "Hypothesis only. Discovery-first: CyberGuardPlus is never pitched until the workflow pain is confirmed, so this market runs the discovery variant only this cycle.",
+      "offer_id": "OFF-SEC-DISCOVERY",
+      "forbidden_claims": "CyberGuardPlus;our platform;our product;our tool;AI-powered;guaranteed;our clients"
     }
   ],
   "market_experiments": [
@@ -916,6 +936,36 @@
       "exposure_event": "message_sent",
       "positive_event": "reply_meaningful",
       "notes": "Workbench drafts tagged with this experiment; named buyers only (enforced)."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0011",
+      "market_id": "MKT-PAYMENT-RELIABILITY",
+      "experiment_id": "EXP-ACQ-0011",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Variant A (discovery): a workflow question, no pitch. Variant B (offer) is EXP-ACQ-0009 on named-buyer-message-v1; protocols are never pooled."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0012",
+      "market_id": "MKT-EU-AI-GOVERNANCE",
+      "experiment_id": "EXP-ACQ-0012",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Variant A (discovery): a workflow question, no pitch. Variant B (offer) is EXP-ACQ-0008 on named-buyer-message-v1; protocols are never pooled."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0013",
+      "market_id": "MKT-SECURITY-INVESTIGATION",
+      "experiment_id": "EXP-ACQ-0013",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Discovery only: no offer variant until pain is confirmed (founder amendment 2026-10-06)."
     }
   ]
 }
