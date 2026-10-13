@@ -33,7 +33,7 @@ class RegistryTests(unittest.TestCase):
             "customer_evidence", "voc", "offers", "proof_inventory", "creatives",
             "channels", "competitor_patterns", "partners", "experiments",
             "revenue_attribution", "economics", "claims", "product_opportunity_portfolio",
-            "product_format_decisions",
+            "product_format_decisions", "authority_opportunity_model",
         }
         self.assertTrue(required <= set(registries.REGISTRY_TABLES),
                         f"missing: {sorted(required - set(registries.REGISTRY_TABLES))}")

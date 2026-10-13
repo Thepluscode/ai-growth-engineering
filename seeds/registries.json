@@ -368,6 +368,22 @@
       "observed": true,
       "statement": "The public hiring connector read Airwallex's live structured posting for 'Manager, Revenue Strategy & Operations, UK & Europe', dated 2026-08-10, and returned one preview candidate with 95% source confidence. A real-browser lifecycle kept the vacancy observation separate from the weaker commercial hypothesis, required a human record action, then surfaced the account in the eligible buyer desk. A second scan identified the existing signal instead of offering another import. The isolated store contained one intent signal, zero outbound drafts and zero outreach rows. Desktop 1440x1000 and mobile 390x844 both had zero horizontal overflow and the browser console had zero errors.",
       "source": "https://jobs.ashbyhq.com/airwallex/d0ee1c45-2b64-4abe-ad5c-75e0efd8d91e + isolated browser lifecycle + deterministic connector and HTTP tests, 2026-08-30"
+    },
+    {
+      "evidence_id": "EV-AUTH-AUO-RESULT-01",
+      "kind": "experiment",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "In Agent Under Oath v0.1 scenario BLOCK-002, all 30 allow-all runs produced the prohibited refund while all 30 governed live runs produced no prohibited refund because the control could see prior refund history and denied every proposal. In LIMIT-001, 29 of 30 governed live runs still produced an unsafe refund because the fraud-hold fact never reached the control. These are scenario-specific results, not a general safety rate.",
+      "source": "theplus-tech-website/src/research/agent-under-oath/data.json and https://theplus-tech.com/research/agent-under-oath, verified 2026-10-06"
+    },
+    {
+      "evidence_id": "EV-AUTH-AUO-VERIFICATION-01",
+      "kind": "experiment",
+      "confidence": 0.95,
+      "observed": true,
+      "statement": "Agent Under Oath v0.1 contains 480 live-model runs, 240 exact-action replays and two synthetic probes. The published verification manifest reports 722 of 722 chains verified and regraded consistently, with zero off-lock runs and no replay model calls.",
+      "source": "theplus-tech-website/src/research/agent-under-oath/verification.json, verified 2026-10-06"
     }
   ],
   "channels": [
@@ -482,6 +498,15 @@
       "outcome": "a diagnosed payment-reliability failure taxonomy and integration plan",
       "price_pence": 150000,
       "proof": "TrustLedger reconciliation engine (CI-verified, not production-observed)",
+      "cta": "reply to outbound"
+    },
+    {
+      "offer_id": "OFF-SEC-DISCOVERY",
+      "buyer": "Head of SOC / Security Operations lead at a UK MSP or small security team",
+      "problem": "incidents reconstructed by hand across fragmented telemetry, then written up as customer-facing evidence",
+      "outcome": "no product offered: a discovery conversation about how the last incident was reconstructed and evidenced",
+      "price_pence": 0,
+      "proof": "none claimed; the workflow pain is the hypothesis under test (CyberGuardPlus is not pitched until pain is confirmed)",
       "cta": "reply to outbound"
     }
   ],
@@ -633,6 +658,20 @@
       "evidence_id": "EV-GUMROAD-MOR",
       "status": "accepted_directional",
       "reviewed_at": "2026-08-20"
+    },
+    {
+      "claim_id": "CLM-AUTH-AUO-001",
+      "statement": "A control can prevent an agent action only when the decisive business state reaches the control boundary.",
+      "evidence_id": "EV-AUTH-AUO-RESULT-01",
+      "status": "accepted_scenario_bounded",
+      "reviewed_at": "2026-10-06"
+    },
+    {
+      "claim_id": "CLM-AUTH-AUO-002",
+      "statement": "Identity and policy alone do not substitute for the business state required to make the decision.",
+      "evidence_id": "EV-AUTH-AUO-RESULT-01",
+      "status": "accepted_scenario_bounded",
+      "reviewed_at": "2026-10-06"
     }
   ],
   "experiments": [
@@ -851,6 +890,68 @@
       "label": "Verified careers page"
     }
   ],
+  "authority_opportunities": [
+    {
+      "authority_opportunity_id": "AUTH-AI-AGENT-CONTROL-001",
+      "market_id": "MKT-EU-AI-GOVERNANCE",
+      "buyer": "CTO / CISO / Head of Risk / Head of Compliance",
+      "problem": "AI-agent actions cannot be defended when the authorisation boundary lacks the business state that should change the decision",
+      "information_gap": "Most AI-governance coverage describes policy and identity controls without showing, run by run, how missing business context changes real effects",
+      "authority_supply": "The supply is asserted as shallow but has not yet been measured against a frozen competitor or search corpus",
+      "topic": "Why policy is not enough when the decisive business fact never reaches the AI control",
+      "topic_class": "evidence",
+      "thesis": "A control can prevent an agent action only when the decisive business state reaches the control boundary",
+      "proposed_asset": "Agent Under Oath technical report",
+      "conversion_event": "qualified_conversation",
+      "market_evidence_ids": "",
+      "proof_evidence_ids": "EV-AUTH-AUO-RESULT-01;EV-AUTH-AUO-VERIFICATION-01",
+      "claim_ids": "CLM-AUTH-AUO-001;CLM-AUTH-AUO-002",
+      "channel_ids": "CH-OWNED-SITE;CH-SOCIAL",
+      "offer_id": "OFF-AI-COMPLIANCE",
+      "content_id": "CONTENT-AUO-001",
+      "asset_tier": "proprietary_authority_asset",
+      "commercial_buyer_value": 0,
+      "problem_urgency": 0,
+      "existing_spend_signal": 0,
+      "information_demand": 0,
+      "answer_quality_gap": 0,
+      "evidence_availability": 5,
+      "right_to_win": 5,
+      "distribution_access": 2,
+      "product_adjacency": 4,
+      "status": "research",
+      "notes": "Proof exists; commercial authority opportunity does not yet. Publish nothing automatically. One founder-approved distribution test should measure qualified discovery before more content is produced."
+    }
+  ],
+  "conversation_funnels": [
+    {
+      "conversation_funnel_id": "CF-AUTH-DIST-001",
+      "platform": "linkedin",
+      "content_id": "CONTENT-AUO-001",
+      "primary_cta": "What business fact should make the decision flip, and can your control see it?",
+      "engagement_trigger": "One founder-approved organic post distributing the existing Agent Under Oath report",
+      "dm_path": "Attributed comment or direct message",
+      "qualification_criteria": "Own operational problem, business fact or control boundary; or asks cost, scope, timeline or availability",
+      "capture_destination": "AUTHORITY-DISTRIBUTION-001.csv plus private buyer-truth evidence when applicable",
+      "offer_id": "OFF-AI-COMPLIANCE",
+      "authority_opportunity_id": "AUTH-AI-AGENT-CONTROL-001",
+      "report_url": "https://theplus-tech.com/research/agent-under-oath",
+      "distribution_status": "published",
+      "approved_at": "2026-10-06",
+      "post_url": "https://www.linkedin.com/feed/update/urn:li:activity:7513246803215925248/",
+      "published_at": "2026-10-06T14:40:49Z",
+      "observation_ends_at": "2026-10-13T14:40:49Z",
+      "observation_days": 7,
+      "content_views": 0,
+      "profile_visits": 0,
+      "dm_starts": 0,
+      "owned_contacts": 0,
+      "qualified_leads": 0,
+      "opportunities": 0,
+      "customers": 0,
+      "revenue_pence": 0
+    }
+  ],
   "markets": [
     {
       "market_id": "MKT-EU-AI-GOVERNANCE",
@@ -879,11 +980,22 @@
       "hypothesis": "Founders/MDs of UK cyber/MSP firms will accept a free Growth Leak Teardown when it reaches them by name, as the entry to the £3,500 sprint",
       "buyer": "Founder/MD of UK cyber/MSP",
       "geography": "UK",
-      "status": "active",
+      "status": "parked",
       "source": "seeds offers OFF-TEARDOWN / OFF-SPRINT; EXP-ACQ-0001 (48 of 50 sends reached role inboxes)",
-      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result.",
+      "notes": "Reruns the offer at named buyers only; EXP-ACQ-0001's zero is an access result, not a message result. PARKED 2026-10-06 by founder scope amendment: a valid separate hypothesis, but it does not test CyberGuardPlus demand; replaced in this cycle by MKT-SECURITY-INVESTIGATION.",
       "offer_id": "OFF-TEARDOWN",
       "forbidden_claims": "guaranteed;our clients;case study"
+    },
+    {
+      "market_id": "MKT-SECURITY-INVESTIGATION",
+      "hypothesis": "Security teams and MSPs may spend significant manual time reconstructing incidents across fragmented telemetry/tools and producing defensible customer-facing evidence",
+      "buyer": "Head of SOC / Security Operations / Incident Response lead at a UK MSP, MSSP or small internal security team",
+      "geography": "UK",
+      "status": "active",
+      "source": "founder scope amendment 2026-10-06 to weekly_cycle_v1; CyberGuardPlus thesis C",
+      "notes": "Hypothesis only. Discovery-first: CyberGuardPlus is never pitched until the workflow pain is confirmed, so this market runs the discovery variant only this cycle.",
+      "offer_id": "OFF-SEC-DISCOVERY",
+      "forbidden_claims": "CyberGuardPlus;our platform;our product;our tool;AI-powered;guaranteed;our clients"
     }
   ],
   "market_experiments": [
@@ -916,6 +1028,36 @@
       "exposure_event": "message_sent",
       "positive_event": "reply_meaningful",
       "notes": "Workbench drafts tagged with this experiment; named buyers only (enforced)."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0011",
+      "market_id": "MKT-PAYMENT-RELIABILITY",
+      "experiment_id": "EXP-ACQ-0011",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Variant A (discovery): a workflow question, no pitch. Variant B (offer) is EXP-ACQ-0009 on named-buyer-message-v1; protocols are never pooled."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0012",
+      "market_id": "MKT-EU-AI-GOVERNANCE",
+      "experiment_id": "EXP-ACQ-0012",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Variant A (discovery): a workflow question, no pitch. Variant B (offer) is EXP-ACQ-0008 on named-buyer-message-v1; protocols are never pooled."
+    },
+    {
+      "link_id": "LINK-EXP-ACQ-0013",
+      "market_id": "MKT-SECURITY-INVESTIGATION",
+      "experiment_id": "EXP-ACQ-0013",
+      "layer": "DEMAND",
+      "protocol": "named-buyer-discovery-v1",
+      "exposure_event": "message_sent",
+      "positive_event": "reply_meaningful",
+      "notes": "Discovery only: no offer variant until pain is confirmed (founder amendment 2026-10-06)."
     }
   ]
 }

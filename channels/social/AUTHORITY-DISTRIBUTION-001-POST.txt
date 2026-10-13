@@ -1,0 +1,18 @@
+An AI control can only act on the business state it can see.
+
+We tested that boundary with one pinned model, a refund sandbox and scenario-specific business rules.
+
+In BLOCK-002, all 30 uncontrolled runs issued a refund that breached a 24-hour cumulative limit. When the control could see the prior refund history, all 30 governed live runs prevented that effect.
+
+Then LIMIT-001 exposed the opposite result: 29 of 30 governed live runs still produced an unsafe refund because the fraud-hold fact never reached the control.
+
+The point is not that “governance works” or “governance fails.”
+
+It is narrower: identity and policy do not substitute for the business context required to make the decision.
+
+We published the run-level evidence, exact-action replays, verification manifest and limits here:
+https://theplus-tech.com/research/agent-under-oath
+
+If you operate AI agents in a consequential workflow: what business fact should make the decision flip—and can your control actually see it?
+
+#AIGovernance #AgenticAI #AISafety

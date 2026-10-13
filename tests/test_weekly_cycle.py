@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.funnel_events import record_event
@@ -24,6 +25,10 @@ class Cycle(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "g.db")
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page",
+                             lambda url: " ".join(f"buyer{n}@example.com" for n in range(40)) + " a@example.com b@example.com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         with connect(self.db) as con:
             for pid in range(1, 4):
@@ -44,7 +49,8 @@ class Cycle(unittest.TestCase):
             "observation": "Their pricing page has no route for a buyer who is ready to talk now.",
             "economic_hypothesis": "A direct route would turn more ready buyers into conversations each month.",
             "cta": "Want the one-page note?", "metric": "qualified conversations",
-            "source_url": "https://example.com/pricing", "experiment_id": experiment_id})
+            "source_url": "https://example.com/pricing", "experiment_id": experiment_id},
+            route_source_url="https://example.com/team")
 
     def send_and_reply(self, draft, sent="2026-10-01T10:00:00+00:00", reply="2026-10-02T10:00:00+00:00"):
         approve_draft(self.db, draft["id"])
@@ -68,6 +74,8 @@ class Cycle(unittest.TestCase):
         approve_draft(self.db, self.draft(prospect_id=2, who="b")["id"])
         row = readout(self.db, AS_OF)["markets"][0]
         self.assertEqual((row["queued"], row["this_week_to_do"]), (2, 13))
+        self.assertEqual(row["send_remaining"], 15,
+                         "queued work reduces research, never the number of sends still required")
 
     def test_an_untagged_draft_counts_in_no_market(self):
         self.send_and_reply(self.draft(experiment_id=""))
@@ -94,12 +102,48 @@ class Cycle(unittest.TestCase):
         for i in range(30):
             record_event(self.db, {"event_type": "message_sent", "company": f"c{i}", "experiment_id": "EXP-B",
                                    "source": "t", "source_record_id": f"s{i}", "provenance": "operator_recorded",
-                                   "occurred_at": "2026-10-01T00:00:00+00:00"})
+                                   "occurred_at": "2026-10-01T00:00:00+00:00",
+                                   "metadata": {"recipient_class": "named_buyer"}})
+            record_event(self.db, {"event_type": "message_delivered", "company": f"c{i}",
+                                   "experiment_id": "EXP-B", "source": "t",
+                                   "source_record_id": f"d{i}", "provenance": "operator_recorded",
+                                   "occurred_at": "2026-10-01T00:05:00+00:00"})
         record_event(self.db, {"event_type": "reply_meaningful", "company": "c0", "experiment_id": "EXP-B",
                                "source": "t", "source_record_id": "r0", "provenance": "operator_recorded",
                                "occurred_at": "2026-10-02T00:00:00+00:00"})
         row = [m for m in readout(self.db, AS_OF)["markets"] if m["market_id"] == "MKT-B"][0]
         self.assertEqual((row["status"], row["this_week_to_do"], row["reply_rate"]), ("MEASURABLE", 0, 0.0333))
+
+    def test_attempts_without_delivery_evidence_never_make_a_market_measurable(self):
+        for i in range(30):
+            record_event(self.db, {"event_type": "message_sent", "company": f"c{i}",
+                                   "experiment_id": "EXP-B", "source": "t",
+                                   "source_record_id": f"s{i}", "provenance": "operator_recorded",
+                                   "occurred_at": "2026-10-01T00:00:00+00:00"})
+        row = [m for m in readout(self.db, AS_OF)["markets"] if m["market_id"] == "MKT-B"][0]
+        self.assertEqual((row["sent"], row["delivered"], row["sample_remaining"]), (30, 0, 30))
+        self.assertEqual(row["status"], "NEEDS_30_MORE")
+
+    def test_message_variants_must_each_reach_the_minimum_and_are_never_pooled(self):
+        registries.add(self.db, "market_experiments", {
+            "link_id": "L-EXP-B-OFFER", "market_id": "MKT-B", "experiment_id": "EXP-B-OFFER",
+            "layer": "DEMAND", "protocol": "named-buyer-offer-v1",
+            "exposure_event": "message_sent", "positive_event": "reply_meaningful"})
+        for i in range(30):
+            record_event(self.db, {"event_type": "message_sent", "company": f"c{i}",
+                                   "experiment_id": "EXP-B", "source": "t",
+                                   "source_record_id": f"s{i}", "provenance": "operator_recorded",
+                                   "occurred_at": "2026-10-01T00:00:00+00:00",
+                                   "metadata": {"recipient_class": "named_buyer"}})
+            record_event(self.db, {"event_type": "message_delivered", "company": f"c{i}",
+                                   "experiment_id": "EXP-B", "source": "t",
+                                   "source_record_id": f"d{i}", "provenance": "operator_recorded",
+                                   "occurred_at": "2026-10-01T00:05:00+00:00"})
+        row = [m for m in readout(self.db, AS_OF)["markets"] if m["market_id"] == "MKT-B"][0]
+        self.assertEqual((row["sample_target"], row["delivered"], row["sample_remaining"]),
+                         (60, 30, 30))
+        self.assertEqual(row["status"], "NEEDS_30_MORE")
+        self.assertIsNone(row["reply_rate"], "variants must not be pooled into a market rate")
 
     def test_the_comparison_waits_for_both_markets(self):
         self.send_and_reply(self.draft())

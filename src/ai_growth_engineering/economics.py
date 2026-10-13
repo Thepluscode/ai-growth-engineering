@@ -171,7 +171,7 @@ FUNNEL_STEPS = (
     ("diagnostic_rate", "Diagnostic rate", "diagnostics_proposed", "discovery_calls"),
     ("proposal_rate", "Proposal rate", "commercial_proposals", "diagnostics_proposed"),
     ("win_rate", "Win rate", "paying_customers", "commercial_proposals"),
-    ("delivered_to_customer", "Delivered outreach to customer", "paying_customers", "outreach_sent"),
+    ("delivered_to_customer", "Send attempt to customer", "paying_customers", "outreach_sent"),
 )
 
 

@@ -113,7 +113,9 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
             "engagement_trigger", "dm_path", "qualification_criteria",
             "capture_destination", "offer_id", "content_views", "profile_visits",
             "dm_starts", "owned_contacts", "qualified_leads", "opportunities",
-            "customers", "revenue_pence", "experiment_id",
+            "customers", "revenue_pence", "experiment_id", "authority_opportunity_id",
+            "report_url", "post_url", "distribution_status", "approved_at",
+            "published_at", "observation_ends_at", "measured_at", "observation_days",
         ),
     ),
     "audience_ownership": (
@@ -197,6 +199,23 @@ REGISTRIES: dict[str, tuple[str, tuple[str, ...], tuple[str, ...]]] = {
             "rationale", "evidence_id", "decided_at",
         ),
     ),
+    # A thin decision model over existing market, evidence, claims, channels, offers and
+    # attribution. It never generates content or publishes; it says whether an authority
+    # thesis has enough commercial evidence and lineage to merit a distribution test.
+    "authority_opportunities": (
+        "authority_opportunity_id",
+        (
+            "market_id", "buyer", "problem", "information_gap", "authority_supply",
+            "topic", "topic_class", "thesis", "proposed_asset", "conversion_event",
+        ),
+        (
+            "market_evidence_ids", "proof_evidence_ids", "claim_ids", "channel_ids",
+            "offer_id", "content_id", "asset_tier", "commercial_buyer_value", "problem_urgency",
+            "existing_spend_signal", "information_demand", "answer_quality_gap",
+            "evidence_availability", "right_to_win", "distribution_access",
+            "product_adjacency", "status", "notes",
+        ),
+    ),
 }
 
 # Architecture names -> physical tables. Evidence and experiments retain specialised
@@ -227,6 +246,7 @@ REGISTRY_TABLES = {
     "value_ladders": "value_ladders",
     "product_opportunity_portfolio": "product_opportunities",
     "product_format_decisions": "product_format_decisions",
+    "authority_opportunity_model": "authority_opportunities",
 }
 
 # Fields whose name ends in these suffixes are stored as integers, so money and counts
@@ -245,6 +265,17 @@ CHOICES = {
     ("audiences", "audience_type"): ("cold", "retargeting", "lookalike", "customer"),
     ("procedures", "admission_status"): ("APPROVED", "INTERNAL_BASELINE"),
     ("market_experiments", "layer"): ("RESEARCH", "ACCESS", "DEMAND", "COMMERCIAL", "PAID"),
+    ("authority_opportunities", "topic_class"): (
+        "pain", "mistake", "contrarian", "evidence", "mechanism", "decision",
+        "economics", "teardown", "prediction_with_conditions", "tool",
+    ),
+    ("authority_opportunities", "asset_tier"): (
+        "proprietary_authority_asset", "analytical_content", "distribution_content",
+    ),
+    ("authority_opportunities", "status"): ("research", "ready", "parked"),
+    ("conversation_funnels", "distribution_status"): (
+        "approved", "published", "observation_complete",
+    ),
 }
 
 INT_FIELDS = {
@@ -254,6 +285,10 @@ INT_FIELDS = {
     "validation_speed_days", "validation_difficulty", "recurring_problem",
     "new_data_changes_answer", "saved_state_required", "automation_improves_value",
     "integration_increases_value", "ongoing_value",
+    "commercial_buyer_value", "problem_urgency", "existing_spend_signal",
+    "information_demand", "answer_quality_gap", "evidence_availability",
+    "right_to_win", "product_adjacency",
+    "observation_days",
 }
 
 

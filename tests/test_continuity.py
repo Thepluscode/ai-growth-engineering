@@ -83,6 +83,9 @@ class PreflightContract(unittest.TestCase):
             (repo / "AGENT_CONTEXT.md").write_text("# charter\n")
             (repo / "ACTIVE_WORK.yaml").write_text("active:\n  task: healthy_task\n")
             (repo / "capability_map.json").write_text("{}\n")
+            # Every declared input must exist: preflight refuses a declaration that matches nothing.
+            (repo / "src").mkdir()
+            (repo / "src" / "engine.py").write_text("x = 1\n")
             git("add", "-A"); git("commit", "-q", "-m", "x", "--no-gpg-sign")
             generate()
             (repo / "ACTIVE_WORK.yaml").write_text("active:\n  task: next_task\n")

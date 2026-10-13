@@ -1,0 +1,2 @@
+test_id,authority_opportunity_id,content_id,platform,status,approved_at,published_at,post_url,observation_ends_at,impressions,viewer_job_titles,viewer_companies,profile_views,search_appearances,inbound_conversations,qualified_conversations,solicited_views,notes
+AUTH-DIST-001,AUTH-AI-AGENT-CONTROL-001,CONTENT-AUO-001,linkedin,PUBLISHED_OBSERVING,2026-10-06,2026-10-06T14:40:49Z,https://www.linkedin.com/feed/update/urn:li:activity:7513246803215925248/,2026-10-13T14:40:49Z,,,,,,,,"One post only; blank metrics are unknown, not zero."

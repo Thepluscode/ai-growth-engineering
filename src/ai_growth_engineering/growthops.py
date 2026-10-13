@@ -28,7 +28,7 @@ TARGETS = {
 
 METRIC_LABELS = {
     "qualified_prospects": "Qualified prospects",
-    "outreach_sent": "Delivered outreach",
+    "outreach_sent": "Recorded send attempts",
     "meaningful_responses": "Meaningful replies",
     "discovery_calls": "Discovery calls",
     "diagnostics_proposed": "Diagnostics proposed",
@@ -113,7 +113,7 @@ def _next_move(metrics: dict[str, int]) -> tuple[tuple[str, str, str], dict[str,
     """
     if metrics["outreach_sent"] == 0:
         return (
-            ("red", "NO MARKET CONTACT", "The system has no delivered outreach."),
+            ("red", "NO MARKET CONTACT", "The system has no recorded send attempts."),
             _recommendation(
                 "Create the first external observation",
                 "Send one qualified message manually; do not automate an unobserved route.",
@@ -123,7 +123,7 @@ def _next_move(metrics: dict[str, int]) -> tuple[tuple[str, str, str], dict[str,
         )
     if metrics["meaningful_responses"] == 0:
         return (
-            ("red", "ACCESS CONSTRAINT", "Delivered outreach has produced no meaningful reply."),
+            ("red", "ACCESS CONSTRAINT", "Recorded outreach has produced no meaningful reply."),
             _recommendation(
                 "Change access before increasing volume",
                 "Test one reachable buyer route with a fixed message and keep channel and recipient class separate.",

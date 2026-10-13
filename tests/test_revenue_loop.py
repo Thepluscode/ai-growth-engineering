@@ -363,7 +363,7 @@ class DiagnosisTests(StoreCase):
         c = diag["constraint"]
         self.assertEqual((c["to"], c["rate"], c["confidence"], c["is_leak"]),
                          ("invitation_accepted", 0.25, "MEDIUM", True))
-        self.assertEqual(c["reason"], "40 delivered observed")
+        self.assertEqual(c["reason"], "40 sent observed")
 
     def test_exposures_inside_the_response_window_are_in_flight_not_declined(self):
         self.invitations(7, "2026-08-20", prefix="old")
@@ -374,7 +374,7 @@ class DiagnosisTests(StoreCase):
         self.assertEqual((accept["numerator"], accept["denominator"], accept["in_flight"], accept["early_responses"]),
                          (0, 7, 27, 1))
         self.assertEqual(accept["status"], "INSUFFICIENT_DATA")
-        self.assertEqual(diag["constraint"]["reason"], "only 7 delivered observed")
+        self.assertEqual(diag["constraint"]["reason"], "only 7 sent observed")
         self.assertEqual(self.transition(diagnose_funnel(effective_events(self.db), "invitation", as_of="2026-08-21"),
                                          "invitation_accepted")["status"], "IN_FLIGHT")
 
@@ -476,8 +476,8 @@ class CommercialModelTests(StoreCase):
         card = next_experiment_card(self.db, as_of="2026-09-15")
         self.assertEqual((card["status"], card["campaign_id"], card["variable"]),
                          ("PROPOSED_NEEDS_CONTRACT", "CMP-7", "cta"))
-        self.assertEqual(card["current_constraint"], "Delivered → Replies")
-        self.assertEqual(card["evidence"][:3], ["50 delivered", "0 replies", "0.0% conversion"])
+        self.assertEqual(card["current_constraint"], "Sent → Replies")
+        self.assertEqual(card["evidence"][:3], ["50 sent", "0 replies", "0.0% conversion"])
         self.assertEqual(card["keep_constant"], {
             "ICP": "Founders of 20-200 person firms", "offer": "OFF-1 — a diagnosed leak",
             "message body": "I'd test", "channel": "email", "price": "£1,200.00"})

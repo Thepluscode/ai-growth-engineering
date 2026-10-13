@@ -6,12 +6,14 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering import registries
-from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, fetch_page, gmail_payloads,
+from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, check_draft, fetch_page, gmail_payloads,
                                             import_candidates, page_text, run, send_sheet,
                                             runs)
-from ai_growth_engineering.outbound_workbench import approve_draft, get_draft
+from ai_growth_engineering.outbound_workbench import (DIRECT_VERIFIED, approve_draft, create_draft, get_draft,
+                                                      record_connection_request, route_status)
 from ai_growth_engineering.storage import connect, init_db
 
 TEAM = "https://acme.test/team"
@@ -59,6 +61,10 @@ class Case(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "g.db")
+        # create_draft re-fetches the published page through the real fetcher; it sees these pages.
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page", fetch())
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         registries.add(self.db, "offers", {"offer_id": "OFF-X", "buyer": "Head of Payments", "problem": "payouts go missing",
                                            "outcome": "a payment reliability diagnostic"})
@@ -75,6 +81,12 @@ class Case(unittest.TestCase):
 
 
 class HappyPath(Case):
+    def test_a_supplied_greeting_is_refused_not_doubled(self):
+        with self.assertRaises(MarketerError) as ctx:
+            check_draft(json.dumps({"subject": "s", "observation": "Hi Alex,\n\nYour page says x.",
+                                    "economic_hypothesis": "h", "cta": "c", "metric": "m"}), [])
+        self.assertEqual(ctx.exception.code, "greeting_in_observation")
+
     def test_verified_candidates_become_tagged_drafts_awaiting_approval(self):
         result, _ = self.go([candidate(), candidate(company="Beta")], count=2)
         self.assertEqual((result["proposed"], result["drafted"], result["error"]), (2, 2, ""))
@@ -83,6 +95,13 @@ class HappyPath(Case):
                          ("pending_approval", "EXP-X", "named_buyer", "email"))
         self.assertTrue(draft["message"].startswith("Hi Alex,\n\n"))
         self.assertEqual(draft["subject"], "Payouts across three providers")
+        # The verified email carries the page that published it, which is what makes it a route.
+        self.assertEqual((draft["route_evidence_url"], route_status(self.db, draft)), (TEAM, DIRECT_VERIFIED))
+        self.assertTrue(draft["route_verified_at"] and draft["route_verification"].startswith("exact address found"))
+
+    def test_a_guess_that_is_a_substring_of_a_published_address_is_dropped(self):
+        result, _ = self.go([candidate(email="ex@acme.test")], count=1)
+        self.assertIn("email_unverified_dropped", result["rejections"])
 
     def test_the_run_is_logged_with_its_cost(self):
         result, _ = self.go([candidate()], count=1)
@@ -216,20 +235,30 @@ class ImportAndLog(Case):
 
 
 class SendSheet(Case):
-    def test_only_approved_drafts_appear_and_long_linkedin_messages_are_flagged(self):
+    def test_only_approved_routed_drafts_appear_and_a_profile_gets_a_connection_request_first(self):
         long_draft = {**DRAFT, "economic_hypothesis": "Reconciling three providers by hand likely hides delayed, "
                       "duplicated or missing payouts that nobody notices until a partner complains, and by then the "
                       "money has often been written off or paid twice across the three providers involved."}
         result = import_candidates(self.db, "MKT-X", [
             {**candidate(email="", linkedin_url="https://uk.linkedin.com/in/example-alex"), "draft": long_draft},
-            {**candidate(company="Beta", email=""), "draft": DRAFT}], llm=None, fetch=fetch())
-        first, second = result["draft_ids"]
+            {**candidate(company="Beta", email=""), "draft": DRAFT},
+            {**candidate(company="Gamma", email="", linkedin_url=""), "draft": DRAFT}], llm=None, fetch=fetch())
+        first, second, third = result["draft_ids"]
         approve_draft(self.db, first)
+        approve_draft(self.db, third)
         page = send_sheet(self.db, "MKT-X")
         self.assertIn(f"#{first} · Acme", page)
         self.assertNotIn("Beta", page, "unapproved drafts are not on the sheet")
-        self.assertIn("too long for a connection note", page)
+        self.assertIn("Stage A — connection requests (1)", page)
         self.assertIn("https://uk.linkedin.com/in/example-alex", page)
+        self.assertNotIn("paid twice", page, "the experiment message is not sent until the route is direct")
+        self.assertIn(f"Blocked, no verified route (approved but not sendable): #{third}", page)
+        self.assertNotIn("Gamma", page)
+
+        record_connection_request(self.db, first, "2026-10-08T06:00:00+00:00")
+        page = send_sheet(self.db, "MKT-X")
+        self.assertIn("Stage A — connection requests (0)", page, "a sent request is never offered again")
+        self.assertIn(f"Awaiting acceptance — do not resend: #{first}", page)
 
 
 class Adapters(Case):
@@ -249,11 +278,25 @@ class Adapters(Case):
             def __exit__(self, *a):
                 return False
 
-        with mock.patch("urllib.request.urlopen", return_value=Page()):
+        with mock.patch("ai_growth_engineering.marketer._OPENER", mock.Mock(open=lambda req, timeout: Page())):
             self.assertEqual(fetch_page("http://93.184.215.14/"), "secret internal page")   # positive twin
             for url in ("http://127.0.0.1/", "http://10.0.0.1/", "http://169.254.169.254/latest",
                         "file:///etc/passwd"):
                 self.assertEqual(fetch_page(url), "", url)
+
+    def test_a_public_page_cannot_redirect_the_fetch_into_a_private_one(self):
+        """Codex review of PR #4: urlopen followed redirects unchecked, so a public URL answering
+        302 -> 127.0.0.1 could make a local page vouch for a guessed address."""
+        import urllib.request
+
+        from ai_growth_engineering.marketer import _PublicRedirects
+
+        hop = _PublicRedirects()
+        req = urllib.request.Request("http://93.184.215.14/team")
+        self.assertIsNotNone(hop.redirect_request(req, None, 302, "Found", {}, "http://93.184.215.14/about"))
+        for target in ("http://127.0.0.1:8080/page", "http://10.0.0.1/", "http://169.254.169.254/latest",
+                       "file:///etc/passwd"):
+            self.assertIsNone(hop.redirect_request(req, None, 302, "Found", {}, target), target)
 
     def test_page_text_is_visible_text_only(self):
         self.assertEqual(page_text("<p>A&amp;B</p><style>x{}</style>\n  <b>C</b>"), "a&b c")
@@ -264,6 +307,19 @@ class Adapters(Case):
         payloads = gmail_payloads(self.db)
         self.assertEqual([p["draft_id"] for p in payloads], [result["draft_ids"][1]])
         self.assertEqual(payloads[0]["to"], "alex@acme.test")
+
+    def test_an_approved_guessed_email_never_reaches_gmail(self):
+        """Codex review 2026-10-13: gmail_payloads exported every approved email, verified or not."""
+        with connect(self.db) as con:
+            con.execute("INSERT INTO prospects(company, website, priority, target_roles, evidence, source_url, status)"
+                        " VALUES ('Guess Co', 'https://g.test', 'B', 'x', 'y', 'https://g.test', 'qualified')")
+            pid = con.execute("SELECT max(id) FROM prospects").fetchone()[0]
+        forged = create_draft(self.db, {**{k: v for k, v in DRAFT.items() if k != "subject"},
+                                        "prospect_id": pid, "recipient_identity": "first.last@g.test",
+                                        "recipient_class": "named_buyer", "channel": "email",
+                                        "source_url": "https://g.test", "route_evidence_url": "https://g.test/x"})
+        approve_draft(self.db, forged["id"])
+        self.assertNotIn(forged["id"], [p["draft_id"] for p in gmail_payloads(self.db)])
 
 
 if __name__ == "__main__":

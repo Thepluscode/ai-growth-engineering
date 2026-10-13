@@ -42,9 +42,9 @@ Generated, not typed: every figure below is a marker checked against `docs/STATE
 
 | Figure | Value | Basis |
 | --- | ---: | --- |
-| Capabilities mapped | <!-- state:capabilities.total -->219<!-- /state --> | `capability_map.json` |
-| Implemented | <!-- state:capabilities.IMPLEMENTED -->111<!-- /state --> | `capability_map.json` |
-| Delivered sends (all experiments) | <!-- state:store.scoreboard.outreach_sent.value -->84<!-- /state --> | <!-- state:store.scoreboard.outreach_sent.basis -->COMPUTED<!-- /state --> |
+| Capabilities mapped | <!-- state:capabilities.total -->220<!-- /state --> | `capability_map.json` |
+| Implemented | <!-- state:capabilities.IMPLEMENTED -->112<!-- /state --> | `capability_map.json` |
+| Recorded send attempts (all experiments; delivery unverified) | <!-- state:store.scoreboard.outreach_sent.value -->84<!-- /state --> | <!-- state:store.scoreboard.outreach_sent.basis -->COMPUTED<!-- /state --> |
 | Meaningful replies | <!-- state:store.scoreboard.meaningful_responses.value -->0<!-- /state --> | <!-- state:store.scoreboard.meaningful_responses.basis -->COMPUTED<!-- /state --> |
 | Paying customers | <!-- state:store.scoreboard.paying_customers.value -->0<!-- /state --> | <!-- state:store.scoreboard.paying_customers.basis -->COMPUTED<!-- /state --> |
 | EXP-ACQ-0003 delivered exposures | <!-- state:store.experiments.EXP-ACQ-0003.computed_sample -->34<!-- /state --> | computed |

@@ -13,6 +13,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering.execution import ExecutionError, freeze_execution_cohort, record_invitation
 from ai_growth_engineering.outbound_workbench import (
@@ -106,6 +107,9 @@ class OutreachRecordTime(Case):
 class WorkbenchTime(Case):
     def setUp(self):
         super().setUp()
+        published = mock.patch("ai_growth_engineering.marketer.fetch_page", lambda url: "founder@example.com")
+        published.start()
+        self.addCleanup(published.stop)
         with connect(self.db) as con:
             con.execute("""INSERT INTO prospects(id, company, website, priority, target_roles, evidence,
                            source_url, status) VALUES (1, 'Acme', 'https://example.com', 'A', 'Founder',
@@ -117,7 +121,8 @@ class WorkbenchTime(Case):
             "economic_hypothesis": "That shared path may be suppressing qualified conversations rather than "
                                    "traffic being the constraint.",
             "cta": "Want me to send the one-page experiment map?", "metric": "qualified_conversation_rate",
-            "source_url": "https://example.com/managed-security"})["id"]
+            "source_url": "https://example.com/managed-security"},
+            route_source_url="https://example.com/team")["id"]
         approve_draft(self.db, self.draft)
 
     def test_a_manual_send_needs_the_time_it_was_sent(self):

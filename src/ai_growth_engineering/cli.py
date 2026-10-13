@@ -709,6 +709,41 @@ def cmd_week(args: argparse.Namespace) -> None:
     print(json.dumps(data, indent=2) if args.json else weekly_cycle.render(data))
 
 
+def cmd_draft(args: argparse.Namespace) -> None:
+    import json
+
+    from . import outbound_workbench as wb
+
+    actions = {
+        "connect": lambda: wb.record_connection_request(args.db, args.draft_id, args.at),
+        "accepted": lambda: wb.record_connection_accepted(args.db, args.draft_id, args.at),
+        "delivered": lambda: wb.record_delivery(args.db, args.draft_id, args.at, args.evidence),
+        "hold": lambda: wb.hold_draft(args.db, args.draft_id, args.reason),
+        "reject": lambda: wb.reject_draft(args.db, args.draft_id, args.reason),
+        "route": lambda: {"id": args.draft_id, "route": wb.route_status(args.db, wb.get_draft(args.db, args.draft_id))},
+    }
+    try:
+        result = actions[args.action]()
+    except wb.WorkbenchError as exc:
+        raise SystemExit(f"REFUSED ({exc.code}): {exc}")
+    print(json.dumps({k: result[k] for k in ("id", "status", "status_reason", "route") if k in result}))
+
+
+def cmd_funnel(args: argparse.Namespace) -> None:
+    import json
+
+    from . import demand_funnel
+
+    evidence = None
+    if args.evidence_set:
+        with open(args.evidence_set, encoding="utf-8") as handle:
+            evidence = json.load(handle)
+        if not isinstance(evidence, list):
+            raise SystemExit("REFUSED: the evidence set must be a JSON array of prospect rows")
+    data = demand_funnel.report(args.db, evidence, args.min_delivered, args.min_conversations)
+    print(json.dumps(data, indent=2) if args.json else demand_funnel.render(data))
+
+
 def cmd_marketer(args: argparse.Namespace) -> None:
     import json
 
@@ -747,11 +782,13 @@ def cmd_marketer(args: argparse.Namespace) -> None:
             result = marketer.import_candidates(args.db, args.market_id, candidates,
                                                 llm=marketer.claude_llm(args.model) if args.paid else None,
                                                 fetch=marketer.fetch_page,
-                                                dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL)
+                                                dry_run=args.dry_run, model=args.model or marketer.DEFAULT_MODEL,
+                                                experiment_id=args.experiment_id)
         else:
             result = marketer.run(args.db, args.market_id, llm=marketer.claude_llm(args.model),
                                   fetch=marketer.fetch_page, count=args.count, dry_run=args.dry_run,
-                                  model=args.model or marketer.DEFAULT_MODEL, allow_paid=args.paid)
+                                  model=args.model or marketer.DEFAULT_MODEL, allow_paid=args.paid,
+                                  experiment_id=args.experiment_id)
     except marketer.MarketerError as exc:
         raise SystemExit(f"REFUSED: {exc}")
     print(json.dumps(result, indent=2))
@@ -1122,6 +1159,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_week)
 
+    p = sub.add_parser("draft", help="record access steps (connect, accepted), delivery evidence, or hold/reject with a reason")
+    dbarg(p)
+    p.add_argument("action", choices=("connect", "accepted", "delivered", "hold", "reject", "route"))
+    p.add_argument("draft_id", type=int)
+    p.add_argument("--at", default="", help="when it happened (ISO date/time); required for connect/accepted/delivered")
+    p.add_argument("--evidence", default="", help="delivered: the delivery evidence kind")
+    p.add_argument("--reason", default="", help="hold/reject: why it left the queue")
+    p.set_defaults(func=cmd_draft)
+
+    p = sub.add_parser("funnel", help="fifteen-stage demand funnel per market and message variant, with thesis state")
+    dbarg(p)
+    p.add_argument("--evidence-set", default="", help="private JSON array of researched prospects (stages 1-4)")
+    p.add_argument("--min-delivered", type=int, default=30, help="named-buyer deliveries before a rate is shown")
+    p.add_argument("--min-conversations", type=int, default=5,
+                   help="discovery conversations before PAIN_NOT_CONFIRMED can be stated")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_funnel)
+
     p = sub.add_parser("marketer", help="research verified named buyers and write drafts for approval; never sends")
     dbarg(p)
     p.add_argument("action", choices=("run", "import", "runs", "candidates", "gmail", "sheet"))
@@ -1132,6 +1187,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--count", type=int, default=15, help="prospects to research (1-25)")
     p.add_argument("--dry-run", action="store_true", help="research and write, store nothing but the run log")
     p.add_argument("--model", default="", help="default: $AGE_MARKETER_MODEL or claude-sonnet-5")
+    p.add_argument("--experiment-id", default="",
+                   help="which DEMAND experiment (message variant) drafts are credited to; required when a market runs two")
     p.set_defaults(func=cmd_marketer)
 
     p = sub.add_parser("snapshot", help="PII-free state summary (counts, statuses, hashes) for docs to cite")
