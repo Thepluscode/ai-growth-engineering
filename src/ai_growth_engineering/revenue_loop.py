@@ -158,7 +158,7 @@ LADDERS: dict[str, tuple[str, ...]] = {
              "proposal_sent", "customer_won", "payment_received"),
 }
 STAGE_LABELS = {
-    "invitation_sent": "Delivered", "message_sent": "Delivered", "invitation_accepted": "Accepted",
+    "invitation_sent": "Sent", "message_sent": "Sent", "invitation_accepted": "Accepted",
     "reply_received": "Replies", "reply_meaningful": "Qualified", "meeting_booked": "Meetings",
     "proposal_sent": "Proposals", "customer_won": "Customers", "payment_received": "Paid",
     "impression": "Impressions", "click": "Clicks", "lead_created": "Leads",
