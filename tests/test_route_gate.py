@@ -129,6 +129,21 @@ class RouteGate(unittest.TestCase):
             approve_draft(self.db, held["id"])
         self.assertEqual(workbench_state(self.db)["counts"]["pending_approval"], 0)
 
+    def test_an_approval_can_be_withdrawn_only_before_the_buyer_is_contacted(self):
+        untouched, contacted = self.draft(PROFILE, pid=1), self.draft(PROFILE, pid=2)
+        for d in (untouched, contacted):
+            approve_draft(self.db, d["id"])
+        hold_draft(self.db, untouched["id"], "ROLE_AND_BUYER_FIT_UNVERIFIED")
+        self.assertEqual(get_draft(self.db, untouched["id"])["status"], "held")
+        with self.assertRaises(WorkbenchError):
+            record_connection_request(self.db, untouched["id"], T1)
+
+        record_connection_request(self.db, contacted["id"], T1)
+        with self.assertRaises(WorkbenchError) as ctx:
+            hold_draft(self.db, contacted["id"], "ROLE_AND_BUYER_FIT_UNVERIFIED")
+        self.assertEqual(ctx.exception.code, "already_contacted")
+        self.assertEqual(get_draft(self.db, contacted["id"])["status"], "approved")
+
 
 if __name__ == "__main__":
     unittest.main()

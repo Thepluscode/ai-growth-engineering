@@ -267,7 +267,13 @@ def hold_draft(db_path: str, draft_id: int, reason: str) -> dict[str, Any]:
     historical artefact until it is re-qualified under the current rules."""
     if len(reason.strip()) < 5:
         raise WorkbenchError("reason_required", "say why the draft is held")
-    return _transition(db_path, draft_id, from_status="pending_approval", to_status="held",
+    from_status = "pending_approval"
+    if get_draft(db_path, draft_id)["status"] == "approved":
+        # Withdrawing an approval is safe only while nothing has reached the buyer.
+        if _draft_events(db_path, draft_id):
+            raise WorkbenchError("already_contacted", "the buyer was contacted; record the outcome instead")
+        from_status = "approved"
+    return _transition(db_path, draft_id, from_status=from_status, to_status="held",
                        timestamp_column="held_at", reason=reason)
 
 
