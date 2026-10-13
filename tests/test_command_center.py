@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 import tempfile
 import threading
 import unittest
@@ -345,7 +346,9 @@ class CommandCenterServerTests(unittest.TestCase):
                 "source_url": "https://example.com/careers",
                 "observed_fact": "The company published a revenue operations vacancy on its careers page.",
                 "commercial_interpretation": "The vacancy may indicate current investment in pipeline operations and measurement.",
-                "observed_at": "2026-08-29",
+                # Relative, not a fixed date: the ranker drops signals older than three half-lives,
+                # so a hard-coded 2026-08-29 began failing on 2026-10-10 with nothing broken.
+                "observed_at": (date.today() - timedelta(days=2)).isoformat(),
                 "confidence": 0.9,
                 "strength": 4,
                 "freshness_half_life_days": 14,
