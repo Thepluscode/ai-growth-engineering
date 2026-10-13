@@ -11,7 +11,8 @@ from ai_growth_engineering import registries
 from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, check_draft, fetch_page, gmail_payloads,
                                             import_candidates, page_text, run, send_sheet,
                                             runs)
-from ai_growth_engineering.outbound_workbench import DIRECT_VERIFIED, approve_draft, create_draft, get_draft, route_status
+from ai_growth_engineering.outbound_workbench import (DIRECT_VERIFIED, approve_draft, create_draft, get_draft,
+                                                      record_connection_request, route_status)
 from ai_growth_engineering.storage import connect, init_db
 
 TEAM = "https://acme.test/team"
@@ -248,6 +249,11 @@ class SendSheet(Case):
         self.assertNotIn("paid twice", page, "the experiment message is not sent until the route is direct")
         self.assertIn(f"Blocked, no verified route (approved but not sendable): #{third}", page)
         self.assertNotIn("Gamma", page)
+
+        record_connection_request(self.db, first, "2026-10-08T06:00:00+00:00")
+        page = send_sheet(self.db, "MKT-X")
+        self.assertIn("Stage A — connection requests (0)", page, "a sent request is never offered again")
+        self.assertIn(f"Awaiting acceptance — do not resend: #{first}", page)
 
 
 class Adapters(Case):

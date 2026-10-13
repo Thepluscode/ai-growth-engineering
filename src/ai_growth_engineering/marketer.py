@@ -446,7 +446,7 @@ def send_sheet(db_path: str, market_id: str) -> str:
     the experiment); the experiment's message appears only once the route is direct - a published
     email, or an accepted 1st-degree connection. A name to find later is listed as blocked, by
     draft number only, so it cannot be sent by accident."""
-    from .outbound_workbench import DIRECT_VERIFIED, PROFILE_VERIFIED, route_status
+    from .outbound_workbench import DIRECT_VERIFIED, PROFILE_VERIFIED, _draft_events, route_status
 
     init_db(db_path)
     experiments = [l["experiment_id"] for l in _demand_links(db_path, market_id)]
@@ -459,13 +459,15 @@ def send_sheet(db_path: str, market_id: str) -> str:
                WHERE d.experiment_id IN ({','.join('?' for _ in experiments)}) AND d.status = 'approved'
                ORDER BY d.id""", experiments)]
     e = html.escape
-    connect_cards, message_cards, blocked = [], [], []
+    connect_cards, message_cards, blocked, awaiting = [], [], [], []
     for r in rows:
         name, _, role = str(r["who"]).partition(" (")
         role = role.rstrip(")")
         head = f"<h2>#{r['id']} · {e(r['company'])} · {e(r['experiment_id'])}</h2><p><b>{e(name)}</b> — {e(role)}</p>"
         status = route_status(db_path, r)
-        if status == PROFILE_VERIFIED:
+        if status == PROFILE_VERIFIED and "invitation_sent" in _draft_events(db_path, r["id"]):
+            awaiting.append(f"#{r['id']}")
+        elif status == PROFILE_VERIFIED:
             note = CONNECTION_NOTES.get(market_id, "").format(first=name.split()[0] if name else "", company=r["company"])
             warn = "" if note and len(note) <= LINKEDIN_NOTE_LIMIT else "<p class='warn'>no connection note fits this market</p>"
             connect_cards.append(
@@ -491,6 +493,7 @@ def send_sheet(db_path: str, market_id: str) -> str:
             f"<h1>{e(market_id)}</h1><p>Nothing here has been sent. Send by hand, then record each step.</p>"
             f"<h2>Stage A — connection requests ({len(connect_cards)})</h2>" + "".join(connect_cards)
             + f"<h2>Stage B — messages through a verified direct route ({len(message_cards)})</h2>" + "".join(message_cards)
+            + (f"<p class='rec'>Awaiting acceptance — do not resend: {', '.join(awaiting)}</p>" if awaiting else "")
             + (f"<p class='warn'>Blocked, no verified route (approved but not sendable): {', '.join(blocked)}</p>"
                if blocked else ""))
 
