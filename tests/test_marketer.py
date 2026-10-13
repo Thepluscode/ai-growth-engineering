@@ -11,7 +11,7 @@ from ai_growth_engineering import registries
 from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, check_draft, fetch_page, gmail_payloads,
                                             import_candidates, page_text, run, send_sheet,
                                             runs)
-from ai_growth_engineering.outbound_workbench import DIRECT_VERIFIED, approve_draft, get_draft, route_status
+from ai_growth_engineering.outbound_workbench import DIRECT_VERIFIED, approve_draft, create_draft, get_draft, route_status
 from ai_growth_engineering.storage import connect, init_db
 
 TEAM = "https://acme.test/team"
@@ -91,6 +91,11 @@ class HappyPath(Case):
         self.assertEqual(draft["subject"], "Payouts across three providers")
         # The verified email carries the page that published it, which is what makes it a route.
         self.assertEqual((draft["route_evidence_url"], route_status(self.db, draft)), (TEAM, DIRECT_VERIFIED))
+        self.assertTrue(draft["route_verified_at"] and draft["route_verification"].startswith("marketer.verify"))
+
+    def test_a_guess_that_is_a_substring_of_a_published_address_is_dropped(self):
+        result, _ = self.go([candidate(email="ex@acme.test")], count=1)
+        self.assertIn("email_unverified_dropped", result["rejections"])
 
     def test_the_run_is_logged_with_its_cost(self):
         result, _ = self.go([candidate()], count=1)
@@ -277,6 +282,19 @@ class Adapters(Case):
         payloads = gmail_payloads(self.db)
         self.assertEqual([p["draft_id"] for p in payloads], [result["draft_ids"][1]])
         self.assertEqual(payloads[0]["to"], "alex@acme.test")
+
+    def test_an_approved_guessed_email_never_reaches_gmail(self):
+        """Codex review 2026-10-13: gmail_payloads exported every approved email, verified or not."""
+        with connect(self.db) as con:
+            con.execute("INSERT INTO prospects(company, website, priority, target_roles, evidence, source_url, status)"
+                        " VALUES ('Guess Co', 'https://g.test', 'B', 'x', 'y', 'https://g.test', 'qualified')")
+            pid = con.execute("SELECT max(id) FROM prospects").fetchone()[0]
+        forged = create_draft(self.db, {**{k: v for k, v in DRAFT.items() if k != "subject"},
+                                        "prospect_id": pid, "recipient_identity": "first.last@g.test",
+                                        "recipient_class": "named_buyer", "channel": "email",
+                                        "source_url": "https://g.test", "route_evidence_url": "https://g.test/x"})
+        approve_draft(self.db, forged["id"])
+        self.assertNotIn(forged["id"], [p["draft_id"] for p in gmail_payloads(self.db)])
 
 
 if __name__ == "__main__":

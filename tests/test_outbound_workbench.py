@@ -27,8 +27,9 @@ VALID = {
     "cta": "Want me to send the one-page experiment map?",
     "metric": "qualified_conversation_rate",
     "source_url": "https://example.com/managed-security",
-    "route_evidence_url": "https://example.com/team",
 }
+VERIFIED = {"url": "https://example.com/team", "verified_at": "2026-10-13T00:00:00+00:00",
+            "method": "test: exact address on the fetched page"}
 
 
 class OutboundWorkbenchTests(unittest.TestCase):
@@ -142,7 +143,8 @@ class OutboundWorkbenchTests(unittest.TestCase):
 
     def test_workbench_returns_the_complete_queue_with_route_state(self):
         for number in range(31):
-            create_draft(self.db, {**VALID, "recipient_identity": f"buyer{number}@example.com"})
+            create_draft(self.db, {**VALID, "recipient_identity": f"buyer{number}@example.com"},
+                         route_verification=VERIFIED)
         state = workbench_state(self.db)
         self.assertEqual(len(state["drafts"]), 31)
         self.assertEqual(state["total_drafts"], 31)

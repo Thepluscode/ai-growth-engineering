@@ -28,7 +28,7 @@ from typing import Callable
 from urllib.parse import urlparse
 
 from . import registries
-from .outbound_workbench import WorkbenchError, create_draft
+from .outbound_workbench import DIRECT_VERIFIED, WorkbenchError, create_draft, route_status
 from .storage import connect, init_db
 
 DEFAULT_MODEL = "claude-sonnet-5"
@@ -220,7 +220,7 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
     email = c["email"]
     if email:
         where = c["email_source_url"] if _http(c["email_source_url"]) else c["person_source_url"]
-        if not (_EMAIL.fullmatch(email) and email.casefold() in raw(where)):
+        if not (_EMAIL.fullmatch(email) and _address_on_page(email, raw(where))):
             notes.append("email_unverified_dropped")
             email = ""
     linkedin = c["linkedin_url"]
@@ -232,12 +232,19 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
     if email or linkedin:
         return {**c, "email": email, "linkedin_url": linkedin, "channel": "email" if email else "linkedin",
                 "recipient_identity": email or linkedin,
-                "route_evidence_url": where if email else ""}, "", notes
+                "route_verification": {"url": where, "verified_at": _now(),
+                                       "method": "marketer.verify: exact address found on the fetched page"}
+                if email else {}}, "", notes
     # The person and company are verified; only the profile link is not. The operator finds
     # them by name at send time and confirms it is the same person - never a guessed address.
     notes.append("route_manual_lookup")
     return {**c, "email": "", "linkedin_url": "", "channel": "linkedin",
             "recipient_identity": f"{c['person_name']} at {c['company']} (find on LinkedIn by name)"}, "", notes
+
+
+def _address_on_page(email: str, page: str) -> bool:
+    """The whole address, not a substring: a guessed ex@acme.test must not match alex@acme.test."""
+    return re.search(r"(?<![\w.%+-])" + re.escape(email.casefold()) + r"(?![\w-])(?!\.\w)", page) is not None
 
 
 def check_draft(text: str, forbidden: list[str]) -> dict:
@@ -395,8 +402,7 @@ def _store(db_path: str, ctx: dict, c: dict, draft: dict) -> int:
         "observation": f"Hi {first},\n\n{draft['observation']}", "economic_hypothesis": draft["economic_hypothesis"],
         "cta": draft["cta"], "metric": draft["metric"] or "qualified conversations",
         "source_url": c["evidence_url"], "experiment_id": ctx["experiment_id"], "subject": draft["subject"],
-        "route_evidence_url": c.get("route_evidence_url", ""),
-    })["id"]
+    }, route_verification=c.get("route_verification") or None)["id"]
 
 
 def runs(db_path: str, limit: int = 20) -> list[dict]:
@@ -410,10 +416,11 @@ def gmail_payloads(db_path: str) -> list[dict]:
     connector, never from here; the person still presses Send."""
     init_db(db_path)
     with connect(db_path) as con:
-        rows = con.execute("""SELECT id, recipient_identity, subject, message FROM outbound_drafts
+        rows = con.execute("""SELECT * FROM outbound_drafts
                               WHERE status = 'approved' AND channel = 'email' ORDER BY id""").fetchall()
+    # An approved guess is still a guess: only a verified address leaves for a mailbox.
     return [{"draft_id": r["id"], "to": r["recipient_identity"], "subject": r["subject"] or "Quick question",
-             "body": r["message"]} for r in rows]
+             "body": r["message"]} for r in rows if route_status(db_path, r) == DIRECT_VERIFIED]
 
 
 LINKEDIN_NOTE_LIMIT = 300

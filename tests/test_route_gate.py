@@ -18,6 +18,10 @@ T1, T2, T3 = "2026-10-06T09:00:00+00:00", "2026-10-07T09:00:00+00:00", "2026-10-
 PROFILE = "https://www.linkedin.com/in/example-buyer"
 
 
+VERIFIED = {"url": "https://example.com/team", "verified_at": "2026-10-13T00:00:00+00:00",
+            "method": "test: exact address on the fetched page"}
+
+
 class RouteGate(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -33,14 +37,14 @@ class RouteGate(unittest.TestCase):
             "link_id": "L", "market_id": "MKT-S", "experiment_id": "EXP-S", "layer": "DEMAND",
             "protocol": "discovery-v1", "exposure_event": "message_sent", "positive_event": "reply_meaningful"})
 
-    def draft(self, identity, pid=1, channel="linkedin", **extra):
+    def draft(self, identity, pid=1, channel="linkedin", route=None, **extra):
         return create_draft(self.db, {**extra,
             "prospect_id": pid, "recipient_identity": identity, "recipient_class": "named_buyer",
             "channel": channel, "experiment_id": "EXP-S",
             "observation": "Your managed SOC page says signals are spread across several systems.",
             "economic_hypothesis": "I am trying to understand how teams like yours reconstruct an incident.",
             "cta": "When did this last happen?", "metric": "qualified conversations",
-            "source_url": "https://example.com/soc"})
+            "source_url": "https://example.com/soc"}, route_verification=route)
 
     def test_a_name_to_look_up_later_is_not_a_route(self):
         d = self.draft("Jo Bloggs at Co1 (find on LinkedIn by name)")
@@ -92,12 +96,17 @@ class RouteGate(unittest.TestCase):
         with self.assertRaises(WorkbenchError) as ctx:
             record_manual_send(self.db, d["id"], T1)
         self.assertEqual(ctx.exception.code, "route_unverified")
+        # A plausible URL in the request body is not verification: the API passes its body here.
+        forged = self.draft("guess@example.com", pid=2, channel="email",
+                            route_evidence_url="https://example.com/unrelated",
+                            route_verified_at="2026-10-13T00:00:00+00:00", route_verification="trust me")
+        self.assertEqual(route_status(self.db, get_draft(self.db, forged["id"])), ROUTE_UNVERIFIED)
         with self.assertRaises(WorkbenchError) as ctx:
-            self.draft("buyer@example.com", pid=2, channel="email", route_evidence_url="team page")
+            self.draft("buyer@example.com", pid=3, channel="email", route={"url": "team page"})
         self.assertEqual(ctx.exception.code, "invalid_route_evidence")
 
     def test_a_published_email_is_direct_but_delivery_still_needs_evidence(self):
-        d = self.draft("buyer@example.com", channel="email", route_evidence_url="https://example.com/team")
+        d = self.draft("buyer@example.com", channel="email", route=VERIFIED)
         self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
         approve_draft(self.db, d["id"])
         record_manual_send(self.db, d["id"], T1)

@@ -622,7 +622,10 @@ DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"), ("subject", "TEX
                  ("status_reason", "TEXT NOT NULL DEFAULT ''"), ("held_at", "TEXT"),
                  # Added 2026-10-13: the page where an email route was seen published. Without it an
                  # email is an address, not a verified route (a guessed address once read as direct).
-                 ("route_evidence_url", "TEXT NOT NULL DEFAULT ''"))
+                 ("route_evidence_url", "TEXT NOT NULL DEFAULT ''"),
+                 # Who checked that the exact address is on that page, and when. A URL alone proved
+                 # nothing: any API caller could attach one to a guessed address.
+                 ("route_verified_at", "TEXT"), ("route_verification", "TEXT NOT NULL DEFAULT ''"))
 
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
