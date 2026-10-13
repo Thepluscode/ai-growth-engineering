@@ -121,7 +121,9 @@ def build_server(
             try:
                 payload = self._read_json()
                 if path == "/api/outbound/drafts":
-                    self._send_json(201, {"draft": create_draft(db_path, payload)})
+                    # The body may name the page; the server fetches it and checks the address itself.
+                    route = str(payload.get("route_source_url") or "")
+                    self._send_json(201, {"draft": create_draft(db_path, payload, route_source_url=route)})
                     return
                 if path == "/api/signals":
                     self._send_json(201, {"signal": add_intent_signal(db_path, payload)})

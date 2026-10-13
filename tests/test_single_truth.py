@@ -14,6 +14,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering.funnel_events import effective_events, record_event
 from ai_growth_engineering.outbound_workbench import (
@@ -134,7 +135,8 @@ class WritersFeedTheLog(Case):
 
     def test_a_workbench_send_and_reply_are_canonical_events_counted_once(self):
         self.ev("message_sent", "Other Co")  # the log already exists, so it is authoritative
-        draft = create_draft(self.db, DRAFT)["id"]
+        with mock.patch("ai_growth_engineering.marketer.fetch_page", lambda url: "founder@example.com"):
+            draft = create_draft(self.db, DRAFT, route_source_url="https://example.com/team")["id"]
         approve_draft(self.db, draft)
         record_manual_send(self.db, draft, "2026-09-15")
         record_meaningful_reply(self.db, draft, "2026-09-16")

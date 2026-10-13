@@ -5,6 +5,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.demand_funnel import report
@@ -18,8 +19,9 @@ T1, T2, T3 = "2026-10-06T09:00:00+00:00", "2026-10-07T09:00:00+00:00", "2026-10-
 PROFILE = "https://www.linkedin.com/in/example-buyer"
 
 
-VERIFIED = {"url": "https://example.com/team", "verified_at": "2026-10-13T00:00:00+00:00",
-            "method": "test: exact address on the fetched page"}
+TEAM = "https://example.com/team"
+PAGES = {TEAM: "<p>Contact: <a href='mailto:buyer@example.com'>buyer@example.com</a></p>",
+         "https://example.com/unrelated": "<p>No addresses here.</p>"}
 
 
 class RouteGate(unittest.TestCase):
@@ -27,6 +29,9 @@ class RouteGate(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "g.db")
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page", lambda url: PAGES.get(url, ""))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         with connect(self.db) as con:
             for pid in (1, 2, 3):
@@ -40,11 +45,11 @@ class RouteGate(unittest.TestCase):
     def draft(self, identity, pid=1, channel="linkedin", route=None, **extra):
         return create_draft(self.db, {**extra,
             "prospect_id": pid, "recipient_identity": identity, "recipient_class": "named_buyer",
-            "channel": channel, "experiment_id": "EXP-S",
+            "channel": channel, "experiment_id": extra.get("experiment_id", "EXP-S"),
             "observation": "Your managed SOC page says signals are spread across several systems.",
             "economic_hypothesis": "I am trying to understand how teams like yours reconstruct an incident.",
             "cta": "When did this last happen?", "metric": "qualified conversations",
-            "source_url": "https://example.com/soc"}, route_verification=route)
+            "source_url": "https://example.com/soc"}, route_source_url=route or "")
 
     def test_a_name_to_look_up_later_is_not_a_route(self):
         d = self.draft("Jo Bloggs at Co1 (find on LinkedIn by name)")
@@ -101,13 +106,46 @@ class RouteGate(unittest.TestCase):
                             route_evidence_url="https://example.com/unrelated",
                             route_verified_at="2026-10-13T00:00:00+00:00", route_verification="trust me")
         self.assertEqual(route_status(self.db, get_draft(self.db, forged["id"])), ROUTE_UNVERIFIED)
+
+    def test_fabricated_verification_metadata_is_not_accepted_from_any_caller(self):
+        """Founder review of PR #4: an internal caller could pass a made-up URL, time and method
+        and the stored fields alone made the guess DIRECT_VERIFIED. Only a fetched page vouches now."""
+        forged = {"url": TEAM, "verified_at": "2026-10-13T00:00:00+00:00", "method": "trust me"}
+        with self.assertRaises(TypeError):
+            create_draft(self.db, {"prospect_id": 1, "recipient_identity": "guess@example.com"},
+                         route_verification=forged)
+        for page in ("https://example.com/unrelated", "https://example.com/missing", TEAM):
+            with self.subTest(page=page), self.assertRaises(WorkbenchError) as ctx:
+                self.draft("guess@example.com", channel="email", route=page)
+            self.assertEqual(ctx.exception.code, "route_not_on_page")
+        self.assertEqual(workbench_state(self.db)["total_drafts"], 0)
+
+    def test_route_evidence_in_any_other_format_is_not_a_route(self):
+        """Codex review of PR #4: a row written before the fetch moved into create_draft keeps its
+        fields; only evidence in the format the fetching path writes counts."""
+        d = self.draft("buyer@example.com", channel="email", route=TEAM)
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
+        with connect(self.db) as con:
+            con.execute("UPDATE outbound_drafts SET route_verification = 'trust me' WHERE id = ?", (d["id"],))
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
+
+    def test_an_unpublished_email_cannot_be_recorded_as_sent_even_outside_an_experiment(self):
+        """Codex review of PR #4: the send gate applied only to experiment drafts."""
+        guess = self.draft("guess@example.com", channel="email", experiment_id="")
+        published = self.draft("buyer@example.com", pid=2, channel="email", route=TEAM, experiment_id="")
+        for d in (guess, published):
+            approve_draft(self.db, d["id"])
         with self.assertRaises(WorkbenchError) as ctx:
-            self.draft("buyer@example.com", pid=3, channel="email", route={"url": "team page"})
-        self.assertEqual(ctx.exception.code, "invalid_route_evidence")
+            record_manual_send(self.db, guess["id"], T1)
+        self.assertEqual(ctx.exception.code, "route_unverified")
+        record_manual_send(self.db, published["id"], T1)
+        self.assertEqual(get_draft(self.db, published["id"])["status"], "sent")
 
     def test_a_published_email_is_direct_but_delivery_still_needs_evidence(self):
-        d = self.draft("buyer@example.com", channel="email", route=VERIFIED)
+        d = self.draft("buyer@example.com", channel="email", route=TEAM)
         self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
+        self.assertEqual(get_draft(self.db, d["id"])["route_evidence_url"], TEAM)
+        self.assertIn("sha256", get_draft(self.db, d["id"])["route_verification"])
         approve_draft(self.db, d["id"])
         record_manual_send(self.db, d["id"], T1)
         self.assertEqual(report(self.db)["markets"][0]["attempted_delivery_unverified"], 1)

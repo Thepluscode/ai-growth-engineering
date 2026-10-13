@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.funnel_events import record_event
@@ -24,6 +25,10 @@ class Cycle(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "g.db")
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page",
+                             lambda url: " ".join(f"buyer{n}@example.com" for n in range(40)) + " a@example.com b@example.com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         with connect(self.db) as con:
             for pid in range(1, 4):
@@ -45,8 +50,7 @@ class Cycle(unittest.TestCase):
             "economic_hypothesis": "A direct route would turn more ready buyers into conversations each month.",
             "cta": "Want the one-page note?", "metric": "qualified conversations",
             "source_url": "https://example.com/pricing", "experiment_id": experiment_id},
-            route_verification={"url": "https://example.com/team", "verified_at": "2026-10-13T00:00:00+00:00",
-                                "method": "test: exact address on the fetched page"})
+            route_source_url="https://example.com/team")
 
     def send_and_reply(self, draft, sent="2026-10-01T10:00:00+00:00", reply="2026-10-02T10:00:00+00:00"):
         approve_draft(self.db, draft["id"])

@@ -120,10 +120,15 @@ def workbench_state(db_path: str) -> dict[str, Any]:
     }
 
 
-def create_draft(db_path: str, values: Mapping[str, Any], *,
-                 route_verification: Mapping[str, str] | None = None) -> dict[str, Any]:
-    """`route_verification` is keyword-only so a request body can never supply it: only code that
-    fetched the page and found the exact address there (marketer.verify) may vouch for an email."""
+# Written only by marketer.published_address_evidence after its own fetch; a row without it
+# (forged, or from before 2026-10-13) is not a route.
+ROUTE_EVIDENCE_METHOD = "exact address found on the fetched page; sha256 "
+
+
+def create_draft(db_path: str, values: Mapping[str, Any], *, route_source_url: str = "") -> dict[str, Any]:
+    """An email becomes a route only when this function fetches `route_source_url` itself and finds
+    the whole address there. A caller names where to look, never what was found: verification
+    metadata from a caller (forged or not) is not accepted, so naming the page is safe for any caller."""
     init_db(db_path)
     prospect_id = _positive_int(values.get("prospect_id"), "prospect_id")
     identity = _required(values, "recipient_identity", 3, 320)
@@ -145,11 +150,17 @@ def create_draft(db_path: str, values: Mapping[str, Any], *,
     signal_ids = _signal_ids(values.get("signal_ids"))
     if not source_url.startswith(("https://", "http://")):
         raise WorkbenchError("invalid_source", "Observed claims require an http(s) source URL")
-    route = dict(route_verification or {})
-    if route and not (str(route.get("url", "")).startswith(("https://", "http://"))
-                      and route.get("verified_at") and route.get("method")):
-        raise WorkbenchError("invalid_route_evidence",
-                             "Route verification needs the http(s) page, when it was checked and how")
+    route: dict[str, Any] = {}
+    if route_source_url:
+        from datetime import datetime, timezone
+
+        from .marketer import published_address_evidence
+
+        method = published_address_evidence(identity, route_source_url) if channel == "email" else ""
+        if not method:
+            raise WorkbenchError("route_not_on_page", "the address is not published on that page")
+        route = {"url": route_source_url, "verified_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                 "method": method}
     if observation.casefold() == hypothesis.casefold():
         raise WorkbenchError("fact_inference_blended", "Observation and hypothesis must differ")
     _validate_low_friction_cta(cta)
@@ -291,7 +302,9 @@ def _route_status(draft: Mapping[str, Any], event_types: set[str]) -> str:
     if draft["channel"] == "email" and "@" in identity and " " not in identity:
         # An address is only a route if a fetched page published it; a well-formed guess is not.
         keys = draft.keys()
-        verified = all(k in keys and draft[k] for k in ("route_evidence_url", "route_verified_at"))
+        verified = (all(k in keys and draft[k] for k in ("route_evidence_url", "route_verified_at"))
+                    and "route_verification" in keys
+                    and str(draft["route_verification"]).startswith(ROUTE_EVIDENCE_METHOD))
         return DIRECT_VERIFIED if verified else ROUTE_UNVERIFIED
     if not identity.startswith("https://"):
         return ROUTE_UNVERIFIED
@@ -354,8 +367,10 @@ def record_manual_send(db_path: str, draft_id: int, sent_at: Any = "") -> dict[s
     init_db(db_path)
     with connect(db_path) as con:
         draft = _draft_row(con, draft_id)
-    if draft["status"] == "approved" and draft["experiment_id"] and route_status(db_path, draft) != DIRECT_VERIFIED:
-        # A market experiment measures demand among buyers who were actually reachable.
+    needs_route = draft["experiment_id"] or draft["channel"] == "email"
+    if draft["status"] == "approved" and needs_route and route_status(db_path, draft) != DIRECT_VERIFIED:
+        # A market experiment measures demand among buyers who were actually reachable, and an
+        # email is never sent to an address nobody published.
         raise WorkbenchError("route_unverified",
                              "no verified direct route: a published email, or an accepted 1st-degree "
                              "LinkedIn connection with the Message action available")

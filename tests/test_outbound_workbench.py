@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering.outbound_workbench import (
     WorkbenchError,
@@ -28,8 +29,7 @@ VALID = {
     "metric": "qualified_conversation_rate",
     "source_url": "https://example.com/managed-security",
 }
-VERIFIED = {"url": "https://example.com/team", "verified_at": "2026-10-13T00:00:00+00:00",
-            "method": "test: exact address on the fetched page"}
+TEAM = "https://example.com/team"
 
 
 class OutboundWorkbenchTests(unittest.TestCase):
@@ -37,6 +37,10 @@ class OutboundWorkbenchTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "growth.db")
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page",
+                             lambda url: " ".join(f"buyer{n}@example.com" for n in range(40)) + " a@example.com b@example.com founder@example.com")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         with connect(self.db) as con:
             con.execute(
@@ -65,7 +69,7 @@ class OutboundWorkbenchTests(unittest.TestCase):
         self.assertEqual(scoreboard(self.db)["outreach_sent"], 0)
 
     def test_approved_manual_send_and_reply_update_real_metrics(self):
-        draft = create_draft(self.db, VALID)
+        draft = create_draft(self.db, VALID, route_source_url=TEAM)
         approved = approve_draft(self.db, draft["id"])
         self.assertEqual(approved["status"], "approved")
         sent = record_manual_send(self.db, draft["id"], "2026-09-15")
@@ -80,7 +84,7 @@ class OutboundWorkbenchTests(unittest.TestCase):
         self.assertEqual(scoreboard(self.db)["meaningful_responses"], 1)
 
     def test_suppression_is_rechecked_after_approval(self):
-        draft = create_draft(self.db, VALID)
+        draft = create_draft(self.db, VALID, route_source_url=TEAM)
         approve_draft(self.db, draft["id"])
         with connect(self.db) as con:
             con.execute(
@@ -144,7 +148,7 @@ class OutboundWorkbenchTests(unittest.TestCase):
     def test_workbench_returns_the_complete_queue_with_route_state(self):
         for number in range(31):
             create_draft(self.db, {**VALID, "recipient_identity": f"buyer{number}@example.com"},
-                         route_verification=VERIFIED)
+                         route_source_url=TEAM)
         state = workbench_state(self.db)
         self.assertEqual(len(state["drafts"]), 31)
         self.assertEqual(state["total_drafts"], 31)
@@ -167,7 +171,7 @@ class OutboundWorkbenchTests(unittest.TestCase):
                 "freshness_half_life_days": 30,
             },
         )
-        draft = create_draft(self.db, {**VALID, "signal_ids": [signal["signal_id"]]})
+        draft = create_draft(self.db, {**VALID, "signal_ids": [signal["signal_id"]]}, route_source_url=TEAM)
         self.assertEqual(draft["signal_ids"], [signal["signal_id"]])
         approve_draft(self.db, draft["id"])
         record_manual_send(self.db, draft["id"], "2026-09-15")

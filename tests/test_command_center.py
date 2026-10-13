@@ -279,7 +279,18 @@ class CommandCenterServerTests(unittest.TestCase):
             "cta": "Want me to send the one-page experiment map?",
             "metric": "qualified_conversation_rate",
             "source_url": "https://example.com/security",
+            "route_source_url": "https://example.com/team",
         }
+        pages = {"https://example.com/team": "<p>founder@example.com</p>", "https://example.com/other": "<p>none</p>"}
+        fetcher = patch("ai_growth_engineering.marketer.fetch_page", lambda url: pages.get(url, ""))
+        fetcher.start()
+        self.addCleanup(fetcher.stop)
+        # Naming a page that does not publish the address is refused, whatever else the body claims.
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.post("/api/outbound/drafts", {**payload, "route_source_url": "https://example.com/other",
+                                               "route_verified_at": "2026-10-13", "route_verification": "trust me"})
+        self.assertEqual(json.loads(ctx.exception.read())["error"], "route_not_on_page")
+        ctx.exception.close()
         created = self.post("/api/outbound/drafts", payload, expected=201)
         draft_id = created["draft"]["id"]
         self.assertEqual(created["draft"]["status"], "pending_approval")

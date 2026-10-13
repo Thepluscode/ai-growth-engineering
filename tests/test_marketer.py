@@ -6,6 +6,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ai_growth_engineering import registries
 from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, check_draft, fetch_page, gmail_payloads,
@@ -60,6 +61,10 @@ class Case(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.db = str(Path(self.tmp.name) / "g.db")
+        # create_draft re-fetches the published page through the real fetcher; it sees these pages.
+        patcher = mock.patch("ai_growth_engineering.marketer.fetch_page", fetch())
+        patcher.start()
+        self.addCleanup(patcher.stop)
         init_db(self.db)
         registries.add(self.db, "offers", {"offer_id": "OFF-X", "buyer": "Head of Payments", "problem": "payouts go missing",
                                            "outcome": "a payment reliability diagnostic"})
@@ -92,7 +97,7 @@ class HappyPath(Case):
         self.assertEqual(draft["subject"], "Payouts across three providers")
         # The verified email carries the page that published it, which is what makes it a route.
         self.assertEqual((draft["route_evidence_url"], route_status(self.db, draft)), (TEAM, DIRECT_VERIFIED))
-        self.assertTrue(draft["route_verified_at"] and draft["route_verification"].startswith("marketer.verify"))
+        self.assertTrue(draft["route_verified_at"] and draft["route_verification"].startswith("exact address found"))
 
     def test_a_guess_that_is_a_substring_of_a_published_address_is_dropped(self):
         result, _ = self.go([candidate(email="ex@acme.test")], count=1)
@@ -273,11 +278,25 @@ class Adapters(Case):
             def __exit__(self, *a):
                 return False
 
-        with mock.patch("urllib.request.urlopen", return_value=Page()):
+        with mock.patch("ai_growth_engineering.marketer._OPENER", mock.Mock(open=lambda req, timeout: Page())):
             self.assertEqual(fetch_page("http://93.184.215.14/"), "secret internal page")   # positive twin
             for url in ("http://127.0.0.1/", "http://10.0.0.1/", "http://169.254.169.254/latest",
                         "file:///etc/passwd"):
                 self.assertEqual(fetch_page(url), "", url)
+
+    def test_a_public_page_cannot_redirect_the_fetch_into_a_private_one(self):
+        """Codex review of PR #4: urlopen followed redirects unchecked, so a public URL answering
+        302 -> 127.0.0.1 could make a local page vouch for a guessed address."""
+        import urllib.request
+
+        from ai_growth_engineering.marketer import _PublicRedirects
+
+        hop = _PublicRedirects()
+        req = urllib.request.Request("http://93.184.215.14/team")
+        self.assertIsNotNone(hop.redirect_request(req, None, 302, "Found", {}, "http://93.184.215.14/about"))
+        for target in ("http://127.0.0.1:8080/page", "http://10.0.0.1/", "http://169.254.169.254/latest",
+                       "file:///etc/passwd"):
+            self.assertIsNone(hop.redirect_request(req, None, 302, "Found", {}, target), target)
 
     def test_page_text_is_visible_text_only(self):
         self.assertEqual(page_text("<p>A&amp;B</p><style>x{}</style>\n  <b>C</b>"), "a&b c")

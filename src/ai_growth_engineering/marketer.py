@@ -14,6 +14,7 @@ rest was rejected - including runs that fail, so a quiet zero is always explaine
 """
 from __future__ import annotations
 
+import hashlib
 import html
 import ipaddress
 import json
@@ -28,7 +29,7 @@ from typing import Callable
 from urllib.parse import urlparse
 
 from . import registries
-from .outbound_workbench import DIRECT_VERIFIED, WorkbenchError, create_draft, route_status
+from .outbound_workbench import DIRECT_VERIFIED, ROUTE_EVIDENCE_METHOD, WorkbenchError, create_draft, route_status
 from .storage import connect, init_db
 
 DEFAULT_MODEL = "claude-sonnet-5"
@@ -231,15 +232,21 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
         return None, "suppressed", notes
     if email or linkedin:
         return {**c, "email": email, "linkedin_url": linkedin, "channel": "email" if email else "linkedin",
-                "recipient_identity": email or linkedin,
-                "route_verification": {"url": where, "verified_at": _now(),
-                                       "method": "marketer.verify: exact address found on the fetched page"}
-                if email else {}}, "", notes
+                "recipient_identity": email or linkedin, "email_source_url": where if email else ""}, "", notes
     # The person and company are verified; only the profile link is not. The operator finds
     # them by name at send time and confirms it is the same person - never a guessed address.
     notes.append("route_manual_lookup")
     return {**c, "email": "", "linkedin_url": "", "channel": "linkedin",
             "recipient_identity": f"{c['person_name']} at {c['company']} (find on LinkedIn by name)"}, "", notes
+
+
+def published_address_evidence(email: str, url: str) -> str:
+    """"" unless the whole address is on the page as served now, else a note naming the page hash.
+    Always the real fetcher: a caller that could supply the page could vouch for a guess."""
+    page = html.unescape(fetch_page(url) or "").casefold()
+    if not (_EMAIL.fullmatch(email) and _address_on_page(email, page)):
+        return ""
+    return ROUTE_EVIDENCE_METHOD + hashlib.sha256(page.encode()).hexdigest()
 
 
 def _address_on_page(email: str, page: str) -> bool:
@@ -402,7 +409,7 @@ def _store(db_path: str, ctx: dict, c: dict, draft: dict) -> int:
         "observation": f"Hi {first},\n\n{draft['observation']}", "economic_hypothesis": draft["economic_hypothesis"],
         "cta": draft["cta"], "metric": draft["metric"] or "qualified conversations",
         "source_url": c["evidence_url"], "experiment_id": ctx["experiment_id"], "subject": draft["subject"],
-    }, route_verification=c.get("route_verification") or None)["id"]
+    }, route_source_url=c["email_source_url"] if c["channel"] == "email" else "")["id"]
 
 
 def runs(db_path: str, limit: int = 20) -> list[dict]:
@@ -500,18 +507,36 @@ def send_sheet(db_path: str, market_id: str) -> str:
 
 # --------------------------------------------------------------------------- real adapters
 
+def _public(url: str) -> bool:
+    if not _http(url):
+        return False
+    for info in socket.getaddrinfo(urlparse(url).hostname or "", None):
+        address = ipaddress.ip_address(info[4][0])
+        if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved:
+            return False
+    return True
+
+
+class _PublicRedirects(urllib.request.HTTPRedirectHandler):
+    """Each redirect hop gets the same check as the first URL: a public page must not be able to
+    redirect into a private one. Returning None makes the redirect an error, so the fetch is ""."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return super().redirect_request(req, fp, code, msg, headers, newurl) if _public(newurl) else None
+
+
+# ponytail: DNS can still change between the check and the connect (rebinding); pin the resolved
+# address in the connection if a fetched page ever vouches for anything riskier than an address.
+_OPENER = urllib.request.build_opener(_PublicRedirects)
+
+
 def fetch_page(url: str) -> str:
     """Public http(s) page text, or "" — never a private or loopback address (the URL came from a model)."""
-    if not _http(url):
-        return ""
     try:
-        host = urlparse(url).hostname or ""
-        for info in socket.getaddrinfo(host, None):
-            address = ipaddress.ip_address(info[4][0])
-            if address.is_private or address.is_loopback or address.is_link_local or address.is_reserved:
-                return ""
+        if not _public(url):
+            return ""
         request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (ThePlus marketer verifier)"})
-        with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT_S) as response:
+        with _OPENER.open(request, timeout=FETCH_TIMEOUT_S) as response:
             return response.read(FETCH_MAX_BYTES).decode(response.headers.get_content_charset() or "utf-8", "replace")
     except Exception:
         return ""                                    # unreachable is a rejection reason, counted by the run
