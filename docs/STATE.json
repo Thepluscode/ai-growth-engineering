@@ -8,9 +8,9 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-10-10T14:04:07+00:00",
-    "git_dirty": 22,
-    "git_head": "4fff7d3e53154472d647b29106fbaa7159a05679",
+    "generated_at": "2026-10-13T05:00:14+00:00",
+    "git_dirty": 11,
+    "git_head": "31a00c2dca6f5dcdd0e431f1dbd7f3afe9f31163",
     "inputs": [
       "capability_map.json",
       "src/"
@@ -134,7 +134,7 @@
       "unreviewed_prospects": {
         "basis": "REGISTRY",
         "diverges": false,
-        "value": 87
+        "value": 89
       }
     }
   }
