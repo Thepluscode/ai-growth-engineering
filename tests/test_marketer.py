@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from ai_growth_engineering import registries
-from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, fetch_page, gmail_payloads,
+from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, check_draft, fetch_page, gmail_payloads,
                                             import_candidates, page_text, run, send_sheet,
                                             runs)
 from ai_growth_engineering.outbound_workbench import DIRECT_VERIFIED, approve_draft, get_draft, route_status
@@ -75,6 +75,12 @@ class Case(unittest.TestCase):
 
 
 class HappyPath(Case):
+    def test_a_supplied_greeting_is_refused_not_doubled(self):
+        with self.assertRaises(MarketerError) as ctx:
+            check_draft(json.dumps({"subject": "s", "observation": "Hi Alex,\n\nYour page says x.",
+                                    "economic_hypothesis": "h", "cta": "c", "metric": "m"}), [])
+        self.assertEqual(ctx.exception.code, "greeting_in_observation")
+
     def test_verified_candidates_become_tagged_drafts_awaiting_approval(self):
         result, _ = self.go([candidate(), candidate(company="Beta")], count=2)
         self.assertEqual((result["proposed"], result["drafted"], result["error"]), (2, 2, ""))

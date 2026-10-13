@@ -246,6 +246,9 @@ def check_draft(text: str, forbidden: list[str]) -> dict:
         raise MarketerError("unparseable_output", "a draft must be a JSON object")
     draft = {k: str(data.get(k) or "").strip() for k in ("subject", "observation", "economic_hypothesis", "cta", "metric")}
     body = " ".join(draft.values()).casefold()
+    # _store writes the greeting; a draft that brings its own sent "Hi Matt,\n\nHi Matt," on 2026-10-13.
+    if re.match(r"(hi|hello|hey|dear)\b", draft["observation"], re.I):
+        raise MarketerError("greeting_in_observation", "the greeting is added when the draft is stored")
     hit = next((p for p in forbidden if p.casefold() in body), None)
     if hit:
         raise MarketerError("forbidden_claim", f"draft contains a forbidden claim: {hit!r}")
