@@ -8,9 +8,9 @@
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-10-13T07:36:55+00:00",
-    "git_dirty": 0,
-    "git_head": "f47d4b35c9046bb240e847e6bd56e61f6025d7de",
+    "generated_at": "2026-10-13T17:29:29+00:00",
+    "git_dirty": 2,
+    "git_head": "45f39dea37e89425e6e619b636d4f5762a1b7df5",
     "inputs": [
       "capability_map.json",
       "src/"
@@ -20,6 +20,9 @@
   "store": {
     "events": {
       "by_experiment": {
+        "(unassigned)": {
+          "message_sent": 1
+        },
         "EXP-ACQ-0001": {
           "message_bounced": 5,
           "message_sent": 50
@@ -38,20 +41,20 @@
           "message_sent": 13
         },
         "EXP-ACQ-0013": {
-          "invitation_sent": 2
+          "invitation_sent": 4
         }
       },
       "by_type": {
         "invitation_accepted": 1,
-        "invitation_sent": 36,
+        "invitation_sent": 38,
         "invitation_undeliverable": 4,
         "message_bounced": 6,
-        "message_sent": 85
+        "message_sent": 86
       },
       "corrections": 38,
-      "effective": 132,
-      "log_sha256": "09d0d58c5751cd0fc0581f43aaa6f540286318089169c6941b16b559d6e53100",
-      "rows": 208,
+      "effective": 135,
+      "log_sha256": "f0b16e9ac9132d9376d16b8e1fe24d4dada0e4386c511b6e731fcf647b34161d",
+      "rows": 211,
       "synthetic_excluded": 0
     },
     "experiments": {
@@ -119,7 +122,7 @@
       "outreach_sent": {
         "basis": "COMPUTED",
         "diverges": true,
-        "value": 84
+        "value": 85
       },
       "paying_customers": {
         "basis": "COMPUTED",
