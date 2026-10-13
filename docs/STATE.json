@@ -1,16 +1,16 @@
 {
   "capabilities": {
     "HYPOTHESIS": 87,
-    "IMPLEMENTED": 111,
+    "IMPLEMENTED": 112,
     "SPECIFIED": 21,
     "domains": 8,
-    "total": 219
+    "total": 220
   },
   "local_only_operational": "AVAILABLE",
   "runtime": {
-    "generated_at": "2026-10-06T08:47:01+00:00",
-    "git_dirty": 5,
-    "git_head": "ce9a0f2d761f5e0962e76832f7651681f015afee",
+    "generated_at": "2026-10-10T14:04:07+00:00",
+    "git_dirty": 22,
+    "git_head": "4fff7d3e53154472d647b29106fbaa7159a05679",
     "inputs": [
       "capability_map.json",
       "src/"
@@ -36,19 +36,22 @@
         },
         "EXP-ACQ-0009": {
           "message_sent": 13
+        },
+        "EXP-ACQ-0013": {
+          "invitation_sent": 2
         }
       },
       "by_type": {
         "invitation_accepted": 1,
-        "invitation_sent": 34,
+        "invitation_sent": 36,
         "invitation_undeliverable": 4,
         "message_bounced": 6,
         "message_sent": 85
       },
       "corrections": 38,
-      "effective": 130,
-      "log_sha256": "d752dad60d075c58ab3989de00574948e6db879ef458079715e1d3ab3df8e20c",
-      "rows": 206,
+      "effective": 132,
+      "log_sha256": "09d0d58c5751cd0fc0581f43aaa6f540286318089169c6941b16b559d6e53100",
+      "rows": 208,
       "synthetic_excluded": 0
     },
     "experiments": {

@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from urllib.parse import urlparse
 
+from .authority_opportunities import readout as authority_readout
 from .growthops import command_center_state
 from .hiring_signal_connector import (
     add_hiring_source,
@@ -20,6 +21,10 @@ from .outbound_workbench import (
     WorkbenchError,
     approve_draft,
     create_draft,
+    hold_draft,
+    record_connection_accepted,
+    record_connection_request,
+    record_delivery,
     record_manual_send,
     record_meaningful_reply,
     reject_draft,
@@ -33,11 +38,12 @@ from .signal_intelligence import (
     intelligence_state,
 )
 from .storage import init_db
+from .weekly_cycle import readout as weekly_readout
 
 
 MAX_JSON_BYTES = 64 * 1024
 _DRAFT_ACTION = re.compile(
-    r"^/api/outbound/drafts/(?P<draft_id>\d+)/(?P<action>approve|reject|record-send|record-reply)$"
+    r"^/api/outbound/drafts/(?P<draft_id>\d+)/(?P<action>approve|reject|hold|record-connection|record-acceptance|record-send|record-delivery|record-reply)$"
 )
 
 
@@ -70,6 +76,12 @@ def build_server(
             if path == "/api/workbench":
                 self._send_json(200, workbench_state(db_path))
                 return
+            if path == "/api/week":
+                self._send_json(200, weekly_readout(db_path))
+                return
+            if path == "/api/authority-opportunities":
+                self._send_json(200, authority_readout(db_path))
+                return
             if path == "/api/intelligence":
                 self._send_json(200, intelligence_state(db_path))
                 return
@@ -86,7 +98,8 @@ def build_server(
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
-            if path in {"/api/state", "/api/workbench", "/api/intelligence"}:
+            if path in {"/api/state", "/api/workbench", "/api/intelligence", "/api/week",
+                        "/api/authority-opportunities"}:
                 self._send_json(405, {"error": "method_not_allowed"}, allow="GET")
                 return
             match = _DRAFT_ACTION.match(path)
@@ -142,8 +155,21 @@ def build_server(
                 action = match.group("action")
                 handlers = {
                     "approve": lambda: approve_draft(db_path, draft_id),
-                    "reject": lambda: reject_draft(db_path, draft_id),
+                    "reject": lambda: reject_draft(db_path, draft_id, str(payload.get("reason") or "")),
+                    "hold": lambda: hold_draft(db_path, draft_id, str(payload.get("reason") or "")),
+                    "record-connection": lambda: record_connection_request(
+                        db_path, draft_id, payload.get("sent_at")
+                    ),
+                    "record-acceptance": lambda: record_connection_accepted(
+                        db_path, draft_id, payload.get("accepted_at")
+                    ),
                     "record-send": lambda: record_manual_send(db_path, draft_id, payload.get("sent_at")),
+                    "record-delivery": lambda: record_delivery(
+                        db_path,
+                        draft_id,
+                        payload.get("delivered_at"),
+                        str(payload.get("evidence") or ""),
+                    ),
                     "record-reply": lambda: record_meaningful_reply(db_path, draft_id, payload.get("replied_at")),
                 }
                 self._send_json(200, {"draft": handlers[action]()})

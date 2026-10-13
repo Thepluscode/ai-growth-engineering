@@ -58,6 +58,29 @@ active:
         goes first because it has the cleanest access, not a stronger thesis. Improve
         routes before researching more companies.
       protocol: experiments/DEMAND-CYCLE-2026-10.md
+    - at: 2026-10-06
+      approved_by: founder
+      kind: SCOPE_AMENDMENT
+      summary: >
+        Add a thin Authority Opportunity decision model under the Marketing Engineer,
+        reusing markets, evidence, claims, channels, offers and attribution. Earned
+        authority means original evidence plus useful interpretation; no manufactured
+        credibility, unsupported certainty or controversy-for-attention. The model must
+        hold an opportunity when buyer value, urgency, existing spend, information demand,
+        answer quality, evidence, right-to-win, distribution or product adjacency is
+        unknown. AI may organise and repurpose evidence; publishing and important claims
+        remain human-gated. This does not authorise an isolated content-generation system.
+    - at: 2026-10-06
+      approved_by: founder
+      kind: SCOPE_AMENDMENT
+      summary: >
+        Approve AUTH-DIST-001: one organic founder-profile LinkedIn post distributing the
+        existing Agent Under Oath report, followed by seven complete days of observation.
+        Measure audience demographics and qualified conversations; create no second
+        authority asset until the window is recorded. This is an instrumentation check,
+        not a channel or demand verdict, and authorises no paid amplification or automated
+        publishing.
+      protocol: channels/social/AUTHORITY-DISTRIBUTION-001.md
 completed:
   - task: market_hypothesis_layer
     closed_at: 2026-09-27

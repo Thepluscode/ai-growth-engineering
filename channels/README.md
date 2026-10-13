@@ -2,7 +2,7 @@
 
 # channels
 
-**Distribution channels** — 6 of 34 capabilities implemented.
+**Distribution channels** — 7 of 35 capabilities implemented.
 
 This directory is a place in the taxonomy, not a claim that code lives here. Working code lives in `src/ai_growth_engineering/`; what is real is recorded in `capability_map.json` and reflected below.
 
@@ -22,6 +22,7 @@ This directory is a place in the taxonomy, not a claim that code lives here. Wor
 
 | Capability | Status |
 | --- | --- |
+| `authority_opportunity_model` | IMPLEMENTED |
 | `channel_registry` | IMPLEMENTED |
 | `human_gated_outbound_workbench` | IMPLEMENTED |
 | `outbound_quality_gate` | IMPLEMENTED |

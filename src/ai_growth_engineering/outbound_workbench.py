@@ -61,9 +61,18 @@ def workbench_state(db_path: str) -> dict[str, Any]:
             """SELECT id, prospect_id, company, recipient_identity, recipient_class,
                       channel, observation, economic_hypothesis, cta, metric,
                       source_url, message, status, outreach_id, created_at,
-                      approved_at, sent_at, replied_at, rejected_at
+                      approved_at, sent_at, replied_at, rejected_at, experiment_id,
+                      subject, status_reason, held_at
                FROM outbound_drafts
-               ORDER BY id DESC LIMIT 30"""
+               ORDER BY CASE status
+                          WHEN 'approved' THEN 0
+                          WHEN 'pending_approval' THEN 1
+                          WHEN 'sent' THEN 2
+                          WHEN 'replied' THEN 3
+                          WHEN 'held' THEN 4
+                          ELSE 5
+                        END,
+                        id DESC"""
         ).fetchall()
         counts = {
             row["status"]: row["count"]
@@ -76,10 +85,22 @@ def workbench_state(db_path: str) -> dict[str, Any]:
             "SELECT draft_id, signal_id FROM draft_signal_lineage ORDER BY created_at, signal_id"
         ):
             lineage.setdefault(row["draft_id"], []).append(row["signal_id"])
+    event_types: dict[int, set[str]] = {}
+    for event in effective_events(db_path):
+        source_record_id = str(event.get("source_record_id") or "")
+        if event.get("source") != "workbench" or not source_record_id.startswith("draft-"):
+            continue
+        try:
+            draft_id = int(source_record_id.removeprefix("draft-"))
+        except ValueError:
+            continue
+        event_types.setdefault(draft_id, set()).add(str(event["event_type"]))
     draft_values = []
     for row in drafts:
         value = dict(row)
         value["signal_ids"] = lineage.get(row["id"], [])
+        value["event_types"] = sorted(event_types.get(row["id"], set()))
+        value["route_status"] = _route_status(value, event_types.get(row["id"], set()))
         draft_values.append(value)
     return {
         "prospects": [dict(row) for row in prospects],
@@ -90,7 +111,9 @@ def workbench_state(db_path: str) -> dict[str, Any]:
             "sent": counts.get("sent", 0),
             "replied": counts.get("replied", 0),
             "rejected": counts.get("rejected", 0),
+            "held": counts.get("held", 0),
         },
+        "total_drafts": sum(counts.values()),
         "channels": sorted(ALLOWED_CHANNELS),
         "recipient_classes": ["named_buyer", "role_inbox"],
     }
@@ -241,12 +264,16 @@ def _draft_events(db_path: str, draft_id: int) -> set[str]:
 
 
 def route_status(db_path: str, draft: Mapping[str, Any]) -> str:
+    return _route_status(draft, _draft_events(db_path, int(draft["id"])))
+
+
+def _route_status(draft: Mapping[str, Any], event_types: set[str]) -> str:
     identity = str(draft["recipient_identity"])
     if draft["channel"] == "email" and "@" in identity and " " not in identity:
         return DIRECT_VERIFIED
     if not identity.startswith("https://"):
         return ROUTE_UNVERIFIED
-    if "invitation_accepted" in _draft_events(db_path, int(draft["id"])):
+    if "invitation_accepted" in event_types:
         return DIRECT_VERIFIED
     return PROFILE_VERIFIED
 

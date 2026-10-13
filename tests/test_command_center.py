@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
+from ai_growth_engineering import registries
 from ai_growth_engineering.command_center import build_server
 from ai_growth_engineering.storage import connect
 
@@ -31,6 +32,11 @@ class CommandCenterServerTests(unittest.TestCase):
             self.assertIn("GrowthOps", html)
             self.assertIn("Command Center", html)
             self.assertIn("Today’s 10 best buyers", html)
+            self.assertIn("Weekly demand cycle", html)
+            self.assertIn("Authority opportunities", html)
+            self.assertIn("/api/authority-opportunities", html)
+            self.assertIn('id="queue-market"', html)
+            self.assertIn('id="queue-route"', html)
             self.assertIn("Scan public hiring source", html)
             self.assertIn("Record researched identity", html)
             self.assertIn("no-store", response.headers["Cache-Control"])
@@ -41,12 +47,32 @@ class CommandCenterServerTests(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/api/workbench") as response:
             workbench = json.load(response)
         self.assertEqual(workbench["drafts"], [])
+        with urllib.request.urlopen(self.base + "/api/week") as response:
+            week = json.load(response)
+        self.assertEqual(week["markets"], [])
+        with urllib.request.urlopen(self.base + "/api/authority-opportunities") as response:
+            authority = json.load(response)
+        self.assertEqual((authority["opportunities"], authority["authority"]),
+                         ([], "R3_APPROVAL_REQUIRED"))
         with urllib.request.urlopen(self.base + "/api/intelligence") as response:
             intelligence = json.load(response)
         self.assertEqual(intelligence["ranked_buyers"], [])
         with urllib.request.urlopen(self.base + "/revenue-intelligence") as response:
             revenue_html = response.read().decode()
         self.assertIn("Revenue Intelligence", revenue_html)
+
+    def test_authority_opportunities_endpoint_is_read_only(self):
+        request = urllib.request.Request(
+            self.base + "/api/authority-opportunities",
+            data=b"{}",
+            method="POST",
+            headers={"Content-Type": "application/json", "X-Command-Center-Intent": "mutate"},
+        )
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            urllib.request.urlopen(request)
+        self.assertEqual((raised.exception.code, raised.exception.headers.get("Allow")), (405, "GET"))
+        self.assertEqual(json.load(raised.exception)["error"], "method_not_allowed")
+        raised.exception.close()
 
     def test_revenue_workspace_reads_only_the_intelligence_surfaces(self):
         with urllib.request.urlopen(self.base + "/revenue-intelligence") as response:
@@ -267,6 +293,41 @@ class CommandCenterServerTests(unittest.TestCase):
         metrics = {row["key"]: row["value"] for row in state["scoreboard"]}
         self.assertEqual(metrics["outreach_sent"], 1)
         self.assertEqual(metrics["meaningful_responses"], 1)
+
+    def test_profile_route_workflow_is_operable_from_the_command_center(self):
+        with connect(self.db) as con:
+            con.execute(
+                """INSERT INTO prospects(company, status)
+                   VALUES ('Route Co', 'qualified')"""
+            )
+        registries.add(self.db, "markets", {
+            "market_id": "MKT-ROUTE", "hypothesis": "h", "status": "active"
+        })
+        registries.add(self.db, "market_experiments", {
+            "link_id": "LINK-ROUTE", "market_id": "MKT-ROUTE",
+            "experiment_id": "EXP-ROUTE", "layer": "DEMAND", "protocol": "discovery-v1",
+            "exposure_event": "message_sent", "positive_event": "reply_meaningful",
+        })
+        created = self.post("/api/outbound/drafts", {
+            "prospect_id": 1, "recipient_identity": "https://example.com/profile",
+            "recipient_class": "named_buyer", "channel": "linkedin",
+            "observation": "The public operations page describes a multi-system payment workflow.",
+            "economic_hypothesis": "The team may spend material time reconstructing difficult exceptions.",
+            "cta": "When did this last happen?", "metric": "qualified_conversation_rate",
+            "source_url": "https://example.com/operations", "experiment_id": "EXP-ROUTE",
+        }, expected=201)
+        draft_id = created["draft"]["id"]
+        self.post(f"/api/outbound/drafts/{draft_id}/approve", {})
+        self.post(f"/api/outbound/drafts/{draft_id}/record-connection", {"sent_at": "2026-10-06"})
+        self.post(f"/api/outbound/drafts/{draft_id}/record-acceptance", {"accepted_at": "2026-10-07"})
+        self.post(f"/api/outbound/drafts/{draft_id}/record-send", {"sent_at": "2026-10-08"})
+        self.post(f"/api/outbound/drafts/{draft_id}/record-delivery", {
+            "delivered_at": "2026-10-09", "evidence": "linkedin_seen_indicator"
+        })
+        with urllib.request.urlopen(self.base + "/api/workbench") as response:
+            draft = json.load(response)["drafts"][0]
+        self.assertEqual(draft["route_status"], "DIRECT_VERIFIED")
+        self.assertIn("message_delivered", draft["event_types"])
 
     def test_signal_and_identity_intake_feed_the_ranked_buyer_surface(self):
         with connect(self.db) as con:

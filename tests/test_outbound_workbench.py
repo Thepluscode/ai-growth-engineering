@@ -139,6 +139,16 @@ class OutboundWorkbenchTests(unittest.TestCase):
         )
         self.assertEqual(draft["recipient_identity"], identity)
 
+    def test_workbench_returns_the_complete_queue_with_route_state(self):
+        for number in range(31):
+            create_draft(self.db, {**VALID, "recipient_identity": f"buyer{number}@example.com"})
+        state = workbench_state(self.db)
+        self.assertEqual(len(state["drafts"]), 31)
+        self.assertEqual(state["total_drafts"], 31)
+        self.assertTrue(all(row["route_status"] == "DIRECT_VERIFIED" for row in state["drafts"]))
+        self.assertTrue(all("experiment_id" in row and "event_types" in row
+                            for row in state["drafts"]))
+
     def test_signal_to_draft_to_reply_lineage_is_preserved(self):
         signal = add_intent_signal(
             self.db,

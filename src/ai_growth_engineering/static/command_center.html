@@ -96,6 +96,22 @@
     .metric-target { color: var(--faint); font-family: var(--mono); font-size: 9px; }
     .bar { overflow: hidden; height: 3px; margin-top: 14px; background: #edf0f3; border-radius: 999px; }
     .bar > i { display: block; width: 0; height: 100%; background: var(--blue); border-radius: inherit; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+    .cycle-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .cycle-card { position: relative; overflow: hidden; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; box-shadow: var(--shadow); }
+    .cycle-card::before { position: absolute; inset: 0 auto 0 0; width: 3px; content: ""; background: var(--blue); }
+    .cycle-top { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+    .cycle-market { margin: 0; font-size: 13px; font-weight: 650; letter-spacing: -.015em; }
+    .cycle-buyer { min-height: 32px; margin: 5px 0 0; color: var(--muted); font-size: 9px; }
+    .cycle-sample { color: var(--ink); font: 650 10px/1 var(--mono); white-space: nowrap; }
+    .cycle-sample small { color: var(--faint); font-size: 7px; font-weight: 500; }
+    .cycle-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; overflow: hidden; margin-top: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--line); }
+    .cycle-stat { padding: 9px; background: var(--surface-subtle); }
+    .cycle-stat b, .cycle-stat span { display: block; }
+    .cycle-stat b { font: 650 15px/1 var(--mono); }
+    .cycle-stat span { margin-top: 5px; color: var(--faint); font-size: 7px; text-transform: uppercase; }
+    .cycle-next { margin: 13px 0 0; padding: 10px 11px; border-left: 2px solid var(--amber); color: #4c5667; background: var(--amber-soft); font-size: 9px; line-height: 1.5; }
+    .variant-line { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .variant-chip { padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--faint); font: 7px/1.3 var(--mono); }
     .layout-2 { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 14px; }
     .panel { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
     .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 54px; padding: 0 20px; border-bottom: 1px solid var(--line); }
@@ -183,12 +199,20 @@
     .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 55px; padding: 0 20px; border-bottom: 1px solid var(--line); }
     .queue-head h4 { margin: 0; font-size: 11px; }
     .queue-counts { display: flex; gap: 8px; color: var(--faint); font-family: var(--mono); font-size: 8px; }
+    .queue-tools { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; padding: 11px 20px; border-bottom: 1px solid var(--line); background: #fff; }
+    .queue-tools select { width: 100%; height: 31px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 5px; color: #4f5c6e; background: #fff; font-size: 8px; }
     .draft-list { display: grid; max-height: 790px; overflow-y: auto; }
     .draft-card { padding: 19px 20px; border-top: 1px solid var(--line); background: #fff; }
     .draft-card:first-child { border-top: 0; }
     .draft-card[data-status="approved"] { box-shadow: inset 3px 0 var(--amber); }
     .draft-card[data-status="sent"], .draft-card[data-status="replied"] { box-shadow: inset 3px 0 var(--green); }
     .draft-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; color: var(--faint); font-family: var(--mono); font-size: 8px; }
+    .draft-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .route-chip { display: inline-flex; padding: 4px 6px; border-radius: 4px; color: var(--red); background: var(--red-soft); font: 700 7px/1 var(--mono); letter-spacing: .03em; }
+    .route-chip[data-route="PROFILE_VERIFIED"] { color: var(--amber); background: var(--amber-soft); }
+    .route-chip[data-route="DIRECT_VERIFIED"] { color: var(--green); background: var(--green-soft); }
+    .experiment-chip { display: inline-flex; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--blue); font: 650 7px/1 var(--mono); }
+    .draft-reason { margin: 10px 0 0; color: var(--muted); font-size: 9px; font-style: italic; }
     .draft-message { margin: 14px 0 0; padding: 13px 14px; border: 1px solid #e8ebef; border-radius: 6px; color: #364255; background: var(--surface-subtle); font: 10px/1.6 var(--body); white-space: pre-wrap; }
     .draft-source { display: inline-block; max-width: 100%; margin-top: 10px; overflow: hidden; color: var(--blue); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
     .draft-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
@@ -243,7 +267,7 @@
     }
     @media (max-width: 1120px) {
       .app { grid-template-columns: 210px minmax(0, 1fr); }
-      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metrics, .cycle-board { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .layout-2 { grid-template-columns: 1fr; }
       .intelligence-grid { grid-template-columns: 1fr; }
       .buyer-board { border-right: 0; border-bottom: 1px solid var(--line); }
@@ -272,6 +296,8 @@
       .evidence, .authority { grid-template-columns: 1fr; }
       .field-grid { grid-template-columns: 1fr; }
       .buyer-facts, .compact-grid { grid-template-columns: 1fr; }
+      .cycle-board { grid-template-columns: 1fr; }
+      .queue-tools { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
       .compact-grid .field.full { grid-column: auto; }
       .evidence details:nth-child(even), .authority-block + .authority-block { border-left: 0; }
@@ -304,6 +330,8 @@
       <p class="nav-label">On this page</p>
       <nav class="nav" aria-label="Sections of the command center">
         <a href="#overview">Overview</a>
+        <a href="#cycle">Weekly cycle</a>
+        <a href="#authority-opportunities">Authority opportunities</a>
         <a href="#intelligence">Buyer desk</a>
         <a href="#workbench">Workbench</a>
         <a href="#performance">Performance</a>
@@ -320,6 +348,14 @@
         <section class="status-panel" aria-labelledby="constraint-title">
           <div class="status-summary"><p class="overline">Current operating constraint</p><div class="status-row"><span class="status-icon" id="status-icon" data-level="red" aria-hidden="true">!</span><h2 class="status-title loading" id="constraint-title">Reading state</h2></div><p class="status-reason" id="constraint-reason">Connecting to the evidence store.</p><div class="status-freshness"><span>Last external contact</span><strong id="freshness">Unknown</strong></div></div>
           <div class="next-move"><div class="next-move-head"><p class="overline">Recommended next move</p><span class="approval-chip">Approval required</span></div><h3 class="next-title" id="action-title">Waiting for evidence</h3><p class="next-copy" id="action-copy">The operator proposes one action after reading the commercial state.</p><div class="next-meta"><span>Metric · <strong id="action-metric">—</strong></span><span id="action-approval">Human approval required</span></div><a class="action-link" href="#workbench">Open outbound workbench →</a></div>
+        </section>
+        <section class="section" id="cycle" aria-labelledby="cycle-title">
+          <div class="section-heading"><div><h2 id="cycle-title">Weekly demand cycle</h2><p id="cycle-window">Loading the verified-delivery plan…</p></div><span class="section-code">Attempt → evidence → reply</span></div>
+          <div class="cycle-board" id="cycle-board"><div class="empty">Reading active product markets…</div></div>
+        </section>
+        <section class="section panel" id="authority-opportunities" aria-labelledby="authority-opportunities-title">
+          <header class="panel-head"><div><h3 id="authority-opportunities-title">Authority opportunities</h3></div><span class="panel-label">Market evidence → proof → distribution → revenue</span></header>
+          <div class="list" id="authority-opportunity-list"><div class="empty">Checking commercial evidence and claim lineage…</div></div>
         </section>
         <section class="section panel" id="intelligence" aria-labelledby="intelligence-title">
           <header class="panel-head"><div><h3 id="intelligence-title">Today’s buyer desk</h3></div><span class="panel-label">Fit gate → intent rank → human action</span></header>
@@ -404,7 +440,7 @@
                 <div class="field"><label for="recipient-identity">Recipient identity</label><input id="recipient-identity" name="recipient_identity" type="text" placeholder="operator@example.com or profile URL" autocomplete="off" required></div>
                 <div class="field"><label for="source-url">Observed source</label><input id="source-url" name="source_url" type="url" placeholder="https://company.com/page" required></div>
                 <div class="field"><label for="channel">Channel</label><select id="channel" name="channel"><option value="email">Email</option><option value="linkedin">LinkedIn</option><option value="contact_form">Contact form</option></select></div>
-                <div class="field"><label for="draft-experiment">Market experiment (optional)</label><input id="draft-experiment" name="experiment_id" placeholder="e.g. EXP-ACQ-0008 — see `age week`" maxlength="40"></div><div class="field"><label for="recipient-class">Recipient class</label><select id="recipient-class" name="recipient_class"><option value="named_buyer">Named buyer</option><option value="role_inbox">Role inbox</option></select></div>
+                <div class="field"><label for="draft-experiment">Market experiment <small>Required for this cycle</small></label><select id="draft-experiment" name="experiment_id" required><option value="">Loading active variants…</option></select></div><div class="field"><label for="recipient-class">Recipient class</label><select id="recipient-class" name="recipient_class"><option value="named_buyer">Named buyer</option><option value="role_inbox">Role inbox</option></select></div>
                 <div class="field full"><label for="observation">Observation <small>Only what the source proves</small></label><textarea id="observation" name="observation" minlength="30" maxlength="1200" placeholder="What is directly observable on the cited page?" required></textarea></div>
                 <div class="field full"><label for="economic-hypothesis">Economic hypothesis <small>Inference, not diagnosis</small></label><textarea id="economic-hypothesis" name="economic_hypothesis" minlength="30" maxlength="1200" placeholder="What commercial effect might the observation create?" required></textarea></div>
                 <div class="field full"><label for="cta">Low-friction CTA <small>Question only; no meeting ask</small></label><input id="cta" name="cta" type="text" maxlength="180" value="Want me to send the one-page experiment map?" required></div>
@@ -415,6 +451,11 @@
             </form>
             <div class="queue">
               <div class="queue-head"><h4>Approval queue</h4><div class="queue-counts" id="queue-counts">Loading…</div></div>
+              <div class="queue-tools" aria-label="Queue filters">
+                <select id="queue-market" aria-label="Filter by market"><option value="all">All active markets</option></select>
+                <select id="queue-status" aria-label="Filter by status"><option value="active">Actionable</option><option value="pending_approval">Pending approval</option><option value="approved">Approved</option><option value="sent">Sent</option><option value="held">Held</option><option value="rejected">Rejected</option><option value="all">All statuses</option></select>
+                <select id="queue-route" aria-label="Filter by route"><option value="all">All route states</option><option value="DIRECT_VERIFIED">Direct verified</option><option value="PROFILE_VERIFIED">Profile verified</option><option value="ROUTE_UNVERIFIED">Route unresolved</option></select>
+              </div>
               <div class="draft-list" id="draft-list"><div class="empty">Loading outbound workflow…</div></div>
             </div>
           </div>
@@ -493,34 +534,110 @@
       const root = $('opportunity-list'); root.replaceChildren(); if (!rows.length) { root.append(empty('No product opportunities recorded.')); return; }
       rows.forEach((row) => { const card = node('article', 'list-item'); const top = node('div', 'item-top'); top.append(node('span', 'id', row.opportunity_id), badge(row.eligible ? 'eligible' : row.status)); card.append(top, node('p', 'item-title', row.problem)); if (row.missing.length) { const missing = node('div', 'missing'); row.missing.forEach((value) => missing.append(node('span', '', stateName(value)))); card.append(missing); } root.append(card); });
     }
+    function renderAuthorityOpportunities(data) {
+      const root = $('authority-opportunity-list'); root.replaceChildren();
+      if (!data.opportunities.length) { root.append(empty('No authority opportunities recorded.')); return; }
+      data.opportunities.forEach((row) => {
+        const card = node('article', 'list-item'); const top = node('div', 'item-top');
+        top.append(node('span', 'id', row.authority_opportunity_id), node('span', 'panel-label', stateName(row.asset_tier)), badge(row.status));
+        card.append(
+          top,
+          node('p', 'item-title', row.topic),
+          node('p', 'channel-notes', row.thesis),
+          node('p', 'channel-notes', `Buyer · ${row.buyer}`),
+          node('p', 'channel-notes', `Problem · ${row.problem}`),
+          node('p', 'channel-notes', `Information gap · ${row.information_gap}`),
+          node('p', 'channel-notes', `Authority supply · ${row.authority_supply}`),
+        );
+        const scores = node('div', 'variant-line');
+        Object.entries(row.scores).forEach(([name, value]) => scores.append(node('span', 'variant-chip', `${stateName(name)} · ${value}/5`)));
+        card.append(scores);
+        if (row.missing.length) {
+          const gaps = node('div', 'missing');
+          row.missing.forEach((value) => gaps.append(node('span', '', stateName(value))));
+          card.append(gaps);
+        }
+        const graph = node('div', 'variant-line');
+        row.graph.forEach((stage) => graph.append(node('span', 'variant-chip', `${stateName(stage.stage)} · ${stateName(stage.state)}`)));
+        card.append(graph, node('p', 'cycle-next', row.recommended_action)); root.append(card);
+      });
+    }
+    function loadAuthorityOpportunities() { return fetch('/api/authority-opportunities', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`authority request failed: ${response.status}`); return response.json(); }).then(renderAuthorityOpportunities).catch((error) => { $('authority-opportunity-list').replaceChildren(empty(error.message)); }); }
     function renderAuthority(authority) { const fill = (id, values) => { const root = $(id); root.replaceChildren(); values.forEach((value) => root.append(node('li', '', value))); }; fill('allowed', authority.allowed); fill('approval', authority.human_approval_required); }
     function renderChannels(rows) {
       const root = $('channel-list'); root.replaceChildren(); if (!rows.length) { root.append(empty('No channels recorded.')); return; }
       rows.forEach((row) => { const card = node('article', 'channel'); card.append(badge(row.status), node('h4', 'channel-name', row.name), node('div', 'channel-kind', row.kind || 'unclassified'), node('p', 'channel-notes', row.notes || 'No operating note recorded.')); root.append(card); });
     }
-    function renderWorkbench(data) {
-      window.workbenchData = data;
-      const select = $('prospect-id'); populateProspects(select, data.prospects); populateProspects($('hiring-prospect-id'), data.prospects); populateProspects($('signal-prospect-id'), data.prospects); populateProspects($('enrichment-prospect-id'), data.prospects); populateProspects($('identity-prospect-id'), data.prospects); updateDraftSignals(select.value);
-      const counts = data.counts;
-      $('queue-counts').textContent = `${counts.pending_approval} pending · ${counts.approved} approved · ${counts.sent + counts.replied} recorded`;
+    const marketName = (id) => String(id || '').replace(/^MKT-/, '').replaceAll('-', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    function nextMarketAction(row) {
+      if (row.approved && row.direct_ready) return `Send ${Math.min(row.approved, row.direct_ready)} approved message${row.approved === 1 ? '' : 's'} through verified direct routes.`;
+      if (row.approved && row.profile_ready) return `Record connection requests for ${Math.min(row.approved, row.profile_ready)} approved profile${row.profile_ready === 1 ? '' : 's'}; these are access, not experiment sends.`;
+      if (row.pending_approval && row.profile_ready) return `Review the ${row.profile_ready} profile-routed draft${row.profile_ready === 1 ? '' : 's'}, then start connection acquisition.`;
+      if (row.route_unverified) return `Resolve or hold ${row.route_unverified} name-only route${row.route_unverified === 1 ? '' : 's'} before researching more companies.`;
+      if (row.delivery_evidence_pending) return `Check ${row.delivery_evidence_pending} attempted message${row.delivery_evidence_pending === 1 ? '' : 's'} for independent delivery evidence.`;
+      if (row.research_remaining) return `Research and draft ${row.research_remaining} more named buyer${row.research_remaining === 1 ? '' : 's'} for this week.`;
+      return 'No demand conclusion yet. Continue the governed route → delivery → reply cycle.';
+    }
+    function populateCycleSelects(data) {
+      const draft = $('draft-experiment'); const selected = draft.value; draft.replaceChildren(node('option', '', 'Choose an active market variant')); draft.firstChild.value = '';
+      const market = $('queue-market'); const marketSelected = market.value; market.replaceChildren(node('option', '', 'All active markets')); market.firstChild.value = 'all';
+      data.markets.forEach((row) => {
+        const option = node('option', '', marketName(row.market_id)); option.value = row.market_id; market.append(option);
+        row.variants.forEach((variant) => variant.experiments.forEach((experiment) => { const item = node('option', '', `${marketName(row.market_id)} · ${stateName(variant.protocol)} · ${experiment}`); item.value = experiment; draft.append(item); }));
+      });
+      if ([...draft.options].some((option) => option.value === selected)) draft.value = selected;
+      if ([...market.options].some((option) => option.value === marketSelected)) market.value = marketSelected;
+    }
+    function renderCycle(data) {
+      window.weekData = data; populateCycleSelects(data);
+      $('cycle-window').textContent = `${data.week[0]} to ${data.week[1]} · minimum ${data.min_exposures} verified named-buyer deliveries per variant`;
+      const root = $('cycle-board'); root.replaceChildren();
+      if (!data.markets.length) { root.append(empty('No active demand markets registered.')); return; }
+      data.markets.forEach((row) => {
+        const card = node('article', 'cycle-card'); const top = node('div', 'cycle-top'); const title = node('div'); title.append(node('h3', 'cycle-market', marketName(row.market_id)), node('p', 'cycle-buyer', row.buyer)); const sample = node('div', 'cycle-sample', `${row.delivered}/${row.sample_target}`); sample.append(node('small', '', ' verified')); top.append(title, sample); card.append(top);
+        const bar = node('div', 'bar'); const fill = node('i'); fill.style.width = `${Math.min(100, Math.round(row.delivered / row.sample_target * 100))}%`; bar.append(fill); card.append(bar);
+        const stats = node('div', 'cycle-stats'); [['sent', 'attempted'], ['delivered', 'delivered'], ['queued', 'queued'], ['replies', 'replies']].forEach(([key, label]) => { const stat = node('div', 'cycle-stat'); stat.append(node('b', '', String(row[key])), node('span', '', label)); stats.append(stat); }); card.append(stats, node('p', 'cycle-next', nextMarketAction(row)));
+        const variants = node('div', 'variant-line'); row.variants.forEach((variant) => variants.append(node('span', 'variant-chip', `${stateName(variant.protocol)} · ${variant.delivered_to_named_buyers} delivered · ${variant.meaningful_replies} replies`))); card.append(variants); root.append(card);
+      });
+      if (window.workbenchData) renderDraftQueue();
+    }
+    function loadCycle() { return fetch('/api/week', { cache: 'no-store' }).then((response) => { if (!response.ok) throw new Error(`weekly cycle request failed: ${response.status}`); return response.json(); }).then(renderCycle).catch((error) => { $('cycle-board').replaceChildren(empty(error.message)); }); }
+    function draftMarket(row) { return window.weekData?.markets.find((market) => market.experiments.includes(row.experiment_id))?.market_id || ''; }
+    function renderDraftQueue() {
+      const data = window.workbenchData; if (!data) return;
+      const market = $('queue-market').value; const status = $('queue-status').value; const route = $('queue-route').value;
+      const active = new Set(['pending_approval', 'approved', 'sent']);
+      const rows = data.drafts.filter((row) => (market === 'all' || draftMarket(row) === market) && (status === 'all' || (status === 'active' ? active.has(row.status) : row.status === status)) && (route === 'all' || row.route_status === route));
+      $('queue-counts').textContent = `${rows.length} shown · ${data.counts.pending_approval} pending · ${data.counts.approved} approved · ${data.counts.held} held`;
       const root = $('draft-list'); root.replaceChildren();
-      if (!data.drafts.length) { root.append(empty('No drafts yet. Create one from sourced evidence.')); return; }
-      data.drafts.forEach((row) => {
-        const card = node('article', 'draft-card'); card.dataset.status = row.status;
-        const top = node('div', 'item-top'); top.append(node('span', 'id', `DRAFT-${String(row.id).padStart(4, '0')}`), badge(row.status)); card.append(top);
-        card.append(node('p', 'item-title', row.company));
+      if (!rows.length) { root.append(empty('No drafts match these filters.')); return; }
+      rows.forEach((row) => {
+        const card = node('article', 'draft-card'); card.dataset.status = row.status; card.dataset.route = row.route_status;
+        const top = node('div', 'item-top'); top.append(node('span', 'id', `DRAFT-${String(row.id).padStart(4, '0')}`), badge(row.status)); card.append(top, node('p', 'item-title', row.company));
         card.append(node('div', 'draft-meta', `${row.channel} · ${stateName(row.recipient_class)} · ${row.recipient_identity}`));
+        const flags = node('div', 'draft-flags'); const routeChip = node('span', 'route-chip', stateName(row.route_status)); routeChip.dataset.route = row.route_status; flags.append(routeChip); if (row.experiment_id) flags.append(node('span', 'experiment-chip', row.experiment_id)); card.append(flags);
         if (row.signal_ids.length) card.append(node('div', 'lineage-chip', `Lineage · ${row.signal_ids.join(' · ')}`));
         card.append(node('div', 'draft-message', row.message));
-        const source = node('a', 'draft-source', row.source_url); source.href = row.source_url; source.target = '_blank'; source.rel = 'noreferrer'; card.append(source);
+        if (row.status_reason) card.append(node('p', 'draft-reason', `Decision record · ${row.status_reason}`));
+        const source = node('a', 'draft-source', 'Open observed evidence →'); source.href = row.source_url; source.target = '_blank'; source.rel = 'noreferrer'; card.append(source);
+        if (row.recipient_identity.startsWith('https://')) { const profile = node('a', 'draft-source', 'Open buyer profile →'); profile.href = row.recipient_identity; profile.target = '_blank'; profile.rel = 'noreferrer'; card.append(profile); }
         const actions = node('div', 'draft-actions');
         const addAction = (label, action, style = '') => { const control = node('button', `button ${style}`.trim(), label); control.type = 'button'; control.dataset.action = action; control.dataset.draftId = String(row.id); actions.append(control); };
-        addAction('Copy message', 'copy');
-        if (row.status === 'pending_approval') { addAction('Approve', 'approve', 'primary'); addAction('Reject', 'reject', 'danger'); }
-        if (row.status === 'approved') addAction('Record manual send', 'record-send', 'primary');
+        if (row.status === 'pending_approval' && row.route_status !== 'ROUTE_UNVERIFIED') addAction('Approve', 'approve', 'primary');
+        if (row.status === 'pending_approval') { addAction('Hold', 'hold'); addAction('Reject', 'reject', 'danger'); }
+        const invited = row.event_types.includes('invitation_sent'); const accepted = row.event_types.includes('invitation_accepted');
+        if (row.status === 'approved' && row.route_status === 'PROFILE_VERIFIED' && !invited) addAction('Record connection request', 'record-connection', 'primary');
+        if (row.status === 'approved' && invited && !accepted) addAction('Record connection accepted', 'record-acceptance', 'primary');
+        if (row.status === 'approved' && row.route_status === 'DIRECT_VERIFIED') { addAction('Copy message', 'copy'); addAction('Record manual send', 'record-send', 'primary'); }
+        if (row.status === 'sent' && !row.event_types.includes('message_delivered')) addAction('Record Seen delivery', 'record-delivery');
         if (row.status === 'sent') addAction('Record meaningful reply', 'record-reply', 'primary');
+        if (row.status === 'replied') addAction('Copy message', 'copy');
         card.append(actions); root.append(card);
       });
+    }
+    function renderWorkbench(data) {
+      window.workbenchData = data;
+      const select = $('prospect-id'); populateProspects(select, data.prospects); populateProspects($('hiring-prospect-id'), data.prospects); populateProspects($('signal-prospect-id'), data.prospects); populateProspects($('enrichment-prospect-id'), data.prospects); populateProspects($('identity-prospect-id'), data.prospects); updateDraftSignals(select.value); renderDraftQueue();
     }
     function loadWorkbench() {
       return fetch('/api/workbench', { cache: 'no-store' }).then((response) => {
@@ -595,7 +712,7 @@
         const result = await mutate('/api/outbound/drafts', payload);
         setFeedback(`Draft #${result.draft.id} created and waiting for approval. Nothing was sent.`, 'success');
         $('observation').value = ''; $('economic-hypothesis').value = '';
-        await Promise.all([loadWorkbench(), loadState(), loadIntelligence()]);
+        await Promise.all([loadWorkbench(), loadCycle(), loadState(), loadIntelligence()]);
       } catch (error) { setFeedback(error.message, 'error'); } finally { control.disabled = false; }
     });
     $('draft-list').addEventListener('click', async (event) => {
@@ -607,12 +724,31 @@
         catch { setFeedback('Clipboard access failed. Select and copy the message directly.', 'error'); }
         return;
       }
-      if (action === 'reject' && !window.confirm(`Reject draft #${draft.id}? The record will be preserved.`)) return;
       const payload = {};
+      if (action === 'hold' || action === 'reject') {
+        const reason = window.prompt(`${action === 'hold' ? 'Hold' : 'Reject'} draft #${draft.id}. Record the reason:`);
+        if (!reason) return;
+        payload.reason = reason.trim();
+      }
+      if (action === 'record-connection') {
+        const at = window.prompt('This records access work, not an experiment send. When was the connection request sent?');
+        if (!at) return;
+        payload.sent_at = at.trim();
+      }
+      if (action === 'record-acceptance') {
+        const at = window.prompt('When was the connection accepted and the Message action available?');
+        if (!at) return;
+        payload.accepted_at = at.trim();
+      }
       if (action === 'record-send') {
         const at = window.prompt('This does not send the message. When did you send it? (YYYY-MM-DD or ISO datetime)');
         if (!at) return;
         payload.sent_at = at.trim();
+      }
+      if (action === 'record-delivery') {
+        const at = window.prompt('When did LinkedIn show the message as Seen?');
+        if (!at) return;
+        payload.delivered_at = at.trim(); payload.evidence = 'linkedin_seen_indicator';
       }
       if (action === 'record-reply') {
         const at = window.prompt('When did the meaningful human reply arrive? (YYYY-MM-DD or ISO datetime)');
@@ -622,12 +758,13 @@
       control.disabled = true;
       try {
         const result = await mutate(`/api/outbound/drafts/${draft.id}/${action}`, payload);
-        const messages = { approve: 'Approved. Copy and send it manually.', reject: 'Rejected and preserved.', 'record-send': 'Manual send recorded in the commercial scoreboard.', 'record-reply': 'Meaningful reply recorded.' };
+        const messages = { approve: 'Approved. The route gate still controls what can be sent.', hold: 'Held and preserved outside the active queue.', reject: 'Rejected and preserved.', 'record-connection': 'Connection request recorded as access work, not a send.', 'record-acceptance': 'Accepted connection recorded; a direct route now exists.', 'record-send': 'Manual send recorded as an attempt; delivery remains unverified.', 'record-delivery': 'Independent delivery evidence recorded.', 'record-reply': 'Meaningful reply recorded.' };
         setFeedback(`Draft #${result.draft.id}: ${messages[action]}`, 'success');
-        await Promise.all([loadWorkbench(), loadState(), loadIntelligence()]);
+        await Promise.all([loadWorkbench(), loadCycle(), loadState(), loadIntelligence()]);
       } catch (error) { setFeedback(error.message, 'error'); control.disabled = false; }
     });
-    loadState(); loadWorkbench(); loadIntelligence(); window.setInterval(() => { loadState(); loadWorkbench(); loadIntelligence(); }, 30000);
+    ['queue-market', 'queue-status', 'queue-route'].forEach((id) => $(id).addEventListener('change', renderDraftQueue));
+    loadState(); loadCycle(); loadAuthorityOpportunities(); loadWorkbench(); loadIntelligence(); window.setInterval(() => { loadState(); loadCycle(); loadAuthorityOpportunities(); loadWorkbench(); loadIntelligence(); }, 30000);
   </script>
 </body>
 </html>

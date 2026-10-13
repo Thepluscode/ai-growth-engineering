@@ -125,6 +125,7 @@
         "ai_search_visibility": "HYPOTHESIS",
         "discovery_surface_intelligence": "HYPOTHESIS",
         "authority_engineering": "HYPOTHESIS",
+        "authority_opportunity_model": "IMPLEMENTED",
         "directories_and_reviews": "HYPOTHESIS",
         "content_as_market_sensing": "HYPOTHESIS",
         "market_attention_registry": "HYPOTHESIS",
