@@ -44,7 +44,8 @@ class Cycle(unittest.TestCase):
             "observation": "Their pricing page has no route for a buyer who is ready to talk now.",
             "economic_hypothesis": "A direct route would turn more ready buyers into conversations each month.",
             "cta": "Want the one-page note?", "metric": "qualified conversations",
-            "source_url": "https://example.com/pricing", "experiment_id": experiment_id})
+            "source_url": "https://example.com/pricing", "experiment_id": experiment_id,
+            "route_evidence_url": "https://example.com/team"})
 
     def send_and_reply(self, draft, sent="2026-10-01T10:00:00+00:00", reply="2026-10-02T10:00:00+00:00"):
         approve_draft(self.db, draft["id"])

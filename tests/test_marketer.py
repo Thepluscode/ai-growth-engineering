@@ -11,7 +11,7 @@ from ai_growth_engineering import registries
 from ai_growth_engineering.marketer import (LLMResult, MarketerError, candidates_of, fetch_page, gmail_payloads,
                                             import_candidates, page_text, run, send_sheet,
                                             runs)
-from ai_growth_engineering.outbound_workbench import approve_draft, get_draft
+from ai_growth_engineering.outbound_workbench import DIRECT_VERIFIED, approve_draft, get_draft, route_status
 from ai_growth_engineering.storage import connect, init_db
 
 TEAM = "https://acme.test/team"
@@ -83,6 +83,8 @@ class HappyPath(Case):
                          ("pending_approval", "EXP-X", "named_buyer", "email"))
         self.assertTrue(draft["message"].startswith("Hi Alex,\n\n"))
         self.assertEqual(draft["subject"], "Payouts across three providers")
+        # The verified email carries the page that published it, which is what makes it a route.
+        self.assertEqual((draft["route_evidence_url"], route_status(self.db, draft)), (TEAM, DIRECT_VERIFIED))
 
     def test_the_run_is_logged_with_its_cost(self):
         result, _ = self.go([candidate()], count=1)

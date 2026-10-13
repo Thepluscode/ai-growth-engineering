@@ -231,7 +231,8 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
         return None, "suppressed", notes
     if email or linkedin:
         return {**c, "email": email, "linkedin_url": linkedin, "channel": "email" if email else "linkedin",
-                "recipient_identity": email or linkedin}, "", notes
+                "recipient_identity": email or linkedin,
+                "route_evidence_url": where if email else ""}, "", notes
     # The person and company are verified; only the profile link is not. The operator finds
     # them by name at send time and confirms it is the same person - never a guessed address.
     notes.append("route_manual_lookup")
@@ -391,6 +392,7 @@ def _store(db_path: str, ctx: dict, c: dict, draft: dict) -> int:
         "observation": f"Hi {first},\n\n{draft['observation']}", "economic_hypothesis": draft["economic_hypothesis"],
         "cta": draft["cta"], "metric": draft["metric"] or "qualified conversations",
         "source_url": c["evidence_url"], "experiment_id": ctx["experiment_id"], "subject": draft["subject"],
+        "route_evidence_url": c.get("route_evidence_url", ""),
     })["id"]
 
 

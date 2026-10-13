@@ -62,7 +62,7 @@ def workbench_state(db_path: str) -> dict[str, Any]:
                       channel, observation, economic_hypothesis, cta, metric,
                       source_url, message, status, outreach_id, created_at,
                       approved_at, sent_at, replied_at, rejected_at, experiment_id,
-                      subject, status_reason, held_at
+                      subject, status_reason, held_at, route_evidence_url
                FROM outbound_drafts
                ORDER BY CASE status
                           WHEN 'approved' THEN 0
@@ -141,6 +141,9 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
     signal_ids = _signal_ids(values.get("signal_ids"))
     if not source_url.startswith(("https://", "http://")):
         raise WorkbenchError("invalid_source", "Observed claims require an http(s) source URL")
+    route_evidence_url = str(values.get("route_evidence_url") or "").strip()[:800]
+    if route_evidence_url and not route_evidence_url.startswith(("https://", "http://")):
+        raise WorkbenchError("invalid_route_evidence", "Route evidence must be the http(s) page that publishes it")
     if observation.casefold() == hypothesis.casefold():
         raise WorkbenchError("fact_inference_blended", "Observation and hypothesis must differ")
     _validate_low_friction_cta(cta)
@@ -202,8 +205,9 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
         cursor = con.execute(
             """INSERT INTO outbound_drafts(
                  prospect_id, company, recipient_identity, recipient_class, channel,
-                 observation, economic_hypothesis, cta, metric, source_url, message, experiment_id, subject
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 observation, economic_hypothesis, cta, metric, source_url, message, experiment_id, subject,
+                 route_evidence_url
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 prospect_id,
                 prospect["company"],
@@ -218,6 +222,7 @@ def create_draft(db_path: str, values: Mapping[str, Any]) -> dict[str, Any]:
                 message,
                 experiment_id,
                 str(values.get("subject") or "").strip()[:160],
+                route_evidence_url,
             ),
         )
         draft_id = cursor.lastrowid
@@ -270,7 +275,9 @@ def route_status(db_path: str, draft: Mapping[str, Any]) -> str:
 def _route_status(draft: Mapping[str, Any], event_types: set[str]) -> str:
     identity = str(draft["recipient_identity"])
     if draft["channel"] == "email" and "@" in identity and " " not in identity:
-        return DIRECT_VERIFIED
+        # An address is only a route if a fetched page published it; a well-formed guess is not.
+        evidence = draft["route_evidence_url"] if "route_evidence_url" in draft.keys() else ""
+        return DIRECT_VERIFIED if evidence else ROUTE_UNVERIFIED
     if not identity.startswith("https://"):
         return ROUTE_UNVERIFIED
     if "invitation_accepted" in event_types:

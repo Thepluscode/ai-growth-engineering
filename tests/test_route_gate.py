@@ -33,8 +33,8 @@ class RouteGate(unittest.TestCase):
             "link_id": "L", "market_id": "MKT-S", "experiment_id": "EXP-S", "layer": "DEMAND",
             "protocol": "discovery-v1", "exposure_event": "message_sent", "positive_event": "reply_meaningful"})
 
-    def draft(self, identity, pid=1, channel="linkedin"):
-        return create_draft(self.db, {
+    def draft(self, identity, pid=1, channel="linkedin", **extra):
+        return create_draft(self.db, {**extra,
             "prospect_id": pid, "recipient_identity": identity, "recipient_class": "named_buyer",
             "channel": channel, "experiment_id": "EXP-S",
             "observation": "Your managed SOC page says signals are spread across several systems.",
@@ -83,8 +83,22 @@ class RouteGate(unittest.TestCase):
         m = report(self.db)["markets"][0]
         self.assertEqual((m["delivered_to_named_buyers"], m["attempted_delivery_unverified"]), (1, 0))
 
+    def test_a_guessed_email_is_not_a_route_and_cannot_be_sent(self):
+        """Found 2026-10-13 (Codex review): any well-formed address read as DIRECT_VERIFIED, so a
+        guessed first.last@company address could enter the experiment send path."""
+        d = self.draft("first.last@example.com", channel="email")
+        approve_draft(self.db, d["id"])
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
+        with self.assertRaises(WorkbenchError) as ctx:
+            record_manual_send(self.db, d["id"], T1)
+        self.assertEqual(ctx.exception.code, "route_unverified")
+        with self.assertRaises(WorkbenchError) as ctx:
+            self.draft("buyer@example.com", pid=2, channel="email", route_evidence_url="team page")
+        self.assertEqual(ctx.exception.code, "invalid_route_evidence")
+
     def test_a_published_email_is_direct_but_delivery_still_needs_evidence(self):
-        d = self.draft("buyer@example.com", channel="email")
+        d = self.draft("buyer@example.com", channel="email", route_evidence_url="https://example.com/team")
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
         approve_draft(self.db, d["id"])
         record_manual_send(self.db, d["id"], T1)
         self.assertEqual(report(self.db)["markets"][0]["attempted_delivery_unverified"], 1)

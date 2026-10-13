@@ -27,6 +27,7 @@ VALID = {
     "cta": "Want me to send the one-page experiment map?",
     "metric": "qualified_conversation_rate",
     "source_url": "https://example.com/managed-security",
+    "route_evidence_url": "https://example.com/team",
 }
 
 

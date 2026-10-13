@@ -619,7 +619,10 @@ IDENTITY_COLUMNS = (
 # credited to a product's market; without it the workbench's events belonged to nothing.
 DRAFT_COLUMNS = (("experiment_id", "TEXT NOT NULL DEFAULT ''"), ("subject", "TEXT NOT NULL DEFAULT ''"),
                  # Added 2026-10-06: why a draft left the active queue (held or rejected), kept with it.
-                 ("status_reason", "TEXT NOT NULL DEFAULT ''"), ("held_at", "TEXT"))
+                 ("status_reason", "TEXT NOT NULL DEFAULT ''"), ("held_at", "TEXT"),
+                 # Added 2026-10-13: the page where an email route was seen published. Without it an
+                 # email is an address, not a verified route (a guessed address once read as direct).
+                 ("route_evidence_url", "TEXT NOT NULL DEFAULT ''"))
 
 OUTREACH_COLUMNS = (
     ("stage", "TEXT NOT NULL DEFAULT 'sent_awaiting_reply'"),
