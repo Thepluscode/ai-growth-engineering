@@ -405,10 +405,27 @@ def check_plan(db_path: str, experiment_id: str, *, since: str = "", until: str 
             {"purpose": "governed threads with every message in them, bounces included", "include_trash": True,
              "query": f"in:sent after:{after}{before} (" + " OR ".join(f"to:{a}" for a in recipients) + ")"},
         ],
-        "then": "fetch the full body (get_message, PLAIN_TEXT) of any inbound message that only has a snippet, "
-                "save everything as one JSON payload, and run: age replies check PAYLOAD --experiment "
+        "then": "fetch the full body (get_message, PLAIN_TEXT) of any inbound message that only has a snippet; "
+                "for each governed thread the searches did not return, call get_thread once and, if the connector "
+                "cannot return it, list it in the payload as \"unavailable_threads\": [{\"id\": ..., \"reason\": "
+                "<the connector's error>}]; save everything as one JSON payload, and run: age replies check PAYLOAD --experiment "
                 f"{experiment_id} --mailbox <sending address>",
     }
+
+
+def coverage(governed: set[str], messages: list[dict], payload) -> dict:
+    """Whether the payload reached every governed thread. A governed thread the search did not return is
+    one a reply could sit in unseen, so its absence downgrades the check: zero replies found in a
+    PARTIAL_COVERAGE check is not zero replies. A thread the connector confirmed unavailable (listed in
+    the payload's "unavailable_threads" as {"id", "reason"}) is explained, still not examined."""
+    seen = governed & {m["source_thread_id"] for m in messages}
+    missing = sorted(governed - seen)
+    listed = payload.get("unavailable_threads") if isinstance(payload, dict) else None
+    unavailable = {str(u.get("id")): str(u.get("reason") or "") for u in listed or [] if isinstance(u, dict)}
+    return {"status": "COMPLETE" if not missing else "FAILED" if not seen else "PARTIAL_COVERAGE",
+            "governed_threads": len(governed), "threads_returned": len(seen), "missing_threads": missing,
+            "confirmed_unavailable": {t: unavailable[t] for t in missing if t in unavailable},
+            "unexplained_missing": [t for t in missing if t not in unavailable]}
 
 
 def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str = "", until: str = "") -> dict:
@@ -419,7 +436,8 @@ def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str
     threads, recipients = {r["thread_id"] for r in rows}, {r["recipient"] for r in rows}
     start, mailbox = since or rows[0]["sent_at"][:10], _address(mailbox)
     in_scope, held, out_of_scope, own = [], [], 0, 0
-    for message in gmail_messages(payload):
+    messages = gmail_messages(payload)
+    for message in messages:
         day = message["occurred_at"][:10]
         governed = message["source_thread_id"] in threads or (
             message["sender"] in recipients and message["source_thread_id"] not in foreign)
@@ -447,6 +465,7 @@ def check(db_path: str, experiment_id: str, payload, *, mailbox: str, since: str
     summary = {
         "experiment_id": experiment_id, "window": [start, until or "open"],
         "threads_checked": len(threads), "recipients_checked": len(recipients),
+        "coverage": coverage(threads, messages, payload),
         "out_of_scope_dropped": out_of_scope, "own_messages": own,
         "inbound_found": len(in_scope) + len(held), "already_processed": counts.get("already_captured", 0),
         "needs_full_body": held, "new_candidates": new,
@@ -478,7 +497,13 @@ def render_check(s: dict) -> str:
              f"Canonical writes by this check: {s['canonical_writes']}"]
     if s["needs_full_body"]:
         lines.append(f"Held back, snippet only (fetch the full body, then re-run): {len(s['needs_full_body'])}")
-    lines.append(f"REAL BUYER REPLIES FOUND: {s['real_buyer_replies']}")
+    cov = s.get("coverage") or {"status": "FAILED", "threads_returned": 0, "governed_threads": s["threads_checked"],
+                                "confirmed_unavailable": {}, "unexplained_missing": []}
+    lines.append(f"Coverage: {cov['status']} ({cov['threads_returned']} of {cov['governed_threads']} governed threads "
+                 f"returned; {len(cov['confirmed_unavailable'])} confirmed unavailable, "
+                 f"{len(cov['unexplained_missing'])} unexplained)")
+    found = f"REAL BUYER REPLIES FOUND: {s['real_buyer_replies']}"
+    lines.append(found if cov["status"] == "COMPLETE" else f"{found} ({cov['status']}: not an exhaustive check)")
     return "\n".join(lines)
 
 

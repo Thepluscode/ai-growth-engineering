@@ -12,6 +12,7 @@ from ai_growth_engineering.funnel_events import effective_events, event_id_for, 
 from ai_growth_engineering.marketing_engineer import render_status, status_report
 from ai_growth_engineering.reply_capture import (
     ReplyCaptureError, approve, candidate, candidate_id_for, capture, check, check_plan, gmail_messages,
+    render_check,
     import_outbound_sends, link_outbound, reject, review,
 )
 from ai_growth_engineering.revenue_loop import compute_metrics, diagnose_funnel, money_graph_for_entity, totals
@@ -309,6 +310,29 @@ class ReplyCheckTests(ReplyCaptureCase):
         self.assertEqual({c["kind"] for c in (self.get("r2"), self.get("r3"))}, {"BOUNCE", "OUT_OF_OFFICE"})
         with self.assertRaises(ReplyCaptureError):
             self.get("r5")
+
+    def test_a_missing_governed_thread_is_never_a_complete_negative(self):
+        # Regression, 2026-10-14: EXP-ACQ-0006 returned 18 of 21 governed threads and the check still read
+        # "Threads checked: 21 ... REAL BUYER REPLIES FOUND: 0", which is a complete negative it had not earned.
+        full = list(self.payload["threads"])
+        self.payload["threads"] = [t for t in full if t["id"] not in ("t-acme", "t-beta")]
+        summary = self.run_check()
+        self.assertEqual((summary["coverage"]["status"], summary["coverage"]["threads_returned"],
+                          summary["coverage"]["missing_threads"], summary["real_buyer_replies"]),
+                         ("PARTIAL_COVERAGE", 1, ["t-acme", "t-beta"], 0))
+        text = render_check(summary)
+        self.assertIn("REAL BUYER REPLIES FOUND: 0 (PARTIAL_COVERAGE: not an exhaustive check)", text)
+        self.assertNotIn("REAL BUYER REPLIES FOUND: 0\n", text + "\n")
+        self.payload["unavailable_threads"] = [{"id": "t-beta", "reason": "Requested entity was not found."}]
+        explained = self.run_check()["coverage"]
+        self.assertEqual((explained["status"], explained["confirmed_unavailable"], explained["unexplained_missing"]),
+                         ("PARTIAL_COVERAGE", {"t-beta": "Requested entity was not found."}, ["t-acme"]))
+        self.payload["threads"] = [t for t in self.payload["threads"] if t["id"] == "t-news"]
+        self.assertEqual(self.run_check()["coverage"]["status"], "FAILED")
+        self.payload["threads"] = full
+        complete = self.run_check()
+        self.assertEqual((complete["coverage"]["status"], complete["coverage"]["missing_threads"]), ("COMPLETE", []))
+        self.assertIn("REAL BUYER REPLIES FOUND: 1\n", render_check(complete) + "\n")
 
     def test_a_check_writes_candidates_only_and_a_rerun_adds_nothing(self):
         before = self.sends()
