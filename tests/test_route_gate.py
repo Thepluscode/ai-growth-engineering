@@ -12,7 +12,7 @@ from ai_growth_engineering.demand_funnel import report
 from ai_growth_engineering.outbound_workbench import (
     DIRECT_VERIFIED, PROFILE_VERIFIED, ROUTE_UNVERIFIED, WorkbenchError, approve_draft, create_draft,
     get_draft, hold_draft, record_connection_accepted, record_connection_request, record_delivery,
-    record_manual_send, reject_draft, route_status, workbench_state)
+    record_manual_send, reject_draft, route_status, verify_route, workbench_state)
 from ai_growth_engineering.storage import connect, init_db
 
 T1, T2, T3 = "2026-10-06T09:00:00+00:00", "2026-10-07T09:00:00+00:00", "2026-10-08T09:00:00+00:00"
@@ -20,8 +20,10 @@ PROFILE = "https://www.linkedin.com/in/example-buyer"
 
 
 TEAM = "https://example.com/team"
-PAGES = {TEAM: "<p>Contact: <a href='mailto:buyer@example.com'>buyer@example.com</a></p>",
-         "https://example.com/unrelated": "<p>No addresses here.</p>"}
+PAGES = {TEAM: "<p>Contact: <a href='mailto:buyer@example.com'>buyer@example.com</a>"
+               f" <a href='{PROFILE}'>LinkedIn</a></p>",
+         "https://example.com/unrelated": "<p>No addresses here.</p>",
+         "https://example.com/longer": f"<p><a href='{PROFILE}-2'>LinkedIn</a></p>"}
 
 
 class RouteGate(unittest.TestCase):
@@ -62,7 +64,7 @@ class RouteGate(unittest.TestCase):
         self.assertEqual(get_draft(self.db, d["id"])["status"], "approved")
 
     def test_profile_route_connects_first_and_delivers_only_after_acceptance(self):
-        d = self.draft(PROFILE)
+        d = self.draft(PROFILE, route=TEAM)
         with self.assertRaises(WorkbenchError) as ctx:
             record_connection_request(self.db, d["id"], T1)
         self.assertEqual(ctx.exception.code, "approval_required")
@@ -91,6 +93,47 @@ class RouteGate(unittest.TestCase):
         record_delivery(self.db, d["id"], "2026-10-09T09:00:00+00:00", "linkedin_seen_indicator")
         m = report(self.db)["markets"][0]
         self.assertEqual((m["delivered_to_named_buyers"], m["attempted_delivery_unverified"]), (1, 0))
+
+    def test_an_unpublished_profile_link_is_not_a_route(self):
+        """Found 2026-10-20: any https identity read as PROFILE_VERIFIED. 14 live drafts carried a
+        profile link with no page behind it, and an accepted request to one became DIRECT_VERIFIED."""
+        d = self.draft(PROFILE)
+        approve_draft(self.db, d["id"])
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
+        with self.assertRaises(WorkbenchError) as ctx:
+            record_connection_request(self.db, d["id"], T1)
+        self.assertEqual(ctx.exception.code, "route_not_connectable")
+        with self.assertRaises(WorkbenchError) as ctx:
+            self.draft(PROFILE, pid=2, route="https://example.com/unrelated")
+        self.assertEqual(ctx.exception.code, "route_not_on_page")
+        with connect(self.db) as con:
+            con.execute("""UPDATE outbound_drafts SET route_evidence_url = ?, route_verified_at = ?,
+                           route_verification = 'trust me' WHERE id = ?""", (TEAM, T1, d["id"]))
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
+
+    def test_an_existing_draft_gains_a_route_only_from_a_page_that_publishes_it(self):
+        d = self.draft(PROFILE)
+        with self.assertRaises(WorkbenchError) as ctx:
+            verify_route(self.db, d["id"], "https://example.com/unrelated")
+        self.assertEqual(ctx.exception.code, "route_not_on_page")
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
+        # Found 2026-10-20 (Codex review): a substring test let a longer profile link vouch for this one.
+        with self.assertRaises(WorkbenchError) as ctx:
+            verify_route(self.db, d["id"], "https://example.com/longer")
+        self.assertEqual(ctx.exception.code, "route_not_on_page")
+        verify_route(self.db, d["id"], TEAM)
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), PROFILE_VERIFIED)
+        self.assertIn("sha256", get_draft(self.db, d["id"])["route_verification"])
+
+    def test_an_accepted_request_to_an_unverified_profile_is_not_direct(self):
+        d = self.draft(PROFILE, route=TEAM)
+        approve_draft(self.db, d["id"])
+        record_connection_request(self.db, d["id"], T1)
+        record_connection_accepted(self.db, d["id"], T2)
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), DIRECT_VERIFIED)
+        with connect(self.db) as con:
+            con.execute("UPDATE outbound_drafts SET route_verification = '' WHERE id = ?", (d["id"],))
+        self.assertEqual(route_status(self.db, get_draft(self.db, d["id"])), ROUTE_UNVERIFIED)
 
     def test_a_guessed_email_is_not_a_route_and_cannot_be_sent(self):
         """Found 2026-10-13 (Codex review): any well-formed address read as DIRECT_VERIFIED, so a
@@ -154,7 +197,7 @@ class RouteGate(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "delivery_evidence_required")
 
     def test_held_and_rejected_drafts_leave_the_queue_with_their_reason(self):
-        held, rejected = self.draft(PROFILE, pid=1), self.draft(PROFILE, pid=2)
+        held, rejected = self.draft(PROFILE, pid=1, route=TEAM), self.draft(PROFILE, pid=2, route=TEAM)
         with self.assertRaises(WorkbenchError):
             hold_draft(self.db, held["id"], "")
         hold_draft(self.db, held["id"], "MARKET_PARKED")
@@ -168,7 +211,7 @@ class RouteGate(unittest.TestCase):
         self.assertEqual(workbench_state(self.db)["counts"]["pending_approval"], 0)
 
     def test_an_approval_can_be_withdrawn_only_before_the_buyer_is_contacted(self):
-        untouched, contacted = self.draft(PROFILE, pid=1), self.draft(PROFILE, pid=2)
+        untouched, contacted = self.draft(PROFILE, pid=1, route=TEAM), self.draft(PROFILE, pid=2, route=TEAM)
         for d in (untouched, contacted):
             approve_draft(self.db, d["id"])
         hold_draft(self.db, untouched["id"], "ROLE_AND_BUYER_FIT_UNVERIFIED")

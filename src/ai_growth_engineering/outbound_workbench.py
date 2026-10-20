@@ -123,6 +123,8 @@ def workbench_state(db_path: str) -> dict[str, Any]:
 # Written only by marketer.published_address_evidence after its own fetch; a row without it
 # (forged, or from before 2026-10-13) is not a route.
 ROUTE_EVIDENCE_METHOD = "exact address found on the fetched page; sha256 "
+# Written only by marketer.published_profile_evidence. Before 2026-10-20 a profile link needed none.
+PROFILE_EVIDENCE_METHOD = "profile link found on the fetched page; sha256 "
 
 
 def create_draft(db_path: str, values: Mapping[str, Any], *, route_source_url: str = "") -> dict[str, Any]:
@@ -150,17 +152,7 @@ def create_draft(db_path: str, values: Mapping[str, Any], *, route_source_url: s
     signal_ids = _signal_ids(values.get("signal_ids"))
     if not source_url.startswith(("https://", "http://")):
         raise WorkbenchError("invalid_source", "Observed claims require an http(s) source URL")
-    route: dict[str, Any] = {}
-    if route_source_url:
-        from datetime import datetime, timezone
-
-        from .marketer import published_address_evidence
-
-        method = published_address_evidence(identity, route_source_url) if channel == "email" else ""
-        if not method:
-            raise WorkbenchError("route_not_on_page", "the address is not published on that page")
-        route = {"url": route_source_url, "verified_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                 "method": method}
+    route = _fetched_route(identity, channel, route_source_url) if route_source_url else {}
     if observation.casefold() == hypothesis.casefold():
         raise WorkbenchError("fact_inference_blended", "Observation and hypothesis must differ")
     _validate_low_friction_cta(cta)
@@ -252,6 +244,31 @@ def create_draft(db_path: str, values: Mapping[str, Any], *, route_source_url: s
     return get_draft(db_path, draft_id)
 
 
+def _fetched_route(identity: str, channel: str, page_url: str) -> dict[str, Any]:
+    """Route evidence from fetching `page_url` here; a caller names the page, never the result."""
+    from datetime import datetime, timezone
+
+    from .marketer import published_address_evidence, published_profile_evidence
+
+    method = (published_address_evidence(identity, page_url) if channel == "email"
+              else published_profile_evidence(identity, page_url) if channel == "linkedin" else "")
+    if not method:
+        raise WorkbenchError("route_not_on_page", "the address or profile link is not published on that page")
+    return {"url": page_url, "verified_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "method": method}
+
+
+def verify_route(db_path: str, draft_id: int, page_url: str) -> dict[str, Any]:
+    """Attach route evidence to an existing draft by fetching the page that publishes its route."""
+    draft = get_draft(db_path, draft_id)
+    route = _fetched_route(str(draft["recipient_identity"]), draft["channel"], page_url)
+    with connect(db_path) as con:
+        con.execute("""UPDATE outbound_drafts SET route_evidence_url = ?, route_verified_at = ?,
+                       route_verification = ? WHERE id = ?""",
+                    (route["url"][:800], route["verified_at"], route["method"][:400], draft_id))
+    return {**get_draft(db_path, draft_id), "route": route_status(db_path, get_draft(db_path, draft_id))}
+
+
 def approve_draft(db_path: str, draft_id: int) -> dict[str, Any]:
     return _transition(
         db_path,
@@ -297,16 +314,18 @@ def route_status(db_path: str, draft: Mapping[str, Any]) -> str:
     return _route_status(draft, _draft_events(db_path, int(draft["id"])))
 
 
+def _published(draft: Mapping[str, Any], method: str) -> bool:
+    keys = draft.keys()
+    return (all(k in keys and draft[k] for k in ("route_evidence_url", "route_verified_at"))
+            and "route_verification" in keys and str(draft["route_verification"]).startswith(method))
+
+
 def _route_status(draft: Mapping[str, Any], event_types: set[str]) -> str:
+    # An address or profile link is a route only if a fetched page published it; a well-formed guess is not.
     identity = str(draft["recipient_identity"])
     if draft["channel"] == "email" and "@" in identity and " " not in identity:
-        # An address is only a route if a fetched page published it; a well-formed guess is not.
-        keys = draft.keys()
-        verified = (all(k in keys and draft[k] for k in ("route_evidence_url", "route_verified_at"))
-                    and "route_verification" in keys
-                    and str(draft["route_verification"]).startswith(ROUTE_EVIDENCE_METHOD))
-        return DIRECT_VERIFIED if verified else ROUTE_UNVERIFIED
-    if not identity.startswith("https://"):
+        return DIRECT_VERIFIED if _published(draft, ROUTE_EVIDENCE_METHOD) else ROUTE_UNVERIFIED
+    if not identity.startswith("https://") or not _published(draft, PROFILE_EVIDENCE_METHOD):
         return ROUTE_UNVERIFIED
     if "invitation_accepted" in event_types:
         return DIRECT_VERIFIED

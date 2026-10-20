@@ -29,7 +29,8 @@ from typing import Callable
 from urllib.parse import urlparse
 
 from . import registries
-from .outbound_workbench import DIRECT_VERIFIED, ROUTE_EVIDENCE_METHOD, WorkbenchError, create_draft, route_status
+from .outbound_workbench import (DIRECT_VERIFIED, PROFILE_EVIDENCE_METHOD, ROUTE_EVIDENCE_METHOD, WorkbenchError,
+                                create_draft, route_status)
 from .storage import connect, init_db
 
 DEFAULT_MODEL = "claude-sonnet-5"
@@ -225,7 +226,7 @@ def verify(candidate: dict, fetch: Fetch, exclude: set[str], suppressed: set[str
             notes.append("email_unverified_dropped")
             email = ""
     linkedin = c["linkedin_url"]
-    if linkedin and not (_LINKEDIN.fullmatch(linkedin) and _norm(linkedin).rstrip("/") in raw(c["person_source_url"])):
+    if linkedin and not (_LINKEDIN.fullmatch(linkedin) and _profile_on_page(linkedin, raw(c["person_source_url"]))):
         notes.append("linkedin_unverified_dropped")
         linkedin = ""
     if email and email.casefold() in suppressed:
@@ -247,6 +248,19 @@ def published_address_evidence(email: str, url: str) -> str:
     if not (_EMAIL.fullmatch(email) and _address_on_page(email, page)):
         return ""
     return ROUTE_EVIDENCE_METHOD + hashlib.sha256(page.encode()).hexdigest()
+
+
+def published_profile_evidence(profile: str, url: str) -> str:
+    """The profile-link twin of published_address_evidence: the same test verify() applies."""
+    page = html.unescape(fetch_page(url) or "").casefold()
+    if not (_LINKEDIN.fullmatch(profile) and _profile_on_page(profile, page)):
+        return ""
+    return PROFILE_EVIDENCE_METHOD + hashlib.sha256(page.encode()).hexdigest()
+
+
+def _profile_on_page(profile: str, page: str) -> bool:
+    """The whole link, not a prefix: /in/example-buyer must not match /in/example-buyer-2."""
+    return re.search(re.escape(_norm(profile).rstrip("/")) + r"(?![\w%-])", page) is not None
 
 
 def _address_on_page(email: str, page: str) -> bool:
@@ -409,7 +423,8 @@ def _store(db_path: str, ctx: dict, c: dict, draft: dict) -> int:
         "observation": f"Hi {first},\n\n{draft['observation']}", "economic_hypothesis": draft["economic_hypothesis"],
         "cta": draft["cta"], "metric": draft["metric"] or "qualified conversations",
         "source_url": c["evidence_url"], "experiment_id": ctx["experiment_id"], "subject": draft["subject"],
-    }, route_source_url=c["email_source_url"] if c["channel"] == "email" else "")["id"]
+    }, route_source_url=c["email_source_url"] if c["channel"] == "email"
+       else c["person_source_url"] if c["linkedin_url"] else "")["id"]
 
 
 def runs(db_path: str, limit: int = 20) -> list[dict]:

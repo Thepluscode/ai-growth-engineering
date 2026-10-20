@@ -133,6 +133,38 @@ Searching harder on public pages is unlikely to raise coverage much.
 
 Held drafts can't be approved or sent.
 
+### Route evidence correction (2026-10-20)
+
+The workbench read every `https://` identity as `PROFILE_VERIFIED`, so a profile link needed no
+fetched page while an email did (fixed for emails on 2026-10-13). Profiles now follow the same
+rule: `PROFILE_VERIFIED` needs evidence written by fetching a page that publishes the exact link,
+and an accepted connection on an unevidenced profile is not `DIRECT_VERIFIED`. `age draft
+verify-route <id> --url <page>` attaches evidence to an existing draft; it fetches the page itself.
+
+Effect on the live queue (20 open profile-link drafts before the fix):
+
+| Drafts | Result |
+|---|---|
+| #70, #71, #83, #84 | verified against the route page recorded in the evidence set → `PROFILE_VERIFIED` |
+| #87, #88 | connection requests already sent; no recorded page publishes the link → `ROUTE_UNVERIFIED` |
+| #90–#103 (14) | created together on 2026-10-13 with no marketer run and no route source; #90 and #95 refused against the pages on file → `ROUTE_UNVERIFIED` |
+
+No row was deleted and no event changed: the route fields of #70, #71, #83 and #84 were written,
+and every other draft's route state moved only in derivation. Each unresolved draft becomes a
+route again only when a page that publishes its link is named and fetched.
+
+Codex review (2026-10-20) found the "exact link" test was substring containment, so a page
+carrying only a longer profile link vouched for a shorter one. It now requires the whole link
+(regression test in `tests/test_route_gate.py`); the four verified drafts still pass. Two limits
+stand: `verify-route` writes its evidence fields without an event or a page snapshot, so the
+digest is not independently re-checkable; and a marketer candidate that `verify()` accepted can
+still be refused when `_store` refetches the page, because the second fetch can differ.
+
+**Sample size caveat for the 30-delivery gate.** At 30 verified deliveries per arm, a two-sided
+5% test with 80% power detects a reply-rate gap only from 10% to about 41%. Telling 10% from 15%
+needs about 686 per arm. `COMPARISON_ALLOWED` is an operational review threshold, not a powered
+test, and a difference read there is directional unless it is that large.
+
 ## Progressive evidence gates (verified named-buyer deliveries per arm)
 
 | Deliveries | Gate | What may be concluded |

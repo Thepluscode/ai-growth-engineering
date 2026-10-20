@@ -721,6 +721,7 @@ def cmd_draft(args: argparse.Namespace) -> None:
         "hold": lambda: wb.hold_draft(args.db, args.draft_id, args.reason),
         "reject": lambda: wb.reject_draft(args.db, args.draft_id, args.reason),
         "route": lambda: {"id": args.draft_id, "route": wb.route_status(args.db, wb.get_draft(args.db, args.draft_id))},
+        "verify-route": lambda: wb.verify_route(args.db, args.draft_id, args.url),
     }
     try:
         result = actions[args.action]()
@@ -1161,8 +1162,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("draft", help="record access steps (connect, accepted), delivery evidence, or hold/reject with a reason")
     dbarg(p)
-    p.add_argument("action", choices=("connect", "accepted", "delivered", "hold", "reject", "route"))
+    p.add_argument("action", choices=("connect", "accepted", "delivered", "hold", "reject", "route", "verify-route"))
     p.add_argument("draft_id", type=int)
+    p.add_argument("--url", default="", help="verify-route: the page that publishes the address or profile link")
     p.add_argument("--at", default="", help="when it happened (ISO date/time); required for connect/accepted/delivered")
     p.add_argument("--evidence", default="", help="delivered: the delivery evidence kind")
     p.add_argument("--reason", default="", help="hold/reject: why it left the queue")

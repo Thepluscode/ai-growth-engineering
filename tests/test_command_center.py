@@ -320,13 +320,19 @@ class CommandCenterServerTests(unittest.TestCase):
             "experiment_id": "EXP-ROUTE", "layer": "DEMAND", "protocol": "discovery-v1",
             "exposure_event": "message_sent", "positive_event": "reply_meaningful",
         })
+        profile = "https://www.linkedin.com/in/example-buyer"
+        pages = {"https://example.com/team": f"<a href='{profile}'>LinkedIn</a>"}
+        fetcher = patch("ai_growth_engineering.marketer.fetch_page", lambda url: pages.get(url, ""))
+        fetcher.start()
+        self.addCleanup(fetcher.stop)
         created = self.post("/api/outbound/drafts", {
-            "prospect_id": 1, "recipient_identity": "https://example.com/profile",
+            "prospect_id": 1, "recipient_identity": profile,
             "recipient_class": "named_buyer", "channel": "linkedin",
             "observation": "The public operations page describes a multi-system payment workflow.",
             "economic_hypothesis": "The team may spend material time reconstructing difficult exceptions.",
             "cta": "When did this last happen?", "metric": "qualified_conversation_rate",
             "source_url": "https://example.com/operations", "experiment_id": "EXP-ROUTE",
+            "route_source_url": "https://example.com/team",
         }, expected=201)
         draft_id = created["draft"]["id"]
         self.post(f"/api/outbound/drafts/{draft_id}/approve", {})
